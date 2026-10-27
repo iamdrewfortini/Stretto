@@ -13,7 +13,7 @@ cp -r "$B" "$WORK/tampered"; echo x >> "$WORK/tampered/LICENSE"; "$WORK/tampered
 P="$WORK/prefix"; env -u PIP_INDEX_URL PIP_NO_INDEX=1 "$B/installer/install.sh" --prefix "$P" --allowed-signers "$WORK/allowed" > "$WORK/install.log" 2>&1 || { tail -40 "$WORK/install.log"; exit 1; }
 "$P/bin/metacoh" version >/dev/null; "$P/bin/metacoh" doctor | tail -1; test -f "$P/include/wf13d_core.h" && test -f "$P/lib/libwf13d_core.so" && test -f "$P/lib/pkgconfig/ant.pc"
 "$B/installer/install.sh" --prefix "$P" --allowed-signers "$WORK/allowed" > "$WORK/upgrade.log" 2>&1 || { tail -20 "$WORK/upgrade.log"; exit 1; }
-"$B/installer/install.sh" --prefix "$P" --uninstall >/dev/null; LEFT="$(find "$P" -mindepth 1 2>/dev/null | wc -l)"
+"$B/installer/install.sh" --prefix "$P" --uninstall >/dev/null; LEFT="$({ find "$P" -mindepth 1 2>/dev/null || true; } | wc -l)"         # a prefix that no longer exists has 0 leftovers
 [ "$LEFT" = 0 ] || { echo "files left after uninstall: $LEFT"; find "$P"; exit 1; }
 rm -rf "$WORK/fail" && mkdir "$WORK/fail"; cp -r "$B" "$WORK/broken"; sed -i 's/^metacoh==/metacoh-nonexistent==/' "$WORK/broken/wheelhouse/requirements.lock"
 ( cd "$WORK/broken" && sha256sum wheelhouse/requirements.lock >/dev/null; grep -v ' wheelhouse/requirements.lock$' SHA256SUMS > S && sha256sum wheelhouse/requirements.lock >> S && mv S SHA256SUMS && rm -f SHA256SUMS.sig )
