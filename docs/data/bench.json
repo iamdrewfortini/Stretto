@@ -1,0 +1,12 @@
+{
+ "ant_speedup": 17.1,
+ "host": "Linux x86_64, Python 3.13.5",
+ "py_ant_ns": 583.0,
+ "py_table_ms": 3288.7,
+ "py_word_ns": 8387.0,
+ "rs_ant_ns": 34.0,
+ "rs_table_ms": 5.0,
+ "rs_word_ns": 18.8,
+ "table_speedup": 657.7,
+ "word_speedup": 446.1
+}
