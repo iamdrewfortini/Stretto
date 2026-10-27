@@ -3,6 +3,7 @@
 # Proves the C ABI from real C and C++: builds the two smoke programs against the release shared libraries and checks the printed values against the Python reference.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; LIB="${1:-$ROOT/crates/target/release}"; TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+cargo build --release --locked --manifest-path "$ROOT/crates/Cargo.toml" >/dev/null
 for CC in gcc g++; do
   SRC="$ROOT/crates/examples-c/smoke.$([ "$CC" = gcc ] && echo c || echo cpp)"
   "$CC" -Wall -Wextra -o "$TMP/smoke-$CC" "$SRC" -I"$ROOT/crates/include" -L"$LIB" -lwf13d_core -lant -Wl,-rpath,"$LIB"

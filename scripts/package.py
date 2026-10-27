@@ -25,9 +25,12 @@ def main():
     for d in ("wheelhouse", "native/lib/pkgconfig", "native/include", "installer", "docs"): os.makedirs(os.path.join(bundle, d), exist_ok=True)
     os.makedirs(os.path.join(dist, "sdist"))
     pk = sorted(d for d in os.listdir(os.path.join(ROOT, "packages")) if os.path.isdir(os.path.join(ROOT, "packages", d)))
-    for p in pk:
-        sh([sys.executable, "-m", "build", "--wheel", "--outdir", os.path.join(bundle, "wheelhouse"), os.path.join(ROOT, "packages", p)], env=env)
-        sh([sys.executable, "-m", "build", "--sdist", "--outdir", os.path.join(dist, "sdist"), os.path.join(ROOT, "packages", p)], env=env)
+    import tempfile
+    for p in pk:                                    # build from a clean temporary copy: building in place would write build/ and *.egg-info into the tree and dirty it
+        with tempfile.TemporaryDirectory() as tmp:
+            work = os.path.join(tmp, p); shutil.copytree(os.path.join(ROOT, "packages", p), work, ignore=shutil.ignore_patterns("build", "*.egg-info", "__pycache__", "dist"))
+            sh([sys.executable, "-m", "build", "--wheel", "--outdir", os.path.join(bundle, "wheelhouse"), work], env=env)
+            sh([sys.executable, "-m", "build", "--sdist", "--outdir", os.path.join(dist, "sdist"), work], env=env)
     wheels = sorted(glob.glob(os.path.join(bundle, "wheelhouse", "*.whl")))
     with open(os.path.join(bundle, "wheelhouse", "requirements.lock"), "w") as f:
         for w in wheels:
