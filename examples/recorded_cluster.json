@@ -1,0 +1,11 @@
+{
+  "recorded": "reference 3-node cluster, measured 2026-10-26 from a read-only inventory",
+  "nodes": ["node-a", "node-b", "node-c"],
+  "threads": [24, 12, 64],
+  "allocated_vcpu": [14, 25, 80],
+  "ram_gib": [31.2, 31.2, 125.6],
+  "allocated_ram_gib": [20.5, 27.0, 89.0],
+  "cluster_commit": {"cpu": 1.19, "ram": 0.7257},
+  "wf13d_known_bits": ["WHAT", "WHY", "HOW"],
+  "unmeasured_axes": ["speed", "energy", "scale"]
+}
