@@ -1,0 +1,15 @@
+[package]
+name = "wf13d-core"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "WF-13D bridge arithmetic: one 18-bit address word, a 4-byte packed answer, bit-exact with the Python reference."
+
+[lib]
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]

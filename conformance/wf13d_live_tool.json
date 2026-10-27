@@ -1,0 +1,229 @@
+{
+ "outputs": {
+  "00.00.000": {
+   "ask": [
+    "WHAT",
+    "WHY",
+    "WHO",
+    "WHERE",
+    "WHEN",
+    "HOW"
+   ],
+   "c": "REPAIR",
+   "known": [],
+   "max_q": 2,
+   "out": "ProblemStatement>FixRecord",
+   "path": "D01 D02 D03 D04 D05 D08 D10",
+   "ready": 0,
+   "s": "000000D",
+   "stops": [],
+   "t": "ID.CL.RV.SO.ER.PF",
+   "where_res": null
+  },
+  "01.00.000": {
+   "ask": [
+    "WHAT",
+    "WHY",
+    "WHO",
+    "WHERE",
+    "WHEN",
+    "HOW"
+   ],
+   "c": "SYMPTOM",
+   "known": [],
+   "max_q": 2,
+   "out": "ProblemStatement",
+   "path": "D01 D02 D03 D04 D05 D08 D10",
+   "ready": 0,
+   "s": "000000D",
+   "stops": [],
+   "t": "ID.CL.RV.SO.ER.PF",
+   "where_res": null
+  },
+  "05.50.100": {
+   "ask": [
+    "HOW",
+    "WHERE",
+    "WHEN"
+   ],
+   "c": "TINKER",
+   "known": [
+    "WHO",
+    "WHAT",
+    "WHY"
+   ],
+   "max_q": 3,
+   "out": "ProblemStatement>ExperimentLog",
+   "path": "D01 D02 D03 D04 D05 D08 D10 D11",
+   "ready": 0.5,
+   "s": "110010D",
+   "stops": [],
+   "t": "AR.CP.RV.SO.EP.PF",
+   "where_res": null
+  },
+  "07.63.127": {
+   "ask": [],
+   "c": "DREAM",
+   "known": [
+    "WHO",
+    "WHAT",
+    "WHERE",
+    "WHEN",
+    "WHY",
+    "HOW"
+   ],
+   "max_q": 1,
+   "out": "ProblemStatement",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11 D12 D13",
+   "ready": 1,
+   "s": "111111U",
+   "stops": [
+    "S2",
+    "S3"
+   ],
+   "t": "AR.CP.IR.MU.EP.PB",
+   "where_res": null
+  },
+  "08.45.003": {
+   "ask": [
+    "WHEN",
+    "WHERE",
+    "WHO",
+    "WHAT",
+    "WHY"
+   ],
+   "c": "INCIDENT",
+   "known": [
+    "HOW"
+   ],
+   "max_q": 1,
+   "out": "ProblemStatement>Postmortem",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11",
+   "ready": 0.167,
+   "s": "000001U",
+   "stops": [
+    "S2",
+    "S4",
+    "S6"
+   ],
+   "t": "AR.CL.IR.MU.ER.PB",
+   "where_res": "jurisdiction"
+  },
+  "12.09.005": {
+   "ask": [
+    "WHEN",
+    "WHERE",
+    "WHAT",
+    "WHO",
+    "HOW"
+   ],
+   "c": "PROJECT",
+   "known": [
+    "WHY"
+   ],
+   "max_q": 1,
+   "out": "ProblemStatement>Decomposition",
+   "path": "D01 D02 D03 D04 D05 D09 D10",
+   "ready": 0.167,
+   "s": "000010U",
+   "stops": [
+    "S2",
+    "S4"
+   ],
+   "t": "ID.CL.IR.SO.ER.PB",
+   "where_res": "jurisdiction"
+  },
+  "15.07.072": {
+   "ask": [
+    "WHAT",
+    "WHERE",
+    "WHY",
+    "HOW"
+   ],
+   "c": "FRONTIER",
+   "known": [
+    "WHO",
+    "WHEN"
+   ],
+   "max_q": 2,
+   "out": "ProblemStatement>QuestionRegister",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D10 D12 D13",
+   "ready": 0.333,
+   "s": "100100D",
+   "stops": [],
+   "t": "ID.CL.RV.MU.EP.PB",
+   "where_res": "jurisdiction"
+  },
+  "22.36.064": {
+   "ask": [
+    "WHAT",
+    "WHY",
+    "WHERE",
+    "WHEN",
+    "HOW"
+   ],
+   "c": "MASTERY",
+   "known": [
+    "WHO"
+   ],
+   "max_q": 2,
+   "out": "ProblemStatement>LearningRecord",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D10 D11 D12 D13",
+   "ready": 0.167,
+   "s": "100000D",
+   "stops": [],
+   "t": "AR.CL.RV.MU.ER.PF",
+   "where_res": null
+  },
+  "29.62.020": {
+   "ask": [
+    "WHAT",
+    "WHO",
+    "HOW",
+    "WHEN"
+   ],
+   "c": "EXPLORATION",
+   "known": [
+    "WHERE",
+    "WHY"
+   ],
+   "max_q": 2,
+   "out": "ProblemStatement>ExperimentSpec",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11",
+   "ready": 0.333,
+   "s": "001010D",
+   "stops": [
+    "S2",
+    "S3",
+    "S6"
+   ],
+   "t": "AR.CP.IR.MU.EP.PF",
+   "where_res": null
+  },
+  "31.63.127": {
+   "ask": [],
+   "c": "MOVEMENT",
+   "known": [
+    "WHO",
+    "WHAT",
+    "WHERE",
+    "WHEN",
+    "WHY",
+    "HOW"
+   ],
+   "max_q": 1,
+   "out": "ProblemStatement>PrincipleRecord",
+   "path": "D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11 D12 D13",
+   "ready": 1,
+   "s": "111111U",
+   "stops": [
+    "S2",
+    "S3",
+    "S6"
+   ],
+   "t": "AR.CP.IR.MU.EP.PB",
+   "where_res": null
+  }
+ },
+ "recorded": "2026-10-27 outputs of the live WF-13D tool (wf13d_addr) for these addresses"
+}

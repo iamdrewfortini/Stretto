@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metacoh-metarouter"
+version = "0.1.0"
+description = "Meta-only model policy and speed-aware routing"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "iamdrewfortini and contributors" }]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: POSIX :: Linux", "Intended Audience :: Developers", "Topic :: Scientific/Engineering"]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]

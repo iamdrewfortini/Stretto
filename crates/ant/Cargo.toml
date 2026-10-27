@@ -1,0 +1,11 @@
+[package]
+name = "ant"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Langton's ant run until its flip pattern locks (highway), with a frontier-clean guarantee check. Bit-exact with the Python reference."
+
+[lib]
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
