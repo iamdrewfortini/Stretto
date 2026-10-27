@@ -41,7 +41,7 @@ Offline, hash-pinned, rollback-safe, with an uninstall receipt: see [docs/PACKAG
 | `cells` | a micro cell: WF-13D gating, policy, routing, provenance |
 | `perception`, `humanflow`, `assistant`, `finetune` | consent-first capture, owner-only time ledger with private roll-ups, a focus-respecting assistant, a consent-gated fine-tuning gate |
 | `handoff` | an expert's work as a verified procedure graph: find gaps, ask one question each, guide a trainee; step scoring with its threshold curve and its blind spots ([docs/SCORING.md](docs/SCORING.md)) |
-| `resonate` | present a measurement in the form this person understands; a tone whose beat vanishes when both sides agree |
+| `resonate` | present a measurement in the form this person understands; a tone whose beat vanishes when both sides agree; the 88-key frequency layout and the polyrhythm clock ([docs/SOUND.md](docs/SOUND.md)) |
 | `metacoh` | umbrella package and the `metacoh doctor` self-check |
 | `crates/` | Rust ports of the hot paths with a C ABI, checked bit for bit against Python [C:rust-conformance] |
 

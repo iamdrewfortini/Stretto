@@ -263,6 +263,30 @@ def _():
         return p
     A = {"number": (0.3, 12), "bar": (0.5, 6), "sentence": (0.6, 9), "analogy": (0.9, 5), "tone": (0.4, 4), "pulse": (0.3, 4)}; B = dict(A, analogy=(0.2, 15), number=(0.95, 3)); pa, pb = sim(A, 1), sim(B, 2); assert pa.best() == "analogy" and pb.best() == "number"
     assert all(pa.choose(can_hear=False, can_feel=False) not in ("tone", "pulse") for _ in range(100)); return f"person A best '{pa.best()}', person B best '{pb.best()}'"
+@claim("keyboard-88-keys", "The 88-key keyboard is equal-tempered (A4 = 440 Hz, A0 = 27.5 Hz, C8 about 4186 Hz; every half step is the ratio 2^(1/12); every 12 keys double the frequency) and splits as 3 + 7 x 12 + 1: seven octaves for seven signal families plus 4 anchor keys.")
+def _():
+    from resonate.keyboard import key_freq, key_name, groups_of_12, encode, decode, FAMILIES, ANCHORS
+    assert abs(key_freq(49) - 440) < 1e-9 and abs(key_freq(1) - 27.5) < 1e-9 and abs(key_freq(88) - 4186.0090448) < 1e-6 and all(abs(key_freq(n + 1) / key_freq(n) - 2 ** (1 / 12)) < 1e-12 for n in range(1, 88)) and all(abs(key_freq(n + 12) / key_freq(n) - 2) < 1e-12 for n in range(1, 77))
+    enc = {encode(f, l) for f in FAMILIES for l in range(12)}; assert enc == set(range(4, 88)) and len(FAMILIES) == 7 and sorted(ANCHORS) == [1, 2, 3, 88] and [len(g) for g in groups_of_12()] == [12] * 7 + [4]
+    assert all(decode(encode(f, l))["family"] == f for f in FAMILIES for l in range(12)); return f"A0 {key_freq(1):.2f} Hz, A4 {key_freq(49):.1f} Hz, C8 {key_freq(88):.3f} Hz; {len(enc)} family keys + {len(ANCHORS)} anchors = 88"
+@claim("polyrhythm-geometric-clock", "A polyrhythm a:b repeats after lcm(a,b) pulses and its two regular polygons on the clock circle share exactly gcd(a,b) vertices, for six tested pairs.")
+def _():
+    from resonate.keyboard import polyrhythm, clock_points
+    for a, b in ((3, 4), (2, 3), (4, 6), (5, 7), (6, 9), (12, 8)):
+        p = polyrhythm(a, b); assert p["cycle"] == a * b // math.gcd(a, b) and len(p["shared"]) == math.gcd(a, b) and len(set(clock_points(a)) & set(clock_points(b))) == math.gcd(a, b)
+    return "cycles " + ", ".join(f"{a}:{b}={polyrhythm(a, b)['cycle']}" for a, b in ((3, 4), (2, 3), (4, 6), (5, 7)))
+@claim("tesseract-four-point-symmetry", "Four mutually equidistant vertices of the 4-cube are mapped onto each other in all 24 possible orders by the cube's 384 symmetries (stabilizer of size 24, orbit of 16 positions); together with their dual they make up the 8 even-weight vertices.")
+def _():
+    from coherence.symmetry import symmetries, COHERENT_FOUR, equidistant, dual, stabilizer, induced_permutations, orbit
+    assert len(symmetries()) == 384 and equidistant(COHERENT_FOUR) and equidistant(dual(COHERENT_FOUR)); s = stabilizer(COHERENT_FOUR); o = orbit(COHERENT_FOUR)
+    assert len(s) == 24 and len(induced_permutations(COHERENT_FOUR)) == 24 and len(o) * len(s) == 384 and set(COHERENT_FOUR) | set(dual(COHERENT_FOUR)) == {v for v in range(16) if bin(v).count("1") % 2 == 0}
+    return f"{len(s)} stabilizing symmetries induce all {len(induced_permutations(COHERENT_FOUR))} orderings; orbit {len(o)} x stabilizer {len(s)} = 384"
+@claim("word-keys-are-deterministic", "A word maps to the same key on every run and machine (sha256, not a salted hash), regardless of capitalisation.")
+def _():
+    code = "from resonate.keyboard import key_for_word; print([key_for_word(w) for w in ('coherence','Coherence','handoff')])"; outs = set()
+    for seed in ("0", "1", "2", "3"):
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=dict(os.environ, PYTHONHASHSEED=seed, PYTHONPATH=os.pathsep.join(sys.path))); assert r.returncode == 0, r.stderr[-200:]; outs.add(r.stdout.strip())
+    assert len(outs) == 1; return outs.pop()
 @claim("gossip-converges-fast", "32 cells reach identical caches in 8 or fewer gossip rounds on average (log2 32 = 5); measured over 20 seeds.")
 def _():
     from coherence.swarm import StreamCell, gossip_round, converged

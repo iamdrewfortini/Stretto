@@ -13,6 +13,8 @@ Every figure is generated from the code and recorded data by `python scripts/mak
 | ![](figures/attention-mirror.svg) | **The mirror.** Human and machine attention over the 13 loop dimensions, and where they disagree | [C:mirror-properties] |
 | ![](figures/handoff-graph.svg) | **Handoff.** A procedure as a graph; a deleted step and the gap the checker reports | [C:handoff-removal-flagged] |
 | ![](figures/step-scores.svg) | **Step scores.** One extraction scored at different matcher thresholds; agreement between the two signals as effects get noisier | [C:step-score-threshold-swing] [C:step-signal-agreement] [C:step-score-booster-safe] |
+| ![](figures/piano-keyboard.svg) | **Keyboard.** The 88 keys as seven signal families and four anchors, tuned in equal temperament | [C:keyboard-88-keys] |
+| ![](figures/polyrhythm-clock.svg) | **Clock.** Polyrhythms as regular polygons on one circle | [C:polyrhythm-geometric-clock] |
 | ![](figures/privacy-flow.svg) | **Privacy.** Every arrow passes a gate; each gate has a test | [C:consent-default-deny] [C:rollup-privacy] |
 | ![](figures/gossip.svg) | **Cache to cache.** Rounds for all cells to hold identical state, versus number of cells | [C:gossip-converges-fast] |
 | ![](figures/speed.svg) | **Native speed.** Python versus Rust on the same machine | [C:rust-faster] |

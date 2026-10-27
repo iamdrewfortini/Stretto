@@ -165,6 +165,43 @@ def fig_step_scores():
     s.rect(bx + 10, oy + 6, 10, 10, GREEN); s.text(bx + 26, oy + 15, "kappa (words vs effects)", 11); s.rect(bx + 190, oy + 6, 10, 10, BLUE, None, 0, op=.55); s.text(bx + 206, oy + 15, "F1 of the boosted scorer", 11)
     s.text(60, 352, "Recall of the same extraction moves from 0.99 to 0.61 with the threshold, so every score is reported with its threshold curve, never as a single number.", 11, fill=MUTE); s.text(60, 372, "Everything here is on a SIMULATED extractor and saturates near 1.0: it cannot rank matchers on hard data (docs/SCORING.md).", 11, fill=MUTE)
     return s
+def fig_piano():
+    from resonate.keyboard import NOTES, FAMILIES, key_name
+    cols = ["#2563eb", "#7c3aed", "#db2777", "#d97706", "#15803d", "#0891b2", "#b45309"]; anchor = "#6b7280"
+    s = Svg(860, 330, "The 88-key keyboard as a coordinate system"); s.text(430, 24, "88 keys = 3 + 7 octaves of 12 half steps + 1: seven signal families and four anchors", 15, "middle", weight="700")
+    wk, wh, bh, x0, y0 = 16, 130, 80, 14, 110; white = 0; pos = {}
+    for n in range(1, 89):
+        name = NOTES[(n + 8) % 12]
+        if "#" not in name: pos[n] = (x0 + white * wk, False); white += 1
+        else: pos[n] = (x0 + white * wk - 5, True)
+    def color(n): return anchor if n in (1, 2, 3, 88) else cols[(n - 4) // 12]
+    for n in range(1, 89):
+        x, black = pos[n]
+        if not black: s.rect(x, y0, wk - 1, wh, color(n), "white", 1, op=.55)
+    for n in range(1, 89):
+        x, black = pos[n]
+        if black: s.rect(x, y0, 10, bh, color(n), INK, 1)
+    for i, fam in enumerate(FAMILIES):
+        a, b = 4 + i * 12, 15 + i * 12; xa, xb = pos[a][0], pos[b][0] + wk; s.line(xa, 96, xb - 2, 96, cols[i], 3); s.text((xa + xb) / 2, 88, fam.replace("_", " "), 10, "middle", cols[i], "700"); s.text((xa + xb) / 2, y0 + wh + 16, f"{key_name(a)}..{key_name(b)}", 10, "middle", MUTE)
+    for n, lab in ((1, "A0 27.5 Hz"), (49, "A4 440 Hz"), (88, "C8 4186 Hz")): s.text(pos[n][0] + 8, y0 + wh + 34, lab, 10, "middle", INK, "700")
+    s.text(14, 60, "grey = the 4 anchor keys (the four coherence points); each coloured octave = 12 half steps = one signal family; each step up multiplies the frequency by 2^(1/12)", 11, fill=MUTE)
+    s.text(14, 292, "encode(family, level 0..11) puts a quantised measurement on a key; words map to keys with sha256, so the same word is the same key everywhere.", 11, fill=MUTE); s.text(14, 312, "Every 12th key up exactly doubles the frequency. Middle C is key 40 (261.63 Hz).", 11, fill=MUTE)
+    return s
+def fig_clock():
+    from resonate.keyboard import clock_points, polyrhythm
+    s = Svg(860, 330, "Polyrhythm on a geometric clock"); s.text(430, 24, "Polyrhythm = two regular polygons on one circle; shared vertices are the beats that coincide", 15, "middle", weight="700")
+    for k, (a, b) in enumerate(((3, 4), (2, 4), (3, 6))):
+        cx, cy, R = 140 + k * 290, 170, 100; p = polyrhythm(a, b); s.circle(cx, cy, R, "none", GRID)
+        for n, col in ((a, BLUE), (b, ORANGE)):
+            pts = clock_points(n); xy = [(cx + R * x, cy - R * y) for x, y in pts]
+            if n > 2:
+                for i in range(n): s.line(xy[i][0], xy[i][1], xy[(i + 1) % n][0], xy[(i + 1) % n][1], col, 2)
+            else: s.line(xy[0][0], xy[0][1], xy[1][0], xy[1][1], col, 2)
+            for x, y in xy: s.circle(x, y, 5, col)
+        shared = set(clock_points(a)) & set(clock_points(b))
+        for x, y in shared: s.circle(cx + R * x, cy - R * y, 9, "none", GREEN)
+        s.text(cx, 295, f"{a} against {b}: repeats every {p['cycle']} pulses", 12, "middle", INK, "700"); s.text(cx, 313, f"{len(shared)} shared vertices (gcd = {len(shared)})", 11, "middle", GREEN)
+    return s
 def fig_privacy():
     s = Svg(860, 330, "Privacy flow: every arrow passes a gate that has a test"); s.text(430, 24, "Data path: nothing moves without a gate, and no gate is optional", 15, "middle", weight="700")
     steps = [("person", "owns all data"), ("consent gate", "default deny · expiry · revoke"), ("describe(frame)", "injected Meta model"), ("redact", "PII patterns · Luhn"), ("event", "no media field"), ("personal ledger", "owner-only reads"), ("shared summary", "owner chooses"), ("roll-up", "k ≥ 5 · clip · noise")]
@@ -218,7 +255,7 @@ def fig_pipeline():
     s.arrow(430, 102, 430, 190, MUTE, 1.5, "4 3"); s.text(440, 150, "install.sh", 12, weight="700"); s.text(30, 280, "Linux x86_64 is tested end to end. The Windows installer is written but untested; macOS is not supported yet.", 11, fill=MUTE)
     return s
 FIGS = [("architecture", fig_architecture), ("wf13d-address", fig_wf13d), ("distance-from-coherence", fig_distance), ("ant-highway", fig_ant), ("ant-steps", fig_ant_steps), ("tesseract", fig_tesseract),
-        ("attention-mirror", fig_mirror), ("handoff-graph", fig_handoff), ("step-scores", fig_step_scores), ("privacy-flow", fig_privacy), ("gossip", fig_gossip), ("speed", fig_speed), ("pipeline", fig_pipeline)]
+        ("attention-mirror", fig_mirror), ("handoff-graph", fig_handoff), ("step-scores", fig_step_scores), ("piano-keyboard", fig_piano), ("polyrhythm-clock", fig_clock), ("privacy-flow", fig_privacy), ("gossip", fig_gossip), ("speed", fig_speed), ("pipeline", fig_pipeline)]
 def main():
     check = "--check" in sys.argv; out = tempfile.mkdtemp() if check else os.path.join(ROOT, "docs", "figures"); os.makedirs(out, exist_ok=True); bad = []
     for name, fn in FIGS:
