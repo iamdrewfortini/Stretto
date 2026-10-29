@@ -16,6 +16,8 @@ import json
 import re
 import time
 
+from .communication import CONTRACT_SHA256, PROTOCOL_ID, event_envelope
+
 MAX_CONCURRENCY = 16
 MAX_TASKS = 128
 MAX_ARTIFACT_BYTES = 1024 * 1024
@@ -152,6 +154,12 @@ class DevelopmentSwarm:
                    mode=self.policy.mode, rubric_sha256=self.policy.rubric_sha256,
                    **data)
         row["previous_sha256"] = self.events[-1]["sha256"] if self.events else "0" * 64
+        # Contract metadata wraps the existing payload; it grants no authority.
+        track = 11 if event in ('TASK_STARTED', 'RETRY_READY') else (13 if event in (
+            'RUN_STARTED', 'RUN_FINISHED', 'BLOCKED', 'NO_SIGNAL') else 10)
+        row['_communication'] = event_envelope(dict(row), track=track,
+            tick=row['sequence'] + 1, previous=row['previous_sha256'],
+            status='unresolved' if event in ('FAILED', 'BLOCKED', 'NO_SIGNAL') else 'observed')
         row["sha256"] = sha256(json.dumps(row, sort_keys=True, separators=(",", ":"),
                                           allow_nan=False).encode()).hexdigest()
         self.events.append(row)
@@ -296,6 +304,7 @@ class DevelopmentSwarm:
         overall = "CHECKED" if all(v == "CHECKED" for v in states.values()) else "PARTIAL"
         self._event("RUN_FINISHED", status=overall)
         return dict(status=overall, mode=self.policy.mode,
+                    communication_protocol=PROTOCOL_ID, communication_contract_sha256=CONTRACT_SHA256,
                     proof_scope="offline orchestration" if self.policy.mode == "offline-dry-run"
                     else "reviewable development artifacts; product verification not established",
                     rubric_sha256=self.policy.rubric_sha256,
