@@ -45,6 +45,10 @@ def verify_event(payload, envelope, *, previous, tick):
             'protocol', 'track', 'tick', 'previous_event_hash', 'payload_sha256',
             'contract_sha256', 'status'}:
         raise ValueError('invalid communication envelope fields')
+    if (type(envelope['track']) is not int or type(envelope['tick']) is not int
+            or any(type(envelope[name]) is not str for name in (
+                'protocol', 'previous_event_hash', 'payload_sha256', 'contract_sha256', 'status'))):
+        raise ValueError('communication envelope scalar types must match the canonical schema')
     expected = event_envelope(payload, track=envelope['track'], tick=tick,
                               previous=previous, status=envelope['status'])
     if envelope != expected:

@@ -55,3 +55,20 @@ class Communication(unittest.TestCase):
             full=dict(payload,_communication=env)
             self.assertEqual(hashlib.sha256(canonical(full)).hexdigest(),digest)
             previous=digest
+
+    def test_encoded_tick_types_cannot_pass_integer_equality(self):
+        payload = {'fixture': 'strict tick'}
+        for value in (True, 1.0, '1', None):
+            env = event_envelope(payload, track=10, tick=1, previous='0'*64, status='observed')
+            env['tick'] = value
+            with self.assertRaises(ValueError):
+                verify_event(payload, env, previous='0'*64, tick=1)
+
+    def test_serialized_envelope_requires_exact_scalar_types(self):
+        payload = {'fixture': 'strict types'}
+        good = event_envelope(payload, track=10, tick=1, previous='0'*64, status='observed')
+        for field, value in (('track',10.0), ('track',True), ('previous_event_hash',[]),
+                             ('payload_sha256',None), ('contract_sha256',False), ('protocol',[])):
+            env = dict(good); env[field] = value
+            with self.assertRaises(ValueError):
+                verify_event(payload, env, previous='0'*64, tick=1)
