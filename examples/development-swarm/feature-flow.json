@@ -1,0 +1,102 @@
+{
+  "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+  "max_concurrency": 2,
+  "max_tokens_per_call": 512,
+  "max_total_completion_tokens": 2048,
+  "allow_credits": false,
+  "gateway": {
+    "base_url": "https://gateway.example.invalid"
+  },
+  "endpoints": [],
+  "tasks": [
+    {
+      "id": "plan",
+      "instruction": "Turn the requested feature into bounded work and acceptance checks.",
+      "dependencies": [],
+      "owned_paths": [
+        "proposals/plan.md"
+      ],
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "role": "planner",
+      "max_attempts": 1
+    },
+    {
+      "id": "implementation",
+      "instruction": "Propose implementation changes inside the assigned ownership.",
+      "dependencies": [
+        "plan"
+      ],
+      "owned_paths": [
+        "proposals/implementation.patch"
+      ],
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "role": "coder",
+      "max_attempts": 1
+    },
+    {
+      "id": "validation",
+      "instruction": "Propose independent adversarial tests for the feature.",
+      "dependencies": [
+        "plan"
+      ],
+      "owned_paths": [
+        "proposals/validation.py"
+      ],
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "role": "coder",
+      "max_attempts": 1
+    },
+    {
+      "id": "review",
+      "instruction": "Review implementation and validation evidence; disclose all unrun checks.",
+      "dependencies": [
+        "implementation",
+        "validation"
+      ],
+      "owned_paths": [
+        "proposals/review.md"
+      ],
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "role": "planner",
+      "max_attempts": 1
+    }
+  ],
+  "dry_run_outputs": {
+    "plan": {
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "artifacts": {
+        "proposals/plan.md": "OFFLINE FIXTURE: plan; not model-generated; no code applied."
+      },
+      "evidence": [
+        "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+      ]
+    },
+    "implementation": {
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "artifacts": {
+        "proposals/implementation.patch": "OFFLINE FIXTURE: implementation; not model-generated; no code applied."
+      },
+      "evidence": [
+        "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+      ]
+    },
+    "validation": {
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "artifacts": {
+        "proposals/validation.py": "OFFLINE FIXTURE: validation; not model-generated; no code applied."
+      },
+      "evidence": [
+        "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+      ]
+    },
+    "review": {
+      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "artifacts": {
+        "proposals/review.md": "OFFLINE FIXTURE: review; not model-generated; no code applied."
+      },
+      "evidence": [
+        "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+      ]
+    }
+  }
+}

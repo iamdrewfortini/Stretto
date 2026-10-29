@@ -2,7 +2,7 @@
 ## Handoff hackathon: mandatory rubric
 
 Before any hackathon planning, code, review, delegation, model call, infrastructure action or public draft,
-read `/home/daclab-ai/DEV/handoff/docs/COHERENT-RUBRIC.md` in full. This is Drew's global hackathon
+read `~/DEV/handoff/docs/COHERENT-RUBRIC.md` in full. This is Drew's global hackathon
 rubric and north star, supplied in this conversation on 2026-10-28. Apply it across Handoff,
 meta-coherence, telemetry, captures, hackathon-content, and supporting hackathon infrastructure.
 Keep unrelated Teranet, F&MN and GLMV work isolated. This directive adds no permission to cross their boundaries.
@@ -27,8 +27,8 @@ Keep unrelated Teranet, F&MN and GLMV work isolated. This directive adds no perm
   applicable rubric/gate requirements and an evidence-based acceptance check. Require acknowledgement before work;
   do not claim another agent or machine adopted the rubric without evidence. Running agents need explicit reloading.
 
-Full source: `/home/daclab-ai/DEV/handoff/docs/COHERENT-RUBRIC.md`.
-Current adoption and evidence: `/home/daclab-ai/DEV/handoff/docs/RUBRIC-ADOPTION.md`.
+Full source: `~/DEV/handoff/docs/COHERENT-RUBRIC.md`.
+Current adoption and evidence: `~/DEV/handoff/docs/RUBRIC-ADOPTION.md`.
 These hackathon-specific constraints override broader standing delivery permissions within this scope;
 current explicit user instructions and host safety requirements retain precedence.
 <!-- END hackathon north star -->

@@ -69,7 +69,10 @@ def egress_policy(agent_ns="agents", gateway_ip="192.0.2.11", gateway_port=8443,
 
 def gateway_request(model, messages, virtual_key, provider="meta"):
     """Builds (does not send) a chat-completions request for the gateway. Header and model-name conventions are UNVERIFIED: confirm with GET /v1/models first."""
+    if provider != "meta": raise ValueError("only the Meta API provider is allowed")
     if model in PROVENANCE_UNPROVEN or model not in CATALOG: raise ValueError(f"model '{model}' is not an allowed Meta model")
+    if CATALOG[model]["provider"] != "meta-api" or not ({"planner", "coder", "general"} & CATALOG[model]["roles"]):
+        raise ValueError("model is not an allowed Meta chat API model")
     return dict(url=GATEWAY["front"] + "/v1/chat/completions", headers={"Authorization": f"Bearer {virtual_key}", "Content-Type": "application/json"}, body=dict(model=f"{provider}/{model}", messages=messages))
 
 def local_fit(model, free_ram_gib_by_node, headroom_gib=2.0):

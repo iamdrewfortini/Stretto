@@ -4,6 +4,11 @@ from metarouter.policy import CATALOG, check_agent, scan_text, egress_policy, lo
 from metarouter.router import Endpoint, MetaRouter, EmbeddingStore, PredictionRouter, admit
 
 class Policy(unittest.TestCase):
+    def test_gateway_request_rejects_cross_provider_and_wrong_route(self):
+        for model, provider in (("muse-wonder-1.0", "xai"), ("muse-glimmer-30b", "meta"), ("sam-3.1", "meta")):
+            with self.assertRaises(ValueError):
+                gateway_request(model, [], "dummy", provider=provider)
+
     def test_non_meta_agents_and_models_refused(self):
         self.assertEqual(check_agent(dict(id="a", model="muse-wonder-1.0")), [])
         for m in ("grok-code-fast", "claude-opus", "gpt-5", "qwen3"): self.assertTrue(check_agent(dict(id="a", model=m)), m)

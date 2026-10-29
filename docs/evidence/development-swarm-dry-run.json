@@ -1,0 +1,269 @@
+{
+  "mode": "offline-dry-run",
+  "flow_sha256": "44e0405ef996e96bde1867aeb25d29a051e322484d83ea188cb55fa99ad40567",
+  "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+  "evidence_scope": "development artifacts only; no product verification or automatic application",
+  "flow_contract_passed": true,
+  "completion_tokens_reserved": 0,
+  "report": {
+    "status": "CHECKED",
+    "mode": "offline-dry-run",
+    "proof_scope": "offline orchestration",
+    "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+    "tasks": {
+      "plan": {
+        "status": "CHECKED",
+        "attempts": 1,
+        "reasons": [],
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "output": {
+          "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+          "artifacts": {
+            "proposals/plan.md": "OFFLINE FIXTURE: plan; not model-generated; no code applied."
+          },
+          "evidence": [
+            "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+          ]
+        },
+        "artifact_sha256": {
+          "proposals/plan.md": "a30d1463ba668255d1d08b42a7e4767d0096c52985d8d6172d7a05c53b258d06"
+        }
+      },
+      "implementation": {
+        "status": "CHECKED",
+        "attempts": 1,
+        "reasons": [],
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "output": {
+          "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+          "artifacts": {
+            "proposals/implementation.patch": "OFFLINE FIXTURE: implementation; not model-generated; no code applied."
+          },
+          "evidence": [
+            "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+          ]
+        },
+        "artifact_sha256": {
+          "proposals/implementation.patch": "38c9fd80a4554bddb9181d7f8c2d9840cfa464ea4a7bab9c6698be2fa5abbd63"
+        }
+      },
+      "validation": {
+        "status": "CHECKED",
+        "attempts": 1,
+        "reasons": [],
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "output": {
+          "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+          "artifacts": {
+            "proposals/validation.py": "OFFLINE FIXTURE: validation; not model-generated; no code applied."
+          },
+          "evidence": [
+            "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+          ]
+        },
+        "artifact_sha256": {
+          "proposals/validation.py": "5ca02ef78e8afc0c61867f13982a4392b5dd493d17b178f89501e5bf28695547"
+        }
+      },
+      "review": {
+        "status": "CHECKED",
+        "attempts": 1,
+        "reasons": [],
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "output": {
+          "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+          "artifacts": {
+            "proposals/review.md": "OFFLINE FIXTURE: review; not model-generated; no code applied."
+          },
+          "evidence": [
+            "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
+          ]
+        },
+        "artifact_sha256": {
+          "proposals/review.md": "87b104ba3e21fe43ad550e42ef38efdfdf373664a1a911268fa07d2f5b75365d"
+        }
+      }
+    },
+    "events": [
+      {
+        "sequence": 0,
+        "event": "RUN_STARTED",
+        "task": null,
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "max_concurrency": 2,
+        "previous_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sha256": "7098a5e97bffc63f9de7a0014793d24624c28e7b294f0779c82e651497291d54"
+      },
+      {
+        "sequence": 1,
+        "event": "TASK_STARTED",
+        "task": "plan",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "dependencies": [],
+        "previous_sha256": "7098a5e97bffc63f9de7a0014793d24624c28e7b294f0779c82e651497291d54",
+        "sha256": "5ff11803d6602b3e05ca936fbc23efbd950566c21f36654572159e655c1d8031"
+      },
+      {
+        "sequence": 2,
+        "event": "ATTEMPT_FINISHED",
+        "task": "plan",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "elapsed_s": 8.730500121600926e-05,
+        "accepted": true,
+        "previous_sha256": "5ff11803d6602b3e05ca936fbc23efbd950566c21f36654572159e655c1d8031",
+        "sha256": "5ddd48757a58adc7f8da808ff8e0fdd854f0c5a93375fd9c276dbf107e70b7e3"
+      },
+      {
+        "sequence": 3,
+        "event": "CHECKED",
+        "task": "plan",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempts": 1,
+        "reasons": [],
+        "artifact_sha256": {
+          "proposals/plan.md": "a30d1463ba668255d1d08b42a7e4767d0096c52985d8d6172d7a05c53b258d06"
+        },
+        "previous_sha256": "5ddd48757a58adc7f8da808ff8e0fdd854f0c5a93375fd9c276dbf107e70b7e3",
+        "sha256": "4599ebdd48fe2c57b1ae1789e1b1554f7e9dc48c55594f0e4a92b8a715836ddd"
+      },
+      {
+        "sequence": 4,
+        "event": "TASK_STARTED",
+        "task": "implementation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "dependencies": [
+          "plan"
+        ],
+        "previous_sha256": "4599ebdd48fe2c57b1ae1789e1b1554f7e9dc48c55594f0e4a92b8a715836ddd",
+        "sha256": "e2df878ad600d61cc689255844e9d7491ccef566c9bc17f93d4d65fe8c01ee53"
+      },
+      {
+        "sequence": 5,
+        "event": "TASK_STARTED",
+        "task": "validation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "dependencies": [
+          "plan"
+        ],
+        "previous_sha256": "e2df878ad600d61cc689255844e9d7491ccef566c9bc17f93d4d65fe8c01ee53",
+        "sha256": "ca365ff45808a8bed3e0011f70272f4a2654a4d0b9396f1138354e1bd760280d"
+      },
+      {
+        "sequence": 6,
+        "event": "ATTEMPT_FINISHED",
+        "task": "implementation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "elapsed_s": 0.000295279998681508,
+        "accepted": true,
+        "previous_sha256": "ca365ff45808a8bed3e0011f70272f4a2654a4d0b9396f1138354e1bd760280d",
+        "sha256": "f674facdd97a682a01b70efed3a2dc973352a535cc71a743a3da1359d3cb2bd7"
+      },
+      {
+        "sequence": 7,
+        "event": "CHECKED",
+        "task": "implementation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempts": 1,
+        "reasons": [],
+        "artifact_sha256": {
+          "proposals/implementation.patch": "38c9fd80a4554bddb9181d7f8c2d9840cfa464ea4a7bab9c6698be2fa5abbd63"
+        },
+        "previous_sha256": "f674facdd97a682a01b70efed3a2dc973352a535cc71a743a3da1359d3cb2bd7",
+        "sha256": "dfaf9b8cbc4f83762415f4cade47c79e74e8723b40e9bef735f99a0cd2f46180"
+      },
+      {
+        "sequence": 8,
+        "event": "ATTEMPT_FINISHED",
+        "task": "validation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "elapsed_s": 0.00014249900414142758,
+        "accepted": true,
+        "previous_sha256": "dfaf9b8cbc4f83762415f4cade47c79e74e8723b40e9bef735f99a0cd2f46180",
+        "sha256": "d955db9fb032073f9bf273fe24364e285347d89f67a16dfa4606e0f7371c4bf3"
+      },
+      {
+        "sequence": 9,
+        "event": "CHECKED",
+        "task": "validation",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempts": 1,
+        "reasons": [],
+        "artifact_sha256": {
+          "proposals/validation.py": "5ca02ef78e8afc0c61867f13982a4392b5dd493d17b178f89501e5bf28695547"
+        },
+        "previous_sha256": "d955db9fb032073f9bf273fe24364e285347d89f67a16dfa4606e0f7371c4bf3",
+        "sha256": "7b46b405932020082a439d3f6764f3e00bfa6e4d56e4686398d4d6116a740ce9"
+      },
+      {
+        "sequence": 10,
+        "event": "TASK_STARTED",
+        "task": "review",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "dependencies": [
+          "implementation",
+          "validation"
+        ],
+        "previous_sha256": "7b46b405932020082a439d3f6764f3e00bfa6e4d56e4686398d4d6116a740ce9",
+        "sha256": "09d8e7d53d5a9f61799ed83eaad1efc503082ed3445398e8b1f57fe9a9b9c228"
+      },
+      {
+        "sequence": 11,
+        "event": "ATTEMPT_FINISHED",
+        "task": "review",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempt": 1,
+        "elapsed_s": 9.639300697017461e-05,
+        "accepted": true,
+        "previous_sha256": "09d8e7d53d5a9f61799ed83eaad1efc503082ed3445398e8b1f57fe9a9b9c228",
+        "sha256": "c32e622aec26be1a54fd0ec308ae2277a5288a6658da3c300bf586f98d1795ca"
+      },
+      {
+        "sequence": 12,
+        "event": "CHECKED",
+        "task": "review",
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "attempts": 1,
+        "reasons": [],
+        "artifact_sha256": {
+          "proposals/review.md": "87b104ba3e21fe43ad550e42ef38efdfdf373664a1a911268fa07d2f5b75365d"
+        },
+        "previous_sha256": "c32e622aec26be1a54fd0ec308ae2277a5288a6658da3c300bf586f98d1795ca",
+        "sha256": "db4667f8b4591c7137444e54e7ce4b1f4423ba5d614abb7b8f72b1cdc11b67d3"
+      },
+      {
+        "sequence": 13,
+        "event": "RUN_FINISHED",
+        "task": null,
+        "mode": "offline-dry-run",
+        "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+        "status": "CHECKED",
+        "previous_sha256": "db4667f8b4591c7137444e54e7ce4b1f4423ba5d614abb7b8f72b1cdc11b67d3",
+        "sha256": "621d1124c3488a8d2f501a6e522f2f6348b768da69871692f10a54e54f00cf58"
+      }
+    ]
+  }
+}
