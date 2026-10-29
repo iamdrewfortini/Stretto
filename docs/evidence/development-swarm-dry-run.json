@@ -28,6 +28,8 @@
   "report": {
     "status": "CHECKED",
     "mode": "offline-dry-run",
+    "communication_protocol": "diatonic-13-v1",
+    "communication_contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
     "proof_scope": "offline orchestration",
     "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
     "tasks": {
@@ -117,7 +119,16 @@
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "max_concurrency": 2,
         "previous_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "sha256": "c87a7e0ac0fef52caa0d9061d4b15527cdf3788c46a137d0b130f24d384c59ca"
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 13,
+          "tick": 1,
+          "previous_event_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "payload_sha256": "c87a7e0ac0fef52caa0d9061d4b15527cdf3788c46a137d0b130f24d384c59ca",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "a15aa464f4fc17e5892ff00f76e4256f2a94866922a782b1cf8dc8294565550a"
       },
       {
         "sequence": 1,
@@ -127,8 +138,17 @@
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "attempt": 1,
         "dependencies": [],
-        "previous_sha256": "c87a7e0ac0fef52caa0d9061d4b15527cdf3788c46a137d0b130f24d384c59ca",
-        "sha256": "9cc81e721f637871fa9bc2e0b2c964a39d1a437b151d430dbfabdfe4524e086d"
+        "previous_sha256": "a15aa464f4fc17e5892ff00f76e4256f2a94866922a782b1cf8dc8294565550a",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 11,
+          "tick": 2,
+          "previous_event_hash": "a15aa464f4fc17e5892ff00f76e4256f2a94866922a782b1cf8dc8294565550a",
+          "payload_sha256": "dbc48228dc7ff3c8977070ad9a646e60132adb80d6783295553b1dba84688da2",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "fcc65f9b0ca6e8d486b9d2731c81c4b7e36a119be85d0b8fd6060f008e4b8c4e"
       },
       {
         "sequence": 2,
@@ -137,10 +157,19 @@
         "mode": "offline-dry-run",
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "attempt": 1,
-        "elapsed_s": 7.650599582120776e-05,
+        "elapsed_s": 9.666199912317097e-05,
         "accepted": true,
-        "previous_sha256": "9cc81e721f637871fa9bc2e0b2c964a39d1a437b151d430dbfabdfe4524e086d",
-        "sha256": "ecff3780aeb113e59e320b8525acc65c7992dd0ce54ef677ccab051cae1cfd4c"
+        "previous_sha256": "fcc65f9b0ca6e8d486b9d2731c81c4b7e36a119be85d0b8fd6060f008e4b8c4e",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 3,
+          "previous_event_hash": "fcc65f9b0ca6e8d486b9d2731c81c4b7e36a119be85d0b8fd6060f008e4b8c4e",
+          "payload_sha256": "2df506c532b44b462448b199f5bca967b6e612e5a3e3831ee56fad0152ce36b2",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "4449ff2dc6dabaac53ad963748c46734cd60e8de5117b75fd4aaa9f799767b10"
       },
       {
         "sequence": 3,
@@ -153,8 +182,17 @@
         "artifact_sha256": {
           "proposals/plan.md": "a30d1463ba668255d1d08b42a7e4767d0096c52985d8d6172d7a05c53b258d06"
         },
-        "previous_sha256": "ecff3780aeb113e59e320b8525acc65c7992dd0ce54ef677ccab051cae1cfd4c",
-        "sha256": "38327d9ad13780ebb8bd67bf3be7a48f8dcc1fbdc09df597433f71cd6a8b0032"
+        "previous_sha256": "4449ff2dc6dabaac53ad963748c46734cd60e8de5117b75fd4aaa9f799767b10",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 4,
+          "previous_event_hash": "4449ff2dc6dabaac53ad963748c46734cd60e8de5117b75fd4aaa9f799767b10",
+          "payload_sha256": "14e7ee34a1135812f2d3f5622d9c63fa22b3ffe3eaf955d6597454632c60b891",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "0722214cd0607bee9fb427e06a84b5b8cd3260ed4d634a0eb578a536fa29764b"
       },
       {
         "sequence": 4,
@@ -166,8 +204,17 @@
         "dependencies": [
           "plan"
         ],
-        "previous_sha256": "38327d9ad13780ebb8bd67bf3be7a48f8dcc1fbdc09df597433f71cd6a8b0032",
-        "sha256": "cfdfab704d839f18327c5a230382b3fe48f707e451447ecf60f54764f3cc1756"
+        "previous_sha256": "0722214cd0607bee9fb427e06a84b5b8cd3260ed4d634a0eb578a536fa29764b",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 11,
+          "tick": 5,
+          "previous_event_hash": "0722214cd0607bee9fb427e06a84b5b8cd3260ed4d634a0eb578a536fa29764b",
+          "payload_sha256": "1255fc60b97df597cce57997b2b9af78f1e68121af6afcd52b399ecbf4c4d829",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "ffbae270feeff5a8884a2a785ac4bf9b4dc2bc9b1d14cfdfc7fb8cd74dbdf5a1"
       },
       {
         "sequence": 5,
@@ -179,8 +226,17 @@
         "dependencies": [
           "plan"
         ],
-        "previous_sha256": "cfdfab704d839f18327c5a230382b3fe48f707e451447ecf60f54764f3cc1756",
-        "sha256": "0e9bfcafa882b88eb27184654aa10044bbed9add2877711939842d9be1379e17"
+        "previous_sha256": "ffbae270feeff5a8884a2a785ac4bf9b4dc2bc9b1d14cfdfc7fb8cd74dbdf5a1",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 11,
+          "tick": 6,
+          "previous_event_hash": "ffbae270feeff5a8884a2a785ac4bf9b4dc2bc9b1d14cfdfc7fb8cd74dbdf5a1",
+          "payload_sha256": "260ad14f3fc7d51522a83523c9d029f0b2257a13aae5d38cfb9e688bb761e020",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "4e028f069f5ec987dc5bbbd595ca8529378327e8b3897ff49775aa1ab99fbe1a"
       },
       {
         "sequence": 6,
@@ -189,10 +245,19 @@
         "mode": "offline-dry-run",
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "attempt": 1,
-        "elapsed_s": 0.0002365889959037304,
+        "elapsed_s": 0.0003052979882340878,
         "accepted": true,
-        "previous_sha256": "0e9bfcafa882b88eb27184654aa10044bbed9add2877711939842d9be1379e17",
-        "sha256": "67d1fd21609356ce0ff6844d045f5a332addbf95da237bff787fd33a00600f4f"
+        "previous_sha256": "4e028f069f5ec987dc5bbbd595ca8529378327e8b3897ff49775aa1ab99fbe1a",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 7,
+          "previous_event_hash": "4e028f069f5ec987dc5bbbd595ca8529378327e8b3897ff49775aa1ab99fbe1a",
+          "payload_sha256": "e3b125fb148139aaf32ef3af4153c73ced0450ea5a90990ae3e3fc20c7916d22",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "aa9cb95e30cc5599ddd323fc4bc6aae9d3f7c8d360d2a6d6bace6dae2f51fcf3"
       },
       {
         "sequence": 7,
@@ -205,8 +270,17 @@
         "artifact_sha256": {
           "proposals/implementation.patch": "38c9fd80a4554bddb9181d7f8c2d9840cfa464ea4a7bab9c6698be2fa5abbd63"
         },
-        "previous_sha256": "67d1fd21609356ce0ff6844d045f5a332addbf95da237bff787fd33a00600f4f",
-        "sha256": "bc24a456645f49d2c0be2c4de3fcfb6cb2ecf7ae3f823eaf22728282edcb1a00"
+        "previous_sha256": "aa9cb95e30cc5599ddd323fc4bc6aae9d3f7c8d360d2a6d6bace6dae2f51fcf3",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 8,
+          "previous_event_hash": "aa9cb95e30cc5599ddd323fc4bc6aae9d3f7c8d360d2a6d6bace6dae2f51fcf3",
+          "payload_sha256": "10fa27b638e27f44f586b60c0ba875f8a1fe3c7829ef702c2ade0659e266ec33",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "f23a57d276948af7314509409543c84f00adc3800bba07950cde9757f18d7206"
       },
       {
         "sequence": 8,
@@ -215,10 +289,19 @@
         "mode": "offline-dry-run",
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "attempt": 1,
-        "elapsed_s": 0.00017887000285554677,
+        "elapsed_s": 0.0005382490053307265,
         "accepted": true,
-        "previous_sha256": "bc24a456645f49d2c0be2c4de3fcfb6cb2ecf7ae3f823eaf22728282edcb1a00",
-        "sha256": "9219cd408b4b761f58eea95f276e7fb5384da53eac62ecc63c44714a71ea36ed"
+        "previous_sha256": "f23a57d276948af7314509409543c84f00adc3800bba07950cde9757f18d7206",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 9,
+          "previous_event_hash": "f23a57d276948af7314509409543c84f00adc3800bba07950cde9757f18d7206",
+          "payload_sha256": "f8570c2b358591d80e2ffd74f482f3b10d23cb6094467bd5b64e47d4c356b533",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "4529cb04ae983822a4d8d39a8a3ed2ec4681e3a6c77978c4555aeb866b9015ae"
       },
       {
         "sequence": 9,
@@ -231,8 +314,17 @@
         "artifact_sha256": {
           "proposals/validation.py": "b8bca6fd0c610d2ba93f3430cd2736e2e36d3e4146952428695293d894966049"
         },
-        "previous_sha256": "9219cd408b4b761f58eea95f276e7fb5384da53eac62ecc63c44714a71ea36ed",
-        "sha256": "9eb3c62686c1c3e51c8750ab15cee188cb82d8980d3b94d902f99f177a4806ef"
+        "previous_sha256": "4529cb04ae983822a4d8d39a8a3ed2ec4681e3a6c77978c4555aeb866b9015ae",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 10,
+          "previous_event_hash": "4529cb04ae983822a4d8d39a8a3ed2ec4681e3a6c77978c4555aeb866b9015ae",
+          "payload_sha256": "3e2411835da5883c441cfa87368dcb2ebca6469a1076fdee8cb4d8f14d84d47d",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "2bedaf0c09f0066d1e13d32f2287c5053fd1395ddccae9eafcbf460b5d3658ec"
       },
       {
         "sequence": 10,
@@ -245,8 +337,17 @@
           "implementation",
           "validation"
         ],
-        "previous_sha256": "9eb3c62686c1c3e51c8750ab15cee188cb82d8980d3b94d902f99f177a4806ef",
-        "sha256": "13e7234b1267ed33c65f34bc33dcefa867187b9adec6f44b48172895a8a94f4a"
+        "previous_sha256": "2bedaf0c09f0066d1e13d32f2287c5053fd1395ddccae9eafcbf460b5d3658ec",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 11,
+          "tick": 11,
+          "previous_event_hash": "2bedaf0c09f0066d1e13d32f2287c5053fd1395ddccae9eafcbf460b5d3658ec",
+          "payload_sha256": "d784582711780efa65975b3bbf8f5009c4980dd9a6478dd7eb8ed0fe36829e56",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "923fc7c3e4e3190bc8a77194a783b06c00178448b16bc2e57b51eeab898c38e1"
       },
       {
         "sequence": 11,
@@ -255,10 +356,19 @@
         "mode": "offline-dry-run",
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "attempt": 1,
-        "elapsed_s": 0.0001095180050469935,
+        "elapsed_s": 0.00011364399688318372,
         "accepted": true,
-        "previous_sha256": "13e7234b1267ed33c65f34bc33dcefa867187b9adec6f44b48172895a8a94f4a",
-        "sha256": "275b2867492df6b20c1a0c03dcf0cdc4829796c30cc3835fafe343d0958515b7"
+        "previous_sha256": "923fc7c3e4e3190bc8a77194a783b06c00178448b16bc2e57b51eeab898c38e1",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 12,
+          "previous_event_hash": "923fc7c3e4e3190bc8a77194a783b06c00178448b16bc2e57b51eeab898c38e1",
+          "payload_sha256": "10595840051d899fe8a0f88d7dd95690e73a6173cce9099cd2537e13fdb515a5",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "ce497671343e8fd931b954704474fb371303924eff3a8b89b291a0d195a4e27e"
       },
       {
         "sequence": 12,
@@ -271,8 +381,17 @@
         "artifact_sha256": {
           "proposals/review.md": "87b104ba3e21fe43ad550e42ef38efdfdf373664a1a911268fa07d2f5b75365d"
         },
-        "previous_sha256": "275b2867492df6b20c1a0c03dcf0cdc4829796c30cc3835fafe343d0958515b7",
-        "sha256": "e95566b98116f340e3fac22ca192681a665331c85e86f7c79d01bbab311acd24"
+        "previous_sha256": "ce497671343e8fd931b954704474fb371303924eff3a8b89b291a0d195a4e27e",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 10,
+          "tick": 13,
+          "previous_event_hash": "ce497671343e8fd931b954704474fb371303924eff3a8b89b291a0d195a4e27e",
+          "payload_sha256": "13edf4953cc32db84e8a50bff318e2af2bc8faae428854778ef3a9587b7eb6db",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "55b1ed888a5e331cfcbbf1b4ce6d88916a39847ca9b59166957a2e358bbc42aa"
       },
       {
         "sequence": 13,
@@ -281,8 +400,17 @@
         "mode": "offline-dry-run",
         "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
         "status": "CHECKED",
-        "previous_sha256": "e95566b98116f340e3fac22ca192681a665331c85e86f7c79d01bbab311acd24",
-        "sha256": "11b7807ffc18b17106a2a1e57927620120b217b6bb0fa690b43ca02a7e77edad"
+        "previous_sha256": "55b1ed888a5e331cfcbbf1b4ce6d88916a39847ca9b59166957a2e358bbc42aa",
+        "_communication": {
+          "protocol": "diatonic-13-v1",
+          "track": 13,
+          "tick": 14,
+          "previous_event_hash": "55b1ed888a5e331cfcbbf1b4ce6d88916a39847ca9b59166957a2e358bbc42aa",
+          "payload_sha256": "c15c4cbe1e34897346cfa20b95a81d5561709530184cdcb58f70b9a4decd980e",
+          "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+          "status": "observed"
+        },
+        "sha256": "f45d2d665103cfbc179f9302fff5c07eb37978a1d5f029b0828ee533f90a6632"
       }
     ],
     "acceptance_checks": {
@@ -336,5 +464,10 @@
         ]
       }
     }
+  },
+  "derived_from": {
+    "previous_report": "development-swarm-before-genetic-binding.json",
+    "previous_sha256": "ef968892b57a471fb851df9d2f3939c9335f4241a576b0e3f803e54e797368cb",
+    "change": "source-pinned canonical SDK communication envelopes"
   }
 }
