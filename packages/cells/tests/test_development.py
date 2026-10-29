@@ -201,6 +201,64 @@ class DevelopmentTests(unittest.TestCase):
         self.assertEqual(report["tasks"]["a"]["output"]["artifacts"], {"src/a.py": "draft"})
         self.assertEqual(report["tasks"]["b"]["status"], "CHECKED")
 
+    def test_preflight_exposes_holds_without_running_or_consuming_execution(self):
+        tasks = [replace(task("a"), rubric_sha256="b" * 64),
+                 replace(task("b"), action="publish"),
+                 task("c", required_gates=("consent",)), task("d")]
+        swarm = self.swarm(tasks)
+        preflight = swarm.preflight()
+        self.assertTrue(preflight["a"])
+        self.assertTrue(preflight["b"])
+        self.assertTrue(preflight["c"])
+        self.assertEqual(preflight["d"], [])
+        self.assertEqual(swarm.events, [])
+        calls = []
+        report = swarm.execute(lambda t, d, n: calls.append(t.id) or output(t),
+                               lambda t, o: True)
+        self.assertEqual(calls, ["d"])
+        self.assertEqual(report["tasks"]["c"]["status"], "BLOCKED")
+
+    def test_status_bearing_transport_errors_are_terminal_without_retry(self):
+        class TransportFailure(RuntimeError):
+            def __init__(self, status):
+                self.status = status
+                super().__init__("secret remote details")
+        for status, expected in (("NO_SIGNAL", "NO_SIGNAL"), ("BLOCKED", "BLOCKED"),
+                                 ("FAILED", "FAILED"), ("UNKNOWN_REMOTE", "FAILED")):
+            with self.subTest(status=status):
+                calls = []
+                def run(t, d, n):
+                    calls.append(t.id)
+                    raise TransportFailure(status)
+                report = self.swarm([task("a", max_attempts=2),
+                                      task("b", dependencies=("a",))]).execute(run, lambda t, o: True)
+                self.assertEqual(calls, ["a"])
+                self.assertEqual(report["tasks"]["a"]["status"], expected)
+                self.assertEqual(report["tasks"]["a"]["attempts"], 1)
+                self.assertEqual(report["tasks"]["b"]["status"], "BLOCKED")
+                self.assertNotIn("secret remote details", json.dumps(report))
+                self.assertFalse(any(e["event"] == "RETRY_READY" for e in report["events"]))
+
+    def test_explicit_failure_and_promotion_status_cannot_be_laundered_as_checked(self):
+        for status in ("FAILED", "BLOCKED", "NO_SIGNAL", "PARTIAL", "VERIFIED",
+                       "HUMAN-VALIDATED", "CHECKED", "OK", "", None, [], {}):
+            with self.subTest(status=status):
+                calls, checks = [], []
+                def run(t, d, n):
+                    calls.append(t.id)
+                    return dict(output(t), status=status)
+                report = self.swarm([task("a", max_attempts=2),
+                                      task("b", dependencies=("a",))]).execute(
+                    run, lambda *args: checks.append(args) or True)
+                self.assertEqual(calls, ["a"])
+                self.assertEqual(checks, [])
+                self.assertIn(report["tasks"]["a"]["status"], ("FAILED", "BLOCKED", "NO_SIGNAL"))
+                self.assertEqual(report["tasks"]["b"]["status"], "BLOCKED")
+        for status in ("UNVERIFIED", "UNVERIFIED_PROPOSAL"):
+            report = self.swarm([task("a")]).execute(
+                lambda t, d, n: dict(output(t), status=status), lambda t, o: True)
+            self.assertEqual(report["status"], "CHECKED")
+
     def test_resource_caps_reject_excess_and_accept_boundary_values(self):
         self.swarm([task("a")], max_concurrency=MAX_CONCURRENCY)
         with self.assertRaises(ValueError):

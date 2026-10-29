@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "scope": "offline Python validation only",
+  "full_suite": {
+    "command": "python3 -u scripts/run_all_tests.py",
+    "tests": 355,
+    "failing_suites": 0,
+    "exit_code": 0
+  },
+  "release_check": "PASS",
+  "docs_lint": "PASS",
+  "adversarial_coverage": [
+    "explicit failed statuses never CHECKED",
+    "NO_SIGNAL terminal/no replay",
+    "invalid or changed source/rubric blocked",
+    "malformed/duplicate/nonfinite JSON rejected",
+    "held gates visible in preflight",
+    "truncated or filtered proposals rejected",
+    "ownership collisions and out-of-scope artifacts rejected",
+    "actual loopback transport+DAG integration",
+    "seeded cost simulations checked against rational oracle"
+  ],
+  "live_calls": "HELD by owner",
+  "limits": [
+    "static syntax/content checks do not prove feature functionality",
+    "synthetic costs/probabilities do not prove actual billing floor",
+    "trusted callbacks require external hard wall-clock deadline"
+  ]
+}

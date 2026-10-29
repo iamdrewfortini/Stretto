@@ -9,7 +9,7 @@ The existing Bifrost gateway owns provider credentials, model calls and provider
 
 `plan → {implementation, validation} → review` is the included example. A completion event unlocks dependent work; there is no timed polling. Tasks declare explicit ownership, dependencies, bounded concurrency, capped attempts and the current rubric hash. Overlapping ownership between tasks that could run together is rejected. A failed prerequisite blocks its descendants. Every checked output includes text artifacts, evidence pointers and rubric acknowledgement; the report records artifact hashes and a chained event history.
 
-The included fixtures are deterministic offline proposals, never model-produced code or proof of Handoff's product bar. `CHECKED` means the artifact contract and supplied acceptance callback passed. The command's acceptance callback checks that artifacts exist; it does not run their tests or prove functional correctness. Code review, independent tests in the appropriate execution environment, and owner approval at irreversible boundaries remain required.
+The included fixtures are deterministic offline proposals, never model-produced code or proof of Handoff's product bar. `CHECKED` means the artifact contract and supplied acceptance callback passed. The command requires named per-artifact static acceptance rules: nonempty text, required literals, Python syntax parsing and JSON object keys. Unknown rules and malformed artifacts fail closed. These checks do not execute generated tests or prove functional correctness. Code review, independent tests in the appropriate execution environment, and owner approval at irreversible boundaries remain required.
 
 ## Commands
 
@@ -56,3 +56,25 @@ Flow/config files are trusted, owner-reviewed operator input. Never execute a mo
 Privacy limitation: the content-logging suppression header is a request, not proof of server settings. Bifrost's `allow_per_request_content_storage_override` and connector content settings must be checked on the deployed gateway before asserting suppression. See the [primary Bifrost client configuration](https://github.com/maximhq/bifrost/blob/dev/docs/deployment-guides/config-json/client.mdx).
 
 Callback functions are trusted host code and enforce their own deadlines. Python worker threads cannot be forcibly terminated safely. The gateway timeout bounds socket inactivity, not total elapsed time under a continuously trickling response. Use an owner-managed process/job deadline for a hard wall-clock limit; this CLI does not claim one.
+
+## Offline-only owner decision
+
+Drew explicitly chose “Keep live calls held; finish offline checks” during this implementation. No live smoke run or credit use is authorized. The integrated transport/workflow test exercises real loopback HTTP with synthetic responses and a dummy key; it proves the components work together, not the upstream Meta service. Independent acceptance of actual feature behavior remains a separate execution check.
+
+## Source binding and failure visibility
+
+Each flow supplies a concrete `feature_request`, explicit `acceptance_criteria`, and hash-pinned `source_files`. The loader admits bounded UTF-8 regular files under the selected canonical source root; traversal, symlinks, hash drift and oversized inputs fail before dispatch. The report records the source-context digest, and live prompts use the same snapshot. The rubric is likewise read once and bound to its digest rather than re-read between tasks.
+
+Configuration, evidence and generated JSON reject duplicate keys, nonfinite values and non-object documents. Invalid static checks, task acknowledgements and held gates fail preflight. Explicit failed runner statuses and status-bearing transport errors cannot become `CHECKED`; terminal or uncertain transport outcomes are not retried. Truncated/filtered responses fail acceptance. CLI failures return nonzero with a safe validation-stage identifier, never a secret-bearing remote payload.
+
+## Cost-floor simulation
+
+```sh
+python3 scripts/simulate_development.py --output /path/to/new-simulation-report.json
+```
+
+`docs/evidence/development-cost-simulation.json` contains reproducible seeded runs and the exact rational oracle for every supplied policy. The optimizer enumerates the bounded set of distinct-attempt policies, stops on first checked success, and selects minimum expected declared cost subject to the declared success floor. Infeasible floors return `NO_SIGNAL`; they are never weakened. The statistical simulation reports `MISS` and exits nonzero if observations exceed its declared tolerance.
+
+The CLI uses this same optimizer when owner-supplied `success_probability_estimates` and eligible endpoints are present. Its `routing_plans` preserve the estimates, selected policy, assumptions and oracle comparison. Missing estimates/endpoints are visible as `NO_SIGNAL`, including in plan mode. The default example deliberately remains without live endpoints. Known validation failure can advance to the next attempt in the selected policy; an uncertain transport outcome stops rather than being replayed.
+
+This is a floor only within the supplied candidate set, independent-success assumption, declared fixed cost model and bounded attempts. Real failures can be correlated. Real prompt/output billing, provider rate limits, latency and energy remain unmeasured; no claim of a production cost floor follows. Static proposal conformance is not functional feature correctness. The real-capture product bar remains unchanged.

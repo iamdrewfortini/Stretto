@@ -1,5 +1,5 @@
 {
-  "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+  "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
   "max_concurrency": 2,
   "max_tokens_per_call": 512,
   "max_total_completion_tokens": 2048,
@@ -16,7 +16,7 @@
       "owned_paths": [
         "proposals/plan.md"
       ],
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "role": "planner",
       "max_attempts": 1
     },
@@ -29,7 +29,7 @@
       "owned_paths": [
         "proposals/implementation.patch"
       ],
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "role": "coder",
       "max_attempts": 1
     },
@@ -42,7 +42,7 @@
       "owned_paths": [
         "proposals/validation.py"
       ],
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "role": "coder",
       "max_attempts": 1
     },
@@ -56,14 +56,14 @@
       "owned_paths": [
         "proposals/review.md"
       ],
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "role": "planner",
       "max_attempts": 1
     }
   ],
   "dry_run_outputs": {
     "plan": {
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "artifacts": {
         "proposals/plan.md": "OFFLINE FIXTURE: plan; not model-generated; no code applied."
       },
@@ -72,7 +72,7 @@
       ]
     },
     "implementation": {
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "artifacts": {
         "proposals/implementation.patch": "OFFLINE FIXTURE: implementation; not model-generated; no code applied."
       },
@@ -81,16 +81,16 @@
       ]
     },
     "validation": {
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "artifacts": {
-        "proposals/validation.py": "OFFLINE FIXTURE: validation; not model-generated; no code applied."
+        "proposals/validation.py": "# OFFLINE FIXTURE: parse-only proposed validation; no test executed\ndef proposed_check(value):\n    return value is not None\n"
       },
       "evidence": [
         "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
       ]
     },
     "review": {
-      "rubric_sha256": "ad3bfa6d67716e8eb2db35877c4afb3b00904d7a66a9cc103144c6ffb22de3a7",
+      "rubric_sha256": "769f6cfb48aae343f6bf7269de0d9dba0900b8d8527e0f6b8101e952b7273e2a",
       "artifacts": {
         "proposals/review.md": "OFFLINE FIXTURE: review; not model-generated; no code applied."
       },
@@ -98,5 +98,55 @@
         "Deterministic fixture exercises dependency and ownership contracts only; no live model or feature correctness proof."
       ]
     }
-  }
+  },
+  "acceptance": {
+    "plan": {
+      "proposals/plan.md": [
+        {
+          "kind": "nonempty"
+        }
+      ]
+    },
+    "implementation": {
+      "proposals/implementation.patch": [
+        {
+          "kind": "nonempty"
+        }
+      ]
+    },
+    "validation": {
+      "proposals/validation.py": [
+        {
+          "kind": "python-syntax"
+        },
+        {
+          "kind": "contains",
+          "text": "OFFLINE FIXTURE"
+        }
+      ]
+    },
+    "review": {
+      "proposals/review.md": [
+        {
+          "kind": "nonempty"
+        }
+      ]
+    }
+  },
+  "feature_request": "Propose a bounded extension to static artifact validation, preserving fail-closed behavior and never executing generated code.",
+  "acceptance_criteria": [
+    "Unknown or malformed check rules fail closed.",
+    "Python is parsed without code execution.",
+    "All proposal artifacts remain reviewable text and unrun checks are disclosed."
+  ],
+  "source_files": [
+    {
+      "path": "examples/development-swarm/feature-spec.md",
+      "sha256": "091b6671592aa52bb43d1524b5b46c013f342063d6172e723269b3826bcc5804"
+    },
+    {
+      "path": "packages/cells/src/cells/acceptance.py",
+      "sha256": "04a85dd8644b86f97ac030c5c0062ab1ac87c3a70673cfc0bfa4f5eadb34aacb"
+    }
+  ]
 }

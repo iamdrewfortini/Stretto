@@ -170,11 +170,17 @@ class DevelopmentSwarm:
             problems.append("held gates: " + ", ".join(sorted(missing)))
         return problems
 
+    def preflight(self):
+        """Return per-task held gates without invoking callbacks or consuming the run."""
+        return {key: self._gate(self.tasks[key]) for key in self.order}
+
     def _validate_output(self, task, raw):
         if not isinstance(raw, dict):
             raise ValueError("runner output must be an object")
         # Copy into JSON to detach callback data and reject executable/custom objects.
         output = json.loads(json.dumps(raw, allow_nan=False))
+        if "status" in output and output["status"] not in ("UNVERIFIED", "UNVERIFIED_PROPOSAL"):
+            raise ValueError("runner status must describe an unverified proposal")
         if output.get("rubric_sha256") != self.policy.rubric_sha256:
             raise ValueError("result rubric acknowledgement missing or mismatched")
         artifacts, evidence = output.get("artifacts"), output.get("evidence")
@@ -252,11 +258,15 @@ class DevelopmentSwarm:
                 for future in sorted(completed, key=lambda f: running[f][0]):
                     key, started = running.pop(future)
                     task = self.tasks[key]
-                    reason, output, status = None, None, "FAILED"
+                    reason, output, status, retryable = None, None, "FAILED", True
                     try:
                         raw = future.result()
-                        if isinstance(raw, dict) and raw.get("status") == "NO_SIGNAL":
-                            status, reason = "NO_SIGNAL", "runner reported NO_SIGNAL"
+                        if (isinstance(raw, dict) and "status" in raw
+                                and raw["status"] not in ("UNVERIFIED", "UNVERIFIED_PROPOSAL")):
+                            declared = raw["status"]
+                            status = declared if declared in ("NO_SIGNAL", "BLOCKED") else "FAILED"
+                            reason = "runner reported a non-proposal status"
+                            retryable = False
                         else:
                             output = self._validate_output(task, raw)
                             accepted = check(task, json.loads(json.dumps(output)))
@@ -265,12 +275,20 @@ class DevelopmentSwarm:
                     except Exception as exc:
                         # Never echo exception text: transports may include secrets.
                         reason = "runner or acceptance failed: " + type(exc).__name__
+                        # A transport may already have reached its remote endpoint.
+                        # Preserve status-bearing refusals and never replay uncertain
+                        # remote outcomes. This duck-typed contract avoids coupling
+                        # the scheduler to any particular transport implementation.
+                        declared = getattr(exc, "status", None)
+                        if declared is not None:
+                            retryable = False
+                            status = declared if declared in ("NO_SIGNAL", "BLOCKED") else "FAILED"
                     self._event("ATTEMPT_FINISHED", key, attempt=attempts[key],
                                 elapsed_s=time.monotonic() - started,
                                 accepted=reason is None)
                     if reason is None:
                         finish(key, "CHECKED", [], output)
-                    elif status != "NO_SIGNAL" and attempts[key] < task.max_attempts:
+                    elif retryable and attempts[key] < task.max_attempts:
                         states[key] = "PENDING"
                         self._event("RETRY_READY", key, attempt=attempts[key], reason=reason)
                     else:
