@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 375px; margin: 0 auto; padding: 16px;
+    background: #fff; color: #111;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #101010; color: #eee; }
+    .partial { color: #999; }
+    .reply { background: #1c1c1c; }
+    .final { color: #eee; }
+    input[type=text] { background: #1c1c1c; color: #eee; border-color: #444; }
+  }
+  @media (prefers-color-scheme: light) {
+    .partial { color: #777; }
+    .reply { background: #f2f2f2; }
+  }
+  #state { font-size: 13px; margin: 8px 0; }
+  #mic {
+    width: 96px; height: 96px; border-radius: 50%; border: none;
+    font-size: 15px; display: block; margin: 16px auto; cursor: pointer;
+    background: #1a7f37; color: #fff;
+  }
+  #mic.live { background: #b42318; }
+  #partial { min-height: 1.4em; font-style: italic; }
+  .final { margin: 8px 0 2px; }
+  .reply { margin: 2px 0 10px; padding: 8px; border-radius: 8px; }
+  .chips { margin: 0 0 10px; }
+  .chip {
+    display: inline-block; font-size: 12px; padding: 2px 8px; margin: 0 4px 4px 0;
+    border: 1px solid currentColor; border-radius: 999px;
+  }
+  #row { display: flex; gap: 8px; margin-top: 12px; }
+  input[type=text] { flex: 1; padding: 8px; border: 1px solid #888; border-radius: 8px; }
+  button.send { padding: 8px 12px; cursor: pointer; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+</style>
+<div class="top">
+  <strong>Voice</strong>
+  <a href="/dashboard">dashboard</a>
+</div>
+<div id="state">idle</div>
+<button id="mic" aria-label="start or stop microphone">mic</button>
+<div id="partial" class="partial" aria-live="polite"></div>
+<div id="log"></div>
+<div id="row">
+  <input id="text" type="text" placeholder="Type instead of speaking">
+  <button class="send" id="send">Send</button>
+</div>
+<script>
+(function () {
+  "use strict";
+  var WS_URL = "ws://127.0.0.1:8788/";
+  var TURN_URL = (location.protocol.indexOf("http") === 0
+    ? "http://" + location.hostname + ":8787/v1/turn"
+    : "http://127.0.0.1:8787/v1/turn");
+  var stateEl = document.getElementById("state");
+  var micEl = document.getElementById("mic");
+  var partialEl = document.getElementById("partial");
+  var logEl = document.getElementById("log");
+  var textEl = document.getElementById("text");
+  var sendEl = document.getElementById("send");
+  var ws = null, stream = null, actx = null, node = null, recording = false;
+
+  function setState(s) { stateEl.textContent = s; }
+
+  function speak(text) {
+    if (!("speechSynthesis" in window)) return;
+    var u = new SpeechSynthesisUtterance(text);
+    var en = speechSynthesis.getVoices().filter(function (v) {
+      return v.lang && v.lang.toLowerCase().indexOf("en") === 0;
+    });
+    if (en.length) u.voice = en[0];
+    speechSynthesis.speak(u);
+  }
+
+  function addFinal(text) {
+    var d = document.createElement("div");
+    d.className = "final";
+    d.textContent = text;
+    logEl.appendChild(d);
+  }
+
+  function addReply(text, tools) {
+    var d = document.createElement("div");
+    d.className = "reply";
+    d.textContent = text;
+    logEl.appendChild(d);
+    if (tools && tools.length) {
+      var c = document.createElement("div");
+      c.className = "chips";
+      tools.forEach(function (t) {
+        var s = document.createElement("span");
+        s.className = "chip";
+        s.textContent = t;
+        c.appendChild(s);
+      });
+      logEl.appendChild(c);
+    }
+  }
+
+  function onMsg(ev) {
+    var m;
+    try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.type === "ready") setState("listening");
+    else if (m.type === "partial") partialEl.textContent = m.text || "";
+    else if (m.type === "final") { partialEl.textContent = ""; addFinal(m.text || ""); }
+    else if (m.type === "reply") { addReply(m.text || "", m.tools || []); speak(m.text || ""); }
+    else if (m.type === "error") setState("error: " + (m.message || "unknown"));
+  }
+
+  var WORKLET = "class Down extends AudioWorkletProcessor {"
+    + "constructor() { super(); this.rem = 0; this.out = []; }"
+    + "process(inputs) {"
+    + "  var ch = inputs[0] && inputs[0][0];"
+    + "  if (ch) {"
+    + "    var ratio = sampleRate / 16000, i, s;"
+    + "    for (i = 0; i < ch.length; i++) {"
+    + "      this.rem += 1;"
+    + "      if (this.rem >= ratio) {"
+    + "        this.rem -= ratio;"
+    + "        s = Math.max(-1, Math.min(1, ch[i]));"
+    + "        this.out.push(Math.round(s < 0 ? s * 0x8000 : s * 0x7FFF));"
+    + "      }"
+    + "    }"
+    + "    while (this.out.length >= 640) {"
+    + "      var frame = this.out.slice(0, 640);"
+    + "      this.out = this.out.slice(640);"
+    + "      var buf = new Int16Array(frame).buffer;"
+    + "      this.port.postMessage(buf, [buf]);"
+    + "    }"
+    + "  }"
+    + "  return true;"
+    + "}"
+    + "}"
+    + "registerProcessor('pcm-down', Down);";
+
+  function openWs(done) {
+    var s = new WebSocket(WS_URL);
+    s.binaryType = "arraybuffer";
+    s.onopen = function () {
+      s.send(JSON.stringify({ type: "start", sample_rate: 16000 }));
+      done(null, s);
+    };
+    s.onmessage = onMsg;
+    s.onclose = function () { if (recording) setState("disconnected"); ws = null; };
+    s.onerror = function () { setState("connection failed"); };
+  }
+
+  function startMic() {
+    if ("speechSynthesis" in window) speechSynthesis.cancel(); // barge-in: stop TTS
+    setState("connecting");
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      .then(function (st) {
+        stream = st;
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        var blob = new Blob([WORKLET], { type: "application/javascript" });
+        return actx.audioWorklet.addModule(URL.createObjectURL(blob)).then(function () {
+          return new Promise(function (resolve, reject) {
+            var finish = function (err, s) { err ? reject(err) : resolve(s); };
+            if (ws && ws.readyState === 1) finish(null, ws);
+            else openWs(finish);
+          });
+        }).then(function (s) {
+          ws = s;
+          recording = true;
+          micEl.classList.add("live");
+          micEl.textContent = "stop";
+          node = new AudioWorkletNode(actx, "pcm-down");
+          node.port.onmessage = function (e) {
+            if (ws && ws.readyState === 1) ws.send(e.data); // ~40 ms Int16 PCM frames
+          };
+          actx.createMediaStreamSource(stream).connect(node);
+          setState("listening");
+        });
+      })
+      .catch(function (e) { setState("mic error: " + (e && e.message || e)); stopTracks(); });
+  }
+
+  function stopTracks() {
+    if (node) { try { node.disconnect(); } catch (e) {} node = null; }
+    if (actx) { actx.close().catch(function () {}); actx = null; }
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  }
+
+  function stopMic() {
+    recording = false;
+    micEl.classList.remove("live");
+    micEl.textContent = "mic";
+    try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "stop" })); } catch (e) {}
+    stopTracks();
+    setState("waiting for reply");
+  }
+
+  micEl.addEventListener("click", function () { recording ? stopMic() : startMic(); });
+  if (!("speechSynthesis" in window)) { /* replies still render as text */ }
+  if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function () {};
+
+  sendEl.addEventListener("click", function () {
+    var text = textEl.value.trim();
+    if (!text) return;
+    textEl.value = "";
+    addFinal(text);
+    setState("thinking");
+    fetch(TURN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text })
+    }).then(function (r) { return r.json(); }).then(function (m) {
+      var tools = (m.tool_calls || []).map(function (c) { return c.name; });
+      addReply(m.reply || "", tools);
+      speak(m.reply || "");
+      setState("idle");
+    }).catch(function (e) { setState("turn failed"); });
+  });
+})();
+</script>
+</html>
