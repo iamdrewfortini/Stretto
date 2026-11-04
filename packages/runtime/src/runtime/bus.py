@@ -14,7 +14,7 @@ def envelope(type_, data, source, subject="owner", causation_id=None, correlatio
 class EventBus:
     def __init__(self, path=None):
         self.path, self._subs, self._lock, self._cond = path, [], threading.Lock(), threading.Condition()
-        self._recent = []
+        self._recent, self._seq = [], 0  # (seq, event); seq only grows, so readers never lose their place
         if path:
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
@@ -28,7 +28,7 @@ class EventBus:
             if self.path:
                 with open(self.path, "a", encoding="utf-8") as f:
                     f.write(line); f.flush(); os.fsync(f.fileno())
-            self._recent = (self._recent + [ev])[-500:]
+            self._push(ev)
         with self._cond:
             self._cond.notify_all()
         for fn, types in list(self._subs):
@@ -40,9 +40,23 @@ class EventBus:
                         self.emit("bus.subscriber_error", {"for": ev["id"], "error": repr(e)[:300]}, "bus")
         return ev
 
-    def since(self, idx):
+    def _push(self, ev, keep=500):
+        self._seq += 1
+        self._recent.append((self._seq, ev))
+        if len(self._recent) > keep:
+            del self._recent[:-keep]
+
+    def seed_recent(self, keep=500):
+        """Load the tail of the log so live readers (the dashboard) see history after a restart."""
+        tail = list(self.replay())[-keep:]
         with self._lock:
-            return self._recent[idx:], len(self._recent)
+            for ev in tail:
+                self._push(ev, keep)
+
+    def since(self, seq):
+        """Events with sequence number > seq, and the newest sequence number."""
+        with self._lock:
+            return [ev for s, ev in self._recent if s > seq], self._seq
 
     def wait(self, timeout):
         with self._cond:

@@ -128,6 +128,34 @@ class T(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 serve(env)
 
+    def test_bus_readers_keep_their_place_past_the_cap(self):
+        bus = EventBus()
+        _, seq = bus.since(0)
+        for i in range(600):
+            bus.emit("x", {"i": i}, "t")
+        evs, seq = bus.since(seq)
+        self.assertEqual(len(evs), 500)  # oldest 100 aged out of memory, the rest arrive
+        bus.emit("x", {"i": 600}, "t")
+        evs, _ = bus.since(seq)
+        self.assertEqual([e["data"]["i"] for e in evs], [600])
+
+    def test_pages_served_with_csp_and_unknown_paths_404(self):
+        g, bus = gw([])
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(g, bus, g.reg))
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        try:
+            from runtime.gateway import WEB
+            for path, name in (("/", "voice.html"), ("/dashboard", "dashboard.html")):
+                if (WEB / name).is_file():
+                    r = urllib.request.urlopen(base + path)
+                    self.assertIn("default-src 'self'", r.headers["Content-Security-Policy"])
+            with self.assertRaises(urllib.error.HTTPError) as c:
+                urllib.request.urlopen(base + "/../../.env")
+            self.assertEqual(c.exception.code, 404)
+        finally:
+            srv.shutdown()
+
     def test_http_end_to_end(self):
         g, bus = gw(["ok"])
         srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(g, bus, g.reg))

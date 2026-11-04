@@ -16,6 +16,8 @@ PASS_KEYS = {"messages", "tools", "tool_choice", "response_format", "temperature
 DROP_KEYS = {"stop", "logit_bias", "prediction", "web_search_options", "modalities", "audio", "frequency_penalty",
              "presence_penalty", "logprobs", "n", "seed", "user", "max_output_tokens"}
 RETRY_STATUS = {429, 500, 502, 503, 504}
+WEB = __import__("pathlib").Path(__file__).resolve().parents[2] / "web"
+PAGES = {"/": "voice.html", "/dashboard": "dashboard.html"}
 
 
 class GatewayError(Exception):
@@ -217,12 +219,25 @@ def make_handler(gw, bus, registry, core=None):
                                         "roles": v.get("roles", [])} for k, v in registry.models.items()]})
             if self.path.startswith("/v1/events"):
                 return self._events()
+            page = PAGES.get(self.path.split("?", 1)[0])
+            if page and (WEB / page).is_file():
+                return self._page(WEB / page)
             self._send(404, {"error": "not found"})
+
+        def _page(self, path):
+            b = path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(b)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; "
+                             "style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:8788 ws://localhost:8788; "
+                             "worker-src blob: 'self'; img-src 'self' data:")
+            self.end_headers(); self.wfile.write(b)
 
         def _events(self):
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream"); self.send_header("Cache-Control", "no-cache"); self.end_headers()
-            _, idx = bus.since(0)
+            idx = 0  # send recent history first, then live events
             try:
                 while True:
                     evs, idx = bus.since(idx)
@@ -301,10 +316,23 @@ def serve(env=os.environ):
     gw = Gateway(reg, Upstream(env.get("META_BASE_URL", "https://api.meta.ai/v1"), key, allow), bus, redact=redact, spend_limit=limit)
     from runtime.core import VoiceCore
     from runtime.tools import Tools
-    core = VoiceCore(gw, Tools(bus, owner=env.get("OWNER_ID", "owner")), bus)
+    bus.seed_recent()
+    tools = Tools(bus, owner=env.get("OWNER_ID", "owner"))
+    core = VoiceCore(gw, tools, bus)
     srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg, core))
     srv.daemon_threads = True
-    bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact)}, "runtime.gateway")
+    parts = {}
+    try:  # background agent pipelines (optional module)
+        from runtime.agents import start_agents
+        start_agents(bus, gw, tools); parts["agents"] = True
+    except ImportError:
+        parts["agents"] = False
+    try:  # realtime voice bridge (optional module)
+        from runtime.voice import start_voice_thread
+        start_voice_thread(core, bus, env); parts["voice"] = env.get("VOICE_BIND", "127.0.0.1:8788")
+    except ImportError:
+        parts["voice"] = False
+    bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact), **parts}, "runtime.gateway")
     print(f"gateway on http://{host}:{port} -> {gw.up.base} (egress: {','.join(allow)})", flush=True)
     srv.serve_forever()
 
