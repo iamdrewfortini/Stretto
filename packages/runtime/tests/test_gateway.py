@@ -41,6 +41,8 @@ def gw(script, **kw):
 
 
 MSG = [{"role": "user", "content": "hello"}]
+VOICE = Registry.load(REG).chain(role="voice.core")  # primary, then fallbacks, as the registry binds them
+PRICE = Registry.load(REG).models[VOICE[0]]["price_per_mtok"]
 
 
 class T(unittest.TestCase):
@@ -48,7 +50,7 @@ class T(unittest.TestCase):
         g, bus = gw(["ok"])
         data, model, _ = g.complete({"role": "voice.core", "messages": MSG, "max_tokens": 50, "stop": ["x"], "presence_penalty": 1})
         sent = g.up.calls[0]
-        self.assertEqual(model, "muse-spark-1.3")
+        self.assertEqual(model, VOICE[0])
         self.assertEqual(sent["max_completion_tokens"], 512)  # raised to the role's floor
         self.assertNotIn("max_tokens", sent); self.assertNotIn("stop", sent); self.assertNotIn("presence_penalty", sent)
         self.assertEqual(sent["reasoning_effort"], "minimal")
@@ -76,8 +78,8 @@ class T(unittest.TestCase):
     def test_retry_then_fallback(self):
         g, bus = gw([http_error(503), http_error(503, "0"), http_error(503), "ok"])
         _, model, _ = g.complete({"role": "voice.core", "messages": MSG})
-        self.assertEqual(model, "muse-spark-1.2")
-        self.assertEqual([c["model"] for c in g.up.calls], ["muse-spark-1.3"] * 3 + ["muse-spark-1.2"])
+        self.assertEqual(model, VOICE[1])
+        self.assertEqual([c["model"] for c in g.up.calls], [VOICE[0]] * 3 + [VOICE[1]])
         calls = [e for e in bus.since(0)[0] if e["type"] == "gateway.call"]
         self.assertEqual([c["data"]["status"] for c in calls], [503, 503, 503, 200])
 
@@ -95,9 +97,9 @@ class T(unittest.TestCase):
         check_tool_pairs(msgs[:2] + [{"role": "tool", "tool_call_id": "c1", "content": "{}"}] + msgs[2:])
 
     def test_cost_and_spend_limit(self):
-        g, bus = gw(["ok", "ok"], spend_limit=0.0001)
+        g, bus = gw(["ok", "ok"], spend_limit=1e-6)
         g.complete({"role": "voice.core", "messages": MSG})
-        self.assertAlmostEqual(g.spent, (1000 * 1.25 + 100 * 4.25) / 1e6)
+        self.assertAlmostEqual(g.spent, (1000 * PRICE["in"] + 100 * PRICE["out"]) / 1e6)
         with self.assertRaises(GatewayError) as c:
             g.complete({"role": "agent.background", "messages": MSG})
         self.assertEqual(c.exception.status, 402)
@@ -167,7 +169,7 @@ class T(unittest.TestCase):
             req = urllib.request.Request(base + "/v1/chat/completions", data=json.dumps({"role": "voice.core", "messages": MSG}).encode(),
                                          headers={"Content-Type": "application/json"})
             r = urllib.request.urlopen(req)
-            self.assertEqual(r.headers["x-gateway-model"], "muse-spark-1.3")
+            self.assertEqual(r.headers["x-gateway-model"], VOICE[0])
             self.assertEqual(json.load(r)["choices"][0]["message"]["content"], "hi")
             bad = urllib.request.Request(base + "/v1/chat/completions", data=b'{"model":"gpt-4o","messages":[{"role":"user","content":"x"}]}')
             with self.assertRaises(urllib.error.HTTPError) as c:

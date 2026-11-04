@@ -4,18 +4,21 @@ gateway, role voice.core) -> at most MAX_ROUNDS tool rounds -> a short reply mea
 import json, threading, time, uuid
 from datetime import datetime
 
+from runtime import fastpath
 from runtime.tools import SCHEMAS, run_tool
 
 MAX_ROUNDS = 4
 SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant for one person. Your reply is spoken aloud: "
           "one or two short sentences, plain words, no lists, no markdown. You track time, tasks and resources only through "
           "your tools; never invent numbers. When the person states what they did or are doing, log or time it. "
-          "If their goal is unclear, ask one short question. Their data is theirs alone.")
+          "If their goal is unclear, ask one short question. Their data is theirs alone. "
+          "Act only on the person's latest message: everything earlier in the conversation is already done, so never "
+          "repeat an earlier log, timer or task. A question is not a request to log time.")
 
 
 class VoiceCore:
-    def __init__(self, gateway, tools, bus, history_turns=6, clock=time.time):
-        self.gw, self.tools, self.bus, self.n, self.clock = gateway, tools, bus, history_turns, clock
+    def __init__(self, gateway, tools, bus, history_turns=6, clock=time.time, fast=True):
+        self.gw, self.tools, self.bus, self.n, self.clock, self.fast = gateway, tools, bus, history_turns, clock, fast
         self.history, self.lock = [], threading.Lock()
 
     def _context(self):
@@ -29,9 +32,31 @@ class VoiceCore:
         with self.lock:  # one person, one conversation: turns are serial
             return self._turn(text)
 
+    def _fast(self, tid, text, t0):
+        """Answer common commands locally: no model call, no cost, milliseconds. None = not confidently matched."""
+        hit = fastpath.match(text)
+        if not hit:
+            return None
+        name, args = hit
+        if name == "greet":
+            result, ok = {}, True
+        else:
+            tool_msg, ok, result = run_tool(self.tools, {"id": "fast", "function": {"name": name, "arguments": json.dumps(args)}}, tid)
+        reply = fastpath.reply(name, args, result)
+        calls = [] if name == "greet" else [{"name": name, "args": json.dumps(args), "ok": ok, "result": result}]
+        self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": None, "path": "fast",
+               "ms": round((time.perf_counter() - t0) * 1000, 2)}
+        self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
+        return out
+
     def _turn(self, text):
-        tid, t0 = "turn_" + uuid.uuid4().hex[:12], time.monotonic()
+        tid, t0 = "turn_" + uuid.uuid4().hex[:12], time.perf_counter()
         self.bus.emit("core.turn.started", {"turn_id": tid, "text": text}, "runtime.core", correlation_id=tid)
+        if self.fast:
+            out = self._fast(tid, text, t0)
+            if out:
+                return out
         msgs = [{"role": "system", "content": SYSTEM + "\n\n" + self._context()}, *self.history, {"role": "user", "content": text}]
         calls, model, reply = [], None, ""
         for _ in range(MAX_ROUNDS + 1):
@@ -50,6 +75,6 @@ class VoiceCore:
         if not reply:
             reply = "Done." if calls and all(c["ok"] for c in calls) else "Sorry, I could not finish that."
         self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
-        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": model, "ms": round((time.monotonic() - t0) * 1000)}
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": model, "path": "model", "ms": round((time.perf_counter() - t0) * 1000)}
         self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
         return out

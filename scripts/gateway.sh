@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Start, stop or check the local runtime gateway. Tracks the process by PID file, never by name.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"

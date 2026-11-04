@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Run a command with the repo's .env exported into its environment only (not the parent shell).
 # Refuses to run if the env check fails, so nothing starts outside the local-runtime boundary.
 set -euo pipefail

@@ -77,7 +77,7 @@ class CoreT(unittest.TestCase):
 
     def test_turn_runs_tools_then_replies(self):
         gw = FakeGW([[tc(1, "log_time", activity="meeting", minutes=40)], "Logged 40 minutes of meetings."])
-        out = VoiceCore(gw, self.tools, self.bus).turn("I was in meetings for 40 minutes")
+        out = VoiceCore(gw, self.tools, self.bus, fast=False).turn("I was in meetings for 40 minutes")
         self.assertEqual(out["reply"], "Logged 40 minutes of meetings.")
         self.assertEqual([c["name"] for c in out["tool_calls"]], ["log_time"])
         self.assertEqual(self.tools.t_get_summary("all")["by_activity_min"], {"meeting": 40.0})
@@ -87,19 +87,19 @@ class CoreT(unittest.TestCase):
 
     def test_failed_tool_is_replayed_not_dropped(self):
         gw = FakeGW([[tc(1, "stop_timer")], "No timer was running."])
-        out = VoiceCore(gw, self.tools, self.bus).turn("stop the timer")
+        out = VoiceCore(gw, self.tools, self.bus, fast=False).turn("stop the timer")
         self.assertFalse(out["tool_calls"][0]["ok"])
         self.assertEqual(gw.requests[1]["messages"][-1]["role"], "tool")
 
     def test_tool_loop_is_bounded(self):
         gw = FakeGW([[tc(i, "list_tasks")] for i in range(10)])
-        out = VoiceCore(gw, self.tools, self.bus).turn("loop forever")
+        out = VoiceCore(gw, self.tools, self.bus, fast=False).turn("loop forever")
         self.assertLessEqual(len(gw.requests), 5)
         self.assertTrue(out["reply"])
 
     def test_history_is_carried_and_bounded(self):
         gw = FakeGW(["ok"] * 20)
-        core = VoiceCore(gw, self.tools, self.bus, history_turns=2)
+        core = VoiceCore(gw, self.tools, self.bus, history_turns=2, fast=False)
         for i in range(5):
             core.turn(f"hello {i}")
         self.assertEqual(len(core.history), 4)
