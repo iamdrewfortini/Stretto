@@ -22,7 +22,7 @@ If you ever want a different license, change it before the first public push: re
 
 | Rule (summary) | What the repository does | Evidence |
 |---|---|---|
-| **One track, one problem statement** per submission | The submission declares **Indie Developer** and **Push the Frontier** (as in the application). The story explains why both ideas matter, but it is not a second entry. | `docs/STORY.md`, `docs/HACKATHON.md` |
+| **One track, one problem statement** per submission | The submission declares **Indie Developer** and **Build for Your World** (switched from *Push the Frontier* on the final day; see STORY.md section 8). It is one entry. | `docs/STORY.md`, `docs/HACKATHON.md` |
 | **New work only; identify what was built during the event** | Authorship dates are listed per component, and the git history separates the 2026-10-26 groundwork from the building period | `docs/HACKATHON.md`, `git log` |
 | **Original work; no code, data or assets you lack rights to** | No third-party code, data, images, fonts or weights are included. The algorithms used (Langton's ant, Erlang C, Jain's index, Jensen-Shannon divergence, Hedge, Johnson-Lindenstrauss) are public ideas implemented from their definitions. The Apache-2.0 text is the unmodified standard form. | `THIRD_PARTY.md`, release gate [C:release-gates] |
 | **Open-source licenses followed** | All dependencies are listed with their licenses; the release gate rejects any unlisted external dependency | `scripts/release_check.py` |

@@ -13,8 +13,8 @@ Keep unrelated Teranet, F&MN and GLMV work isolated. This directive adds no perm
   declared circuit gates, and a standalone event-work submission. Synthetic passes do not prove the real-job bar.
 - Five independent sides must agree for model-VERIFIED; otherwise CONTESTED/UNKNOWN. Keep HUMAN-VALIDATED
   distinct. No majority vote, no inferred NO_SIGNAL, no claim beyond its evidence. Regenerate outputs from the graph.
-- Read §6 conflicts before deciding. Indie remains the provisional framing; track choice and reconciliation
-  ratification remain Drew's decisions. Dated measurements and readiness are snapshots, not current-state proof.
+- Read §6 conflicts before deciding. Submission: Indie Developer · Build for Your World (Humanflow), decided by Drew on 2026-11-04;
+  reconciliation ratification remains Drew's decision. Dated measurements and readiness are snapshots, not current-state proof.
   Refresh against source artifacts and CLAIMS.md; record source conflicts and evidence pointers.
 - No posts, pushes, publishing or submissions without Drew's explicit approval for that action. No schedule-driven
   polling or waiting: events tip dominoes. Phase 2 steps 3–5 remain held; no live Muse call before circuit dry-run proof.

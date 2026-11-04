@@ -322,6 +322,36 @@ def _():
 def _():
     r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts/make_figures.py"), "--check"], capture_output=True, text=True); assert r.returncode == 0, r.stdout[-600:] + r.stderr[-400:]; return r.stdout.strip().splitlines()[-1]
 
+# ---------------------------------------------------------------- Humanflow
+@claim("humanflow-fast-path-budget", "Common spoken commands are answered locally by the Humanflow voice core with p95 under 100 ms over 440 turns and no model call.")
+def _():
+    from runtime.bus import EventBus; from runtime.core import VoiceCore; from runtime.tools import Tools
+    class NoModel:
+        def complete(self, body): raise AssertionError("model called on the fast path")
+    bus = EventBus(); core = VoiceCore(NoModel(), Tools(bus), bus)
+    texts = ["hello", "log twenty five minutes of focus", "I was in meetings for 40 minutes", "start a focus timer", "how's my day",
+             "what are my tasks", "add a task: record the demo video, about 30 minutes", "I spent 1.5 hours on email"] * 55
+    ms = []
+    for t in texts:
+        t0 = time.perf_counter(); out = core.turn(t); ms.append((time.perf_counter() - t0) * 1000); assert out["path"] == "fast", t
+    p50, p95 = statistics.median(ms), statistics.quantiles(ms, n=20)[18]; assert p95 < 100.0, p95
+    return f"n={len(ms)} p50={p50:.3f} ms p95={p95:.3f} ms max={max(ms):.3f} ms; 0 model calls"
+@claim("humanflow-gateway-boundary", "The Humanflow runtime gateway refuses all 7 out-of-boundary configurations: off-loopback or non-local start, non-https or non-allowlisted egress, and models outside the Meta registry.")
+def _():
+    from runtime.bus import EventBus; from runtime.gateway import Gateway, GatewayError, Upstream, serve; from runtime.registry import Registry
+    reg = os.path.join(ROOT, "docs/spec/models.registry.json"); base = {"MODEL_API_KEY": "k", "EGRESS_ALLOWLIST": "api.meta.ai", "REGISTRY_PATH": reg}; refused = 0
+    for env in ({**base, "RUNTIME_MODE": "local", "GATEWAY_BIND": "0.0.0.0:8787"}, {**base, "RUNTIME_MODE": "cloud", "GATEWAY_BIND": "127.0.0.1:8787"}):
+        try: serve(env)
+        except SystemExit: refused += 1
+    for url in ("http://api.meta.ai/v1", "https://evil.example/v1", "https://api.meta.ai.evil.example/v1"):
+        try: Upstream(url, "k", ["api.meta.ai"])
+        except GatewayError: refused += 1
+    g = Gateway(Registry.load(reg), None, EventBus())
+    for m in ("gpt-4o", "muse-glimmer-30b"):
+        try: g.complete({"model": m, "messages": [{"role": "user", "content": "x"}]})
+        except GatewayError: refused += 1
+    assert refused == 7, refused; return f"{refused} of 7 out-of-boundary configurations refused"
+
 class Skip(Exception): pass
 def main():
     fast, req, write = "--fast" in sys.argv, "--require-all" in sys.argv, "--write" in sys.argv; res = []

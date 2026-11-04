@@ -1,0 +1,21 @@
+name: Bug report
+description: Something in Humanflow does not work as described
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Security or privacy problem? Please use the Security tab → Report a vulnerability instead of a public issue. Never paste your API key, `.env` contents or personal ledger data."
+  - type: textarea
+    id: what
+    attributes: {label: What happened, description: What you did, what you expected, what you saw instead.}
+    validations: {required: true}
+  - type: textarea
+    id: repro
+    attributes: {label: Steps to reproduce, placeholder: "1. scripts/gateway.sh start\n2. say \"...\"\n3. ..."}
+    validations: {required: true}
+  - type: input
+    id: env
+    attributes: {label: Environment, placeholder: "macOS 14 / Ubuntu 24.04, Python 3.12, browser"}
+  - type: textarea
+    id: logs
+    attributes: {label: Relevant output, description: "Output of `python3 scripts/env_check.py` and `scripts/gateway.sh status` (both are safe to share: no secret values).", render: text}

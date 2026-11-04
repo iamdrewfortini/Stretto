@@ -1,6 +1,6 @@
 # Hackathon notes (Meta Global AI Developer Hackathon)
 
-**Submission:** Indie Developer track · Push the Frontier. One track, one problem statement, as the Official Rules require. The reasoning behind the project is in [STORY.md](STORY.md); licensing and rules are in [LICENSE-AND-TERMS.md](LICENSE-AND-TERMS.md).
+**Submission:** **Humanflow**, Indie Developer track · **Build for Your World**. One track, one problem statement, as the Official Rules require. The entry pivoted on the final day from *Push the Frontier* to *Build for Your World*; [STORY.md](STORY.md) section 8 says why. The reasoning behind the project is in [STORY.md](STORY.md); licensing and rules are in [LICENSE-AND-TERMS.md](LICENSE-AND-TERMS.md).
 
 ## Meta models and how they are used
 
@@ -41,6 +41,13 @@ metacoh doctor                                  # after installing the bundle
 ```
 
 ## Demo plan (three minutes, only what was built during the event)
+
+1. The problem, firsthand: time tracking costs the attention it is meant to save, so it does not get done.
+2. Talk to Humanflow at `http://127.0.0.1:8787/`: "Hello", "I was in meetings for forty minutes", "Start a focus timer, I'm writing the demo script", "Add a task: record the demo video". Show the instant local replies and the live transcript.
+3. Ask an open question ("Should I take a break before recording?") and show it going to Muse Spark; show the Muse Wonder plan on `/dashboard` with its rationale, and the model calls panel with latency and cost.
+4. Trust: the gateway boundary (`python3 scripts/env_check.py`), consent default-deny, and `python3 scripts/verify_claims.py` passing live.
+
+Earlier Hive demo, if time allows:
 
 1. The problem: a person cannot see their own location. Show `figures/distance-from-coherence.svg` and the one number, with its unmeasured axes named.
 2. Handoff: delete a step from a procedure and watch the checker ask the one question that closes the graph.
