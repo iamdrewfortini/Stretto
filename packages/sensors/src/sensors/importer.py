@@ -6,7 +6,7 @@ poll (200 ms budget; overruns counted and the sample dropped),
 redact titles, feed the episode builder, and queue derived events on
 the ingest client. Tick work (excluding adapter subprocess wait, which
 adapters report via ``sample.extra['wait_ms']``) is timed into
-``tick_ms`` samples; budget is p95 < 5 ms with fake adapters.
+``tick_ms`` samples; budget is p95 < 5 ms with fixture adapters.
 Consent is re-checked every tick from the consent file, so a revoke
 stops every adapter of that source on the next tick.
 """

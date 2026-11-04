@@ -13,8 +13,8 @@ from sensors.importer import Importer
 from sensors.metrics import MetricsEngine
 
 
-class FakeWindow:
-    name, source, platforms = "fake-window", "window", ()
+class FixtureWindow:
+    name, source, platforms = "fixture-window", "window", ()
 
     def __init__(self, script):
         self.script = script  # fn(now) -> (app, title)
@@ -27,18 +27,18 @@ class FakeWindow:
         return [Sample("window", now, app=app, title=title)]
 
 
-class FakeClockImporter(unittest.TestCase):
+class FixtureClockImporter(unittest.TestCase):
     def _make(self, script, tmp, titles_on=True):
         consent = ConsentStore(path=os.path.join(tmp, "consent.json"))
         consent.grant(["window", "idle", "input", "pointer"], 100000, now=0)
         events = []
-        imp = Importer([(FakeWindow(script), True, "available")],
+        imp = Importer([(FixtureWindow(script), True, "available")],
                        consent, events, titles_on=titles_on,
                        now_fn=lambda: 0.0)
         return imp, events, consent
 
 
-class Episodes(FakeClockImporter):
+class Episodes(FixtureClockImporter):
     def test_merging_and_idle_split(self):
         with tempfile.TemporaryDirectory() as tmp:
             def script(now):
@@ -93,13 +93,13 @@ class Metrics(unittest.TestCase):
         self.assertEqual(r["longest_focus_s"], 100.0)
 
 
-class ConsentPrivacy(FakeClockImporter):
+class ConsentPrivacy(FixtureClockImporter):
     def test_default_deny_and_revoke_next_tick(self):
         with tempfile.TemporaryDirectory() as tmp:
             consent = ConsentStore(path=os.path.join(tmp, "c.json"))
             events = []
             imp = Importer(
-                [(FakeWindow(lambda n: ("Code", "a")), True, "ok")],
+                [(FixtureWindow(lambda n: ("Code", "a")), True, "ok")],
                 consent, events, now_fn=lambda: 0.0)
             imp.tick(now=1.0)
             self.assertEqual(events, [])  # default-deny: zero samples
@@ -114,19 +114,19 @@ class ConsentPrivacy(FakeClockImporter):
             self.assertEqual(mode, "600")
 
     def test_keyboard_chars_never_emitted(self):
-        class FakeKeys:
-            name, source, platforms = "fake-keys", "input", ()
+        class FixtureKeys:
+            name, source, platforms = "fixture-keys", "input", ()
 
             def probe(self):
                 return True, "available"
 
             def poll(self, now):
-                # adapter counts characters; only the count may leave
+                # fixture adapter counts characters; only the count may leave
                 return [Sample("input", now, keys=len("hunter2"))]
 
         with tempfile.TemporaryDirectory() as tmp:
             imp, events, _ = self._make(lambda n: ("Code", "a"), tmp)
-            imp.adapters.append((FakeKeys(), True, "ok"))
+            imp.adapters.append((FixtureKeys(), True, "ok"))
             imp.consent.grant(["input"], 100000, now=0)
             for t in range(3):
                 imp.tick(now=float(t))
@@ -228,7 +228,7 @@ class Registry(unittest.TestCase):
         self.assertEqual(len(adapters.registry()), n)
 
 
-class Perf(FakeClockImporter):
+class Perf(FixtureClockImporter):
     def test_3600_ticks_p95(self):
         with tempfile.TemporaryDirectory() as tmp:
             imp, events, _ = self._make(lambda n: ("Code", "a"), tmp)
