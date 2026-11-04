@@ -1,0 +1,65 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Attention panel fragment for packages/runtime/web/dashboard.html.
+     Integration: paste this section where panels are declared and the
+     script before </body>. Built only from SSE events on /v1/events.
+     No external resources, no HTML injection of event data, textContent
+     only, 375px-safe, inherits dashboard dark-mode styles. -->
+<section id="attention-panel" aria-label="Attention">
+  <h2>Attention</h2>
+  <div id="attention-gauges">
+    <span>Focus <b id="att-focus-ratio">–</b></span>
+    <span>Idle <b id="att-idle-ratio">–</b></span>
+    <span>Switches/min <b id="att-switches">–</b></span>
+    <span>Input/min <b id="att-input">–</b></span>
+  </div>
+  <div id="attention-timeline" role="img" aria-label="Episode timeline"
+       style="display:flex;height:14px;overflow:hidden"></div>
+  <p id="attention-suggestion"></p>
+  <ul id="attention-log" style="max-height:12em;overflow:auto"></ul>
+  <div id="attention-consent"></div>
+</section>
+<script>
+(function () {
+  var log = document.getElementById('attention-log');
+  var bar = document.getElementById('attention-timeline');
+  var consent = document.getElementById('attention-consent');
+  var COLORS = {focus: '#2f9e44', meeting: '#1971c2', comms: '#e8590c',
+    search: '#862e9c', wait: '#868e96', admin: '#fab005', other: '#adb5bd',
+    idle: '#343a40'};
+  function txt(id, v) { document.getElementById(id).textContent = v; }
+  function onEvent(ev) {
+    var d = ev.data || {};
+    if (ev.type === 'attention.metrics' && d.window_s === 600) {
+      txt('att-focus-ratio', Math.round(d.focus_ratio * 100) + '%');
+      txt('att-idle-ratio', Math.round(d.idle_ratio * 100) + '%');
+      txt('att-switches', String(d.switches_per_min));
+      txt('att-input', String(d.input_per_min));
+    } else if (ev.type === 'activity.episode') {
+      var seg = document.createElement('div');
+      seg.style.background = COLORS[d.category] || COLORS.other;
+      seg.style.width = Math.max(2, Math.min(120, d.seconds / 6)) + 'px';
+      seg.title = d.app + ' ' + d.category;
+      bar.appendChild(seg);
+      while (bar.children.length > 60) bar.removeChild(bar.firstChild);
+    } else if (ev.type === 'narration.log') {
+      var li = document.createElement('li');
+      li.textContent = d.text || '';
+      log.prepend(li);
+      while (log.children.length > 20) log.removeChild(log.lastChild);
+    } else if (ev.type === 'narration.suggestion') {
+      txt('attention-suggestion', (d.text || '') +
+        (d.evidence ? ' [' + d.evidence + ']' : ''));
+    } else if (ev.type === 'consent.changed' ||
+               ev.type.indexOf('consent.') === 0) {
+      var s = document.createElement('span');
+      s.textContent = (d.action || 'changed') + ': ' +
+        ((d.sources || []).join(', ') || 'all');
+      consent.replaceChildren(s);
+    }
+  }
+  var src = new EventSource('/v1/events');
+  src.onmessage = function (m) {
+    try { onEvent(JSON.parse(m.data)); } catch (e) { /* keep panel */ }
+  };
+})();
+</script>
