@@ -188,6 +188,31 @@ class Gateway:
         return data, model, rid
 
 
+INGEST_PREFIXES = ("telemetry.", "activity.", "attention.", "narration.", "consent.")
+
+
+def ingest(bus, body):
+    """Sensor events from the person's own desktop. Only telemetry-shaped types, and ledger entries marked auto,
+    so a sensor can never forge a manual entry, a model call or a voice turn. Returns (status, response)."""
+    if not isinstance(body, dict) or not isinstance(body.get("events"), list):
+        return 400, {"error": "body must be {\"source_host\": str, \"events\": [...]}"}
+    evs = body["events"]
+    if len(evs) > 200:
+        return 413, {"error": "at most 200 events per request"}
+    host = str(body.get("source_host") or "unknown")[:64]
+    bad = []
+    for e in evs:
+        t, d = (e.get("type"), e.get("data")) if isinstance(e, dict) else (None, None)
+        ok = isinstance(t, str) and isinstance(d, dict) and (t.startswith(INGEST_PREFIXES) or (t == "ledger.event.added" and d.get("origin") == "auto"))
+        if not ok:
+            bad.append(t if isinstance(t, str) else repr(t)[:40])
+    if bad:
+        return 400, {"error": "rejected event types", "types": sorted(set(bad))}
+    for e in evs:
+        bus.emit(e["type"], e["data"], f"sensors@{host}")
+    return 200, {"accepted": len(evs)}
+
+
 def make_handler(gw, bus, registry, core=None):
     class H(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -252,13 +277,15 @@ def make_handler(gw, bus, registry, core=None):
         def do_POST(self):
             if not self._guard():
                 return
-            if self.path not in ("/v1/chat/completions", "/v1/turn"):
+            if self.path not in ("/v1/chat/completions", "/v1/turn", "/v1/ingest"):
                 return self._send(404, {"error": "not found"})
             try:
                 n = int(self.headers.get("Content-Length", "0"))
                 if n > 8 * 1024 * 1024:
                     raise GatewayError(413, "body too large")
                 body = json.loads(self.rfile.read(n) or b"{}")
+                if self.path == "/v1/ingest":
+                    return self._send(*ingest(bus, body))
                 if self.path == "/v1/turn":
                     text = body.get("text") if isinstance(body, dict) else None
                     if core is None or not isinstance(text, str) or not text.strip():

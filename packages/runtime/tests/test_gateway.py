@@ -158,6 +158,20 @@ class T(unittest.TestCase):
         finally:
             srv.shutdown()
 
+    def test_ingest_accepts_only_sensor_shaped_events(self):
+        from runtime.gateway import ingest
+        bus = EventBus()
+        ok = {"source_host": "mac", "events": [{"type": "activity.episode", "data": {"app": "Code"}},
+                                               {"type": "ledger.event.added", "data": {"origin": "auto", "activity": "focus"}}]}
+        self.assertEqual(ingest(bus, ok), (200, {"accepted": 2}))
+        self.assertEqual({e["source"] for e in bus.since(0)[0]}, {"sensors@mac"})
+        for bad in ({"type": "ledger.event.added", "data": {"activity": "focus"}}, {"type": "core.turn.completed", "data": {}},
+                    {"type": "gateway.call", "data": {}}, {"type": "activity.x", "data": "not a dict"}, "junk"):
+            status, out = ingest(bus, {"events": [bad]})
+            self.assertEqual(status, 400, bad)
+        self.assertEqual(ingest(bus, {"events": [{"type": "telemetry.x", "data": {}}] * 201})[0], 413)
+        self.assertEqual(len(bus.since(0)[0]), 2)  # nothing from the rejected batches reached the bus
+
     def test_http_end_to_end(self):
         g, bus = gw(["ok"])
         srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(g, bus, g.reg))
