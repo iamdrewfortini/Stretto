@@ -1,0 +1,61 @@
+{
+  "id": "MODEL-REGISTRY-01",
+  "version": "1.0.0",
+  "derived_from": ["packages/metarouter/src/metarouter/policy.py@574764c", "dev.meta.ai docs read 2026-11-04"],
+  "status_legend": {
+    "VERIFIED": "seen in first-party docs AND answered a live call from this account",
+    "DOCUMENTED": "in dev.meta.ai docs; no live call from this account yet",
+    "UNVERIFIED": "third-party source only",
+    "NOT_OFFERED": "Meta states it does not exist"
+  },
+  "provider": {
+    "id": "meta-api",
+    "base_url": "https://api.meta.ai/v1",
+    "auth": {"header": "Authorization", "scheme": "Bearer", "env": "MODEL_API_KEY", "env_alias_accepted": ["META_API_KEY"]},
+    "rate_limits_per_team": {
+      "muse-spark-1.x|muse-wonder-1.0": {"rpm": 3000, "tpm": 4000000},
+      "*-contributor": {"rpm": 150, "tpm": 3000000, "note": "promptfoo says 100 RPM; budget for 100"},
+      "sam-3.1": {"rpm": 3000},
+      "muse-image-1.0": {"rpm": 150},
+      "voice": {"concurrent_streams": 256, "streams_per_hour": 16000}
+    },
+    "retry": {"on": [429, 500, 502, 503, 504], "honor": "Retry-After", "max_attempts": 3, "backoff": "exponential+full-jitter"}
+  },
+  "endpoints": {
+    "chat":        {"method": "POST", "path": "/chat/completions", "status": "DOCUMENTED", "stream": "SSE data: {chunk} ... data: [DONE]"},
+    "responses":   {"method": "POST", "path": "/responses", "status": "DOCUMENTED", "notes": "reasoning:{effort}, max_output_tokens, tools:[{type:web_search}], background:true"},
+    "messages":    {"method": "POST", "path": "/messages", "status": "DOCUMENTED", "notes": "Anthropic-compatible; reasoning returns as redacted_thinking"},
+    "images_gen":  {"method": "POST", "path": "/images/generations", "status": "DOCUMENTED"},
+    "images_edit": {"method": "POST", "path": "/images/edits", "status": "DOCUMENTED"},
+    "asr_file":    {"method": "POST", "path": "/asr/transcribe", "status": "DOCUMENTED", "notes": "multipart parts request(JSON)+audio(WAV mono s16 16/24kHz); 32 MB, 10 min"},
+    "asr_realtime":{"method": "WSS",  "url": "wss://api.meta.ai/v1/asr/realtime", "status": "DOCUMENTED"},
+    "models":      {"method": "GET",  "path": "/models", "status": "DOCUMENTED"},
+    "embeddings":  {"status": "NOT_OFFERED", "fallback": "local: bm25 now; muse-glimmer pooled or FAIR SONAR later (NO_SIGNAL until evaluated)"},
+    "tts":         {"status": "NOT_OFFERED", "quote": "It does not synthesize speech or provide a speech-to-speech conversation API."}
+  },
+  "models": {
+    "muse-spark-1.3": {"status": "DOCUMENTED", "roles": ["voice-core", "planner", "coder", "tools", "vision"], "context": 1048576,
+      "in": ["text", "image", "video", "pdf"], "out": ["text"], "audio_in": "not fully supported; use 1.2",
+      "reasoning_effort": ["minimal", "low", "medium", "high", "xhigh"], "price_per_mtok": {"in": 1.25, "cached": 0.15, "out": 4.25}},
+    "muse-spark-1.3-contributor": {"status": "DOCUMENTED", "roles": ["background-agents"], "price_per_mtok": {"in": 0.10, "cached": 0.002, "out": 0.20},
+      "note": "20x cheaper; low RPM; use for microservice agents, never the voice hot path"},
+    "muse-spark-1.2": {"status": "DOCUMENTED", "roles": ["audio-understanding", "fallback"], "context": 1048576, "price_per_mtok": {"in": 1.25, "cached": 0.15, "out": 4.25}},
+    "muse-spark-1.2-contributor": {"status": "DOCUMENTED", "roles": ["background-agents-fallback"]},
+    "muse-wonder-1.0": {"status": "DOCUMENTED", "preview": true, "roles": ["deep-planner", "weekly-review"], "context": 1048576,
+      "reasoning_effort": ["minimal", "low", "medium", "high", "xhigh", "max"], "price_per_mtok": {"in": 4.00, "cached": 0.20, "out": 20.00}},
+    "muse-voice-transcribe-1.0": {"status": "DOCUMENTED", "roles": ["asr"], "price": "$0.18/hour", "languages": 25},
+    "muse-image-1.0": {"status": "DOCUMENTED", "roles": ["image"], "price": "$0.01/image"},
+    "sam-3.1": {"status": "DOCUMENTED", "roles": ["segmentation"], "out": ["boxes", "masks"], "price": "$2.50/1k images; $0.20/1k frames"},
+    "muse-glimmer-30b": {"status": "UNVERIFIED", "provider": "meta-local", "roles": ["offline-fallback", "embed-candidate"], "license": "Apache-2.0", "served": false},
+    "muse-spark-open": {"status": "DOCUMENTED", "provider": "self-host", "hf": "meta-models/Muse-Spark-Open-816B-A42B", "served": false, "note": "not a Model API id"}
+  },
+  "role_bindings": {
+    "voice.asr":        {"primary": "muse-voice-transcribe-1.0", "mode": "ENDPOINTING"},
+    "voice.core":       {"primary": "muse-spark-1.3", "effort": "low", "fallback": ["muse-spark-1.2"]},
+    "agent.background": {"primary": "muse-spark-1.3-contributor", "effort": "medium", "fallback": ["muse-spark-1.2-contributor", "muse-spark-1.3"]},
+    "agent.planner":    {"primary": "muse-wonder-1.0", "effort": "high", "fallback": ["muse-spark-1.3"]},
+    "vision.screen":    {"primary": "muse-spark-1.3", "fallback": ["sam-3.1"]},
+    "embed":            {"primary": null, "status": "NO_SIGNAL", "local": "bm25"},
+    "voice.tts":        {"primary": null, "status": "NOT_OFFERED", "local": "browser speechSynthesis (on-device, no network)"}
+  }
+}
