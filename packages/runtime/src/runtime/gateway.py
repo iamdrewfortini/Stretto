@@ -186,7 +186,7 @@ class Gateway:
         return data, model, rid
 
 
-def make_handler(gw, bus, registry):
+def make_handler(gw, bus, registry, core=None):
     class H(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
         server_version = "meta-coherence-gateway/1"
@@ -237,13 +237,18 @@ def make_handler(gw, bus, registry):
         def do_POST(self):
             if not self._guard():
                 return
-            if self.path != "/v1/chat/completions":
+            if self.path not in ("/v1/chat/completions", "/v1/turn"):
                 return self._send(404, {"error": "not found"})
             try:
                 n = int(self.headers.get("Content-Length", "0"))
                 if n > 8 * 1024 * 1024:
                     raise GatewayError(413, "body too large")
                 body = json.loads(self.rfile.read(n) or b"{}")
+                if self.path == "/v1/turn":
+                    text = body.get("text") if isinstance(body, dict) else None
+                    if core is None or not isinstance(text, str) or not text.strip():
+                        raise GatewayError(400, "body must be {\"text\": \"...\"}")
+                    return self._send(200, core.turn(text.strip()[:4000]))
                 if body.get("stream"):
                     return self._stream(body)
                 data, model, rid = gw.complete(body)
@@ -294,7 +299,10 @@ def serve(env=os.environ):
         redact = None
     limit = float(env["SPEND_LIMIT_USD"]) if env.get("SPEND_LIMIT_USD") else None
     gw = Gateway(reg, Upstream(env.get("META_BASE_URL", "https://api.meta.ai/v1"), key, allow), bus, redact=redact, spend_limit=limit)
-    srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg))
+    from runtime.core import VoiceCore
+    from runtime.tools import Tools
+    core = VoiceCore(gw, Tools(bus, owner=env.get("OWNER_ID", "owner")), bus)
+    srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg, core))
     srv.daemon_threads = True
     bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact)}, "runtime.gateway")
     print(f"gateway on http://{host}:{port} -> {gw.up.base} (egress: {','.join(allow)})", flush=True)
