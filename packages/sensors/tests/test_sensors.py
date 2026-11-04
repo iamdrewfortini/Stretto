@@ -206,6 +206,28 @@ class Ingest(unittest.TestCase):
             {"type": "ledger.event.added", "data": {"origin": "auto"}}))
 
 
+class NarrationRules(unittest.TestCase):
+    def test_suggestion_cadence_and_streak(self):
+        from sensors.narration import Narrator
+        n = Narrator()
+        hot = {"switches": 11, "switches_per_min": 1.1, "idle_ratio": 0.0}
+        self.assertIsNone(n.suggest(hot, 1000.0, in_streak=True))
+        ev = n.suggest(hot, 1000.0, in_streak=False)
+        self.assertIn("11 switches", ev["data"]["text"])
+        self.assertIn("switches_per_min", ev["data"]["evidence"])
+        self.assertIsNone(n.suggest(hot, 1100.0, in_streak=False))
+        self.assertIsNotNone(n.suggest(hot, 1400.0, in_streak=False))
+
+
+class Registry(unittest.TestCase):
+    def test_discover_dedupes(self):
+        from sensors import adapters
+        adapters.discover()
+        n = len(adapters.registry())
+        adapters.discover()
+        self.assertEqual(len(adapters.registry()), n)
+
+
 class Perf(FakeClockImporter):
     def test_3600_ticks_p95(self):
         with tempfile.TemporaryDirectory() as tmp:

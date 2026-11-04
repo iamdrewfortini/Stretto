@@ -269,6 +269,7 @@ def discover(include_unavailable=False):
         a = cls()
         a.external_wait = True  # builtins wait on OS tools
         ok, why = a.probe()
-        register(a) if ok and a not in _REGISTRY else None
+        if ok and all(r.name != a.name for r in _REGISTRY):
+            register(a)
         out.append((a, ok, why))
     return out if include_unavailable else [r for r in out if r[1]]
