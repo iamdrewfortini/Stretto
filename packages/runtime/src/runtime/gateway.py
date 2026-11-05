@@ -17,7 +17,7 @@ DROP_KEYS = {"stop", "logit_bias", "prediction", "web_search_options", "modaliti
              "presence_penalty", "logprobs", "n", "seed", "user", "max_output_tokens"}
 RETRY_STATUS = {429, 500, 502, 503, 504}
 WEB = __import__("pathlib").Path(__file__).resolve().parents[2] / "web"
-PAGES = {"/": "voice.html", "/dashboard": "dashboard.html"}
+PAGES = {"/": "voice.html", "/dashboard": "dashboard.html", "/leaks": "leaks.html"}
 
 
 class GatewayError(Exception):
@@ -354,6 +354,11 @@ def serve(env=os.environ):
         start_agents(bus, gw, tools); parts["agents"] = True
     except ImportError:
         parts["agents"] = False
+    try:  # leaks, ranked changes, level and forecast (optional modules)
+        from runtime.leakloop import start_leak_loop
+        start_leak_loop(bus, tools); parts["leaks"] = True
+    except ImportError:
+        parts["leaks"] = False
     try:  # realtime voice bridge (optional module)
         from runtime.voice import start_voice_thread
         start_voice_thread(core, bus, env); parts["voice"] = env.get("VOICE_BIND", "127.0.0.1:8788")

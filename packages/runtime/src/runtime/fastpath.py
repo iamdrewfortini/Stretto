@@ -51,6 +51,8 @@ def match(text):
         return None
     if re.fullmatch(r"(hi|hello|hey|hey there|good (morning|afternoon|evening))( humanflow)?", t):
         return ("greet", {})
+    if re.search(r"\bleak(s|ing|ed)?\b|leak score|how much time (am i|do i|have i) (los|wast)|what should i (change|fix|improve)", t):
+        return ("get_leaks", {})
     if re.search(r"how('s| is| was)? (my )?day|\bsummary\b|how am i doing|where did my time go", t):
         return ("get_summary", {"range": "today"})
     if re.search(r"\b(list|what are|show)\b.*\btasks?\b|\bmy tasks\b", t):
@@ -91,6 +93,17 @@ def reply(tool, args, result):
     if tool == "list_tasks":
         open_ = [x["title"] for x in result if x["status"] != "done"]
         return "No open tasks." if not open_ else f"{len(open_)} open: " + "; ".join(open_[:3]) + "."
+    if tool == "get_leaks":
+        per_day = result["per_day_min"]["total"]
+        if not per_day:
+            return f"Leak score {result['leak_score']}. No leaks measured yet; log some switching, waiting or searching."
+        year = result["compounded"]["year"]
+        out = (f"Leak score {result['leak_score']}, lower is better. About {per_day:.0f} minutes a day, "
+               f"which is {year['hours']:.0f} hours a year, about ${year['usd']:,.0f}.")
+        if result["top_changes"]:
+            c = result["top_changes"][0]
+            out += f" Best change: {c['text'].rstrip('.')}. That wins back {c['winback_hours_year']:.0f} hours a year for {c['adopt_cost_min']:.0f} minutes of setup."
+        return out
     if tool == "get_summary":
         by = result.get("by_activity_min") or {}
         if not by:
