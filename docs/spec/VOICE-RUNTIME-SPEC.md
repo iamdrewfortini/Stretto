@@ -190,6 +190,8 @@ All run through the gateway on role `agent.background` (Spark contributor) unles
 | Summarizer | `timer.stopped`, end of day | Writes a 3-line day note to the ledger | contributor |
 | Cost guard | `gateway.call` | Running spend per role; trips `ALLOW_CONTRIBUTOR` / effort down past a budget | none (arithmetic) |
 
+**Suggestion ranking (owner requirement, 2026-11-04).** Every suggestion carries its expected time won back (per week, compounded over month, year and decade) and its cost to adopt (minutes of effort plus money). Rank by won-back time divided by cost to adopt, so the largest win-back that is cheapest and fastest to make comes first. Never show a suggestion without both numbers.
+
 Service-to-service messaging = bus events (§4). "Optimizing" = Optimizer + Cost guard, plus `MetaRouter` cost-per-success ordering (already in `metarouter.router`) choosing among each role's fallbacks.
 
 Out of scope tonight: embeddings/semantic store (no Meta route), Glimmer/Spark Open self-hosting, Spark/Glimmer fine-tuning, multi-service deploy, wearables.

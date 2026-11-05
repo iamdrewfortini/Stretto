@@ -8,7 +8,19 @@ Meta Global AI Developer Hackathon (Cerebral Valley × Meta) · **Indie Develope
 
 ## Why
 
-Time tracking fails because it asks you to stop working in order to record work, so timesheets get filled in from memory and the hours lost to switching and waiting stay invisible. Humanflow turns that around: you just say it, out loud, while you work. It frees the time and the mental space that tracking used to take, and it makes something possible that was not before: an honest, owner-only record of where attention went, with suggestions you can check against your own numbers.
+I run a studio, consult as a full-stack IT engineer, and operate my own three-server cluster with fleets of agents on top. Every one of those machines is measured. I can prove what my storage did at three in the morning. When I built a way to measure how far my systems were from doing what I actually wanted, almost all of the distance turned out to be me: about 95% of it was intent the machines could not see [C:intent-dominates-D]. My systems had a record. My day did not.
+
+My time leaks the way everyone's does. Switching between clients and systems. Re-finding what I already knew. Waiting on people and builds. Reconstructing what I did, and for whom, when it is time to bill. It costs me billable hours I cannot account for, work that spills into nights and weekends, days that went to the wrong thing, and a quiet trust gap: I can prove what my machines did, but not what I did.
+
+That is the small version. The bigger one I see with every owner, technician and team I work with: **people cannot even picture how much time they are losing.** There is a learned helplessness around technology. People have tried everything they know, found what works well enough, and decided this is just how it has to be done. So the truth about their work is set by how it feels, not by what is measured. Nobody can reason about a leak they cannot see, let alone what ten minutes a day compounds into: about a full work week every year, and most of a working year over a career.
+
+Humanflow is my answer, built for my own day first. It costs no attention to use: you say what you are doing, out loud, while you do it. It turns that into an honest, owner-only record of where your time went, and it answers in numbers from your own ledger, not in feelings.
+
+**Today** it logs time by voice, runs timers and tasks, tells you where the day went, plans your work with Muse Wonder, and proposes one change at a time with the number behind it.
+
+**Where it is going:** real-time micro-signals that show each leak as it happens and what it compounds to over a week, a month, a year and a decade; small workflow changes ranked by the most time won back for the least time and cost to adopt; your trajectory forecast forward so you can see the future you are choosing; and a game of it, where you drive your leak score down and level up as time comes back. Time is money, and people deserve to see how it compounds.
+
+It is for me first, then for the people I build for: solo owners who wear every hat, consultants who bill across many clients, and technicians whose hands-on work no tool measures at all.
 
 ## What it does
 
