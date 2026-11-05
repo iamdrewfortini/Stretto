@@ -23,8 +23,16 @@
     "adapters: one osascript spawn per macOS window poll, two spawns per Linux window poll, Linux input classification outside the lock with no inline sleep in poll, _run raises on non-zero exit so probes cannot report a broken tool as available"
   ],
   "open_items": [
-    "gateway has no POST /v1/settings/key twin, so the settings page works only against the demo dev server",
-    "no privacy or security toggles exist in settings; consent and titles are CLI/env only",
-    "owner step unchanged: place MODEL_API_KEY in ~/.config/humanflow/runtime.env (mode 600), then make gateway"
-  ]
+    "owner step unchanged: place MODEL_API_KEY in ~/.config/humanflow/runtime.env (mode 600) or paste it on the gateway settings page, then make gateway"
+  ],
+  "settings_surface": {
+    "note": "Built after the review, on the production gateway (loopback-guarded like every gateway route). The settings page is the single acceptance surface: it states that nothing is sensed until a source is turned on, and every choice writes the same consent file the sensors re-read each tick.",
+    "endpoints": [
+      "GET /settings (packages/runtime/web/settings.html)",
+      "POST /v1/settings/key (twin of the dev-server endpoint and scripts/set_key.py; 0600, fingerprint only)",
+      "GET /v1/settings/consent (per-source state plus the titles preference)",
+      "POST /v1/settings/consent (grant with TTL, revoke one or all, titles on/off; emits consent.changed on the bus)"
+    ],
+    "tests": "runtime suite grew from 56 to 62 tests, including an HTTP round-trip of the page, key save and consent grant; sensors suite grew from 22 to 23 with the live titles-preference test"
+  }
 }

@@ -4,7 +4,7 @@
 - calls only hosts in EGRESS_ALLOWLIST, over https, and never follows redirects;
 - serves only models in MODEL-REGISTRY-01, resolved by role with ordered fallbacks.
 Every upstream call is one `gateway.call` event on the bus (model, latency, tokens, cost, status). Stdlib only."""
-import ipaddress, json, os, random, threading, time, urllib.error, urllib.request, uuid
+import hashlib, ipaddress, json, os, random, threading, time, urllib.error, urllib.request, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -17,7 +17,7 @@ DROP_KEYS = {"stop", "logit_bias", "prediction", "web_search_options", "modaliti
              "presence_penalty", "logprobs", "n", "seed", "user", "max_output_tokens"}
 RETRY_STATUS = {429, 500, 502, 503, 504}
 WEB = __import__("pathlib").Path(__file__).resolve().parents[2] / "web"
-PAGES = {"/": "voice.html", "/dashboard": "dashboard.html"}
+PAGES = {"/": "voice.html", "/dashboard": "dashboard.html", "/settings": "settings.html"}
 
 
 class GatewayError(Exception):
@@ -213,7 +213,124 @@ def ingest(bus, body):
     return 200, {"accepted": len(evs)}
 
 
-def make_handler(gw, bus, registry, core=None):
+SETTINGS_SOURCES = ("window", "input", "pointer", "idle")
+
+
+def _env_path(env):
+    return (env or {}).get("HUMANFLOW_ENV") or os.environ.get(
+        "HUMANFLOW_ENV", os.path.expanduser("~/.config/humanflow/runtime.env"))
+
+
+def _consent_path(env):
+    return (env or {}).get("SENSORS_CONSENT") or os.environ.get(
+        "SENSORS_CONSENT", os.path.expanduser("~/.config/humanflow/consent.json"))
+
+
+def store_key(env_path, key):
+    """Write MODEL_API_KEY into the external env (0600, atomic).
+
+    The twin of scripts/set_key.write_key and the dev server endpoint:
+    returns (length, sha256 fingerprint) and never the key itself.
+    """
+    key = str(key).strip()
+    if len(key) < 20:
+        raise ValueError("key looks too short; refusing to save")
+    lines, done = [], False
+    if os.path.isfile(env_path):
+        with open(env_path, encoding="utf-8") as f:
+            for line in f.read().splitlines():
+                if line.startswith("MODEL_API_KEY="):
+                    lines.append("MODEL_API_KEY=" + key); done = True
+                else:
+                    lines.append(line)
+    if not done:
+        lines.append("MODEL_API_KEY=" + key)
+    parent = os.path.dirname(os.path.abspath(env_path))
+    os.makedirs(parent, exist_ok=True)
+    tmp = env_path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, ("\n".join(lines) + "\n").encode())
+    finally:
+        os.close(fd)
+    os.replace(tmp, env_path)
+    os.chmod(env_path, 0o600)
+    return len(key), hashlib.sha256(key.encode()).hexdigest()[:8]
+
+
+def _read_consent(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        return raw if isinstance(raw, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def consent_state(path, now=None, person="owner"):
+    """Same grant shape the sensors ConsentStore reads, plus prefs."""
+    now = time.time() if now is None else now
+    raw = _read_consent(path)
+    g = raw.get("grants", {}).get(person) or {}
+    src = g.get("sources", {}) if not g.get("revoked") else {}
+    return {"sources": {s: bool(src.get(s) and now < src[s])
+                        for s in SETTINGS_SOURCES},
+            "titles": raw.get("titles")}
+
+
+def apply_consent(path, action, sources=None, ttl_s=None, titles=None,
+                  now=None, person="owner"):
+    """Grant/revoke/prefs write in the sensors consent shape (0600).
+
+    Grants need a positive TTL; revoke is immediate. A revoke with no
+    sources revokes everything. The titles preference and the grants
+    preserve each other across writes from either process.
+    """
+    now = time.time() if now is None else now
+    sources = list(sources or [])
+    bad = [s for s in sources if s not in SETTINGS_SOURCES]
+    if bad:
+        raise ValueError(f"unknown sensor source: {bad}")
+    raw = _read_consent(path)
+    grants = raw.setdefault("grants", {})
+    g = grants.setdefault(person, {"sources": {}, "revoked": False})
+    if action == "grant":
+        if not ttl_s or ttl_s <= 0:
+            raise ValueError("consent needs a positive time limit")
+        g["revoked"] = False
+        for s in sources:
+            g["sources"][s] = now + ttl_s
+        changed = sorted(sources)
+    elif action == "revoke":
+        if sources:
+            for s in sources:
+                g["sources"].pop(s, None)
+            changed = sorted(sources)
+        else:
+            g["sources"] = {}
+            g["revoked"] = True
+            changed = sorted(SETTINGS_SOURCES)
+    elif action == "set_titles":
+        changed = []
+    else:
+        raise ValueError(f"unknown consent action: {action}")
+    if titles is not None:
+        raw["titles"] = bool(titles)
+    parent = os.path.dirname(os.path.abspath(path))
+    os.makedirs(parent, exist_ok=True)
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, json.dumps(raw, sort_keys=True).encode())
+    finally:
+        os.close(fd)
+    os.replace(tmp, path)
+    os.chmod(path, 0o600)
+    return {"person": person, "action": action, "sources": changed,
+            "titles": raw.get("titles")}
+
+
+def make_handler(gw, bus, registry, core=None, env=None):
     class H(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
         server_version = "meta-coherence-gateway/1"
@@ -242,6 +359,8 @@ def make_handler(gw, bus, registry, core=None):
             if self.path == "/v1/models":
                 return self._send(200, {"object": "list", "data": [{"id": k, "object": "model", "status": v.get("status"),
                                         "roles": v.get("roles", [])} for k, v in registry.models.items()]})
+            if self.path == "/v1/settings/consent":
+                return self._send(200, consent_state(_consent_path(env)))
             if self.path.startswith("/v1/events"):
                 return self._events()
             page = PAGES.get(self.path.split("?", 1)[0])
@@ -277,7 +396,8 @@ def make_handler(gw, bus, registry, core=None):
         def do_POST(self):
             if not self._guard():
                 return
-            if self.path not in ("/v1/chat/completions", "/v1/turn", "/v1/ingest"):
+            if self.path not in ("/v1/chat/completions", "/v1/turn", "/v1/ingest",
+                                 "/v1/settings/key", "/v1/settings/consent"):
                 return self._send(404, {"error": "not found"})
             try:
                 n = int(self.headers.get("Content-Length", "0"))
@@ -286,6 +406,27 @@ def make_handler(gw, bus, registry, core=None):
                 body = json.loads(self.rfile.read(n) or b"{}")
                 if self.path == "/v1/ingest":
                     return self._send(*ingest(bus, body))
+                if self.path == "/v1/settings/key":
+                    try:
+                        n, fp = store_key(_env_path(env), body.get("api_key", ""))
+                    except ValueError as e:
+                        raise GatewayError(400, str(e))
+                    return self._send(200, {"ok": True, "len": n, "fingerprint": fp})
+                if self.path == "/v1/settings/consent":
+                    if not isinstance(body, dict):
+                        raise GatewayError(400, "body must be an object")
+                    ttl = body.get("ttl_s")
+                    try:
+                        ev = apply_consent(
+                            _consent_path(env), body.get("action", ""),
+                            sources=body.get("sources") or [],
+                            ttl_s=float(ttl) if ttl is not None else None,
+                            titles=body.get("titles"))
+                    except (ValueError, TypeError) as e:
+                        raise GatewayError(400, str(e))
+                    bus.emit("consent.changed", ev, "runtime.gateway")
+                    return self._send(200, {"ok": True, "event": ev,
+                                            "state": consent_state(_consent_path(env))})
                 if self.path == "/v1/turn":
                     text = body.get("text") if isinstance(body, dict) else None
                     if core is None or not isinstance(text, str) or not text.strip():
@@ -346,7 +487,7 @@ def serve(env=os.environ):
     bus.seed_recent()
     tools = Tools(bus, owner=env.get("OWNER_ID", "owner"))
     core = VoiceCore(gw, tools, bus)
-    srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg, core))
+    srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg, core, env=dict(env)))
     srv.daemon_threads = True
     parts = {}
     try:  # background agent pipelines (optional module)

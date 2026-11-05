@@ -69,6 +69,11 @@ class Importer:
         window_sample = None
         # One consent snapshot per tick: one file stat, not one per adapter.
         granted = self.consent.state(now=now)
+        # The settings titles choice, when set, wins over the startup
+        # flag and applies from the next tick like any consent change.
+        pref = self.consent.titles_pref() \
+            if hasattr(self.consent, "titles_pref") else None
+        titles_on = self.titles_on if pref is None else bool(pref)
         for adapter, available, _why in self.adapters:
             if not available:
                 continue
@@ -90,7 +95,7 @@ class Importer:
                 if s.source == "idle":
                     self._idle_s = s.idle_s
                 elif s.source == "window":
-                    s.title = clean_title(s.title, True) if self.titles_on else None
+                    s.title = clean_title(s.title, True) if titles_on else None
                     window_sample = s
                 elif s.source in ("input", "pointer"):
                     self.metrics.note_input(now, s.keys + s.clicks)

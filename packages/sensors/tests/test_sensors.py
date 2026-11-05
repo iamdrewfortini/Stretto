@@ -157,6 +157,29 @@ class ConsentPrivacy(FixtureClockImporter):
             self.assertNotIn("title", ep2)
 
 
+class TitlesPref(FixtureClockImporter):
+    def test_settings_titles_choice_applies_next_tick(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "c.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"grants": {}, "titles": False}, f)
+            consent = ConsentStore(path=path)
+            self.assertIs(consent.titles_pref(), False)
+            consent.grant(["window"], 1000, now=0)
+            raw = json.load(open(path, encoding="utf-8"))
+            self.assertIs(raw["titles"], False)  # grant keeps the pref
+            events = []
+            imp = Importer(
+                [(FixtureWindow(lambda n: ("Code", "secret-title")), True, "ok")],
+                consent, events, titles_on=True, now_fn=lambda: 0.0)
+            for t in range(5):
+                imp.tick(now=float(t))
+            imp.close(now=5.0)
+            ep = [e for e in events
+                  if e["type"] == "activity.episode"][0]["data"]
+            self.assertNotIn("title", ep)  # pref off beats startup on
+
+
 class Ingest(unittest.TestCase):
     def test_batch_backoff_buffer(self):
         clock = [0.0]

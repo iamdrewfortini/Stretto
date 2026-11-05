@@ -1,0 +1,141 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Humanflow settings</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 16px; max-width: 560px; line-height: 1.45; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #eee; } }
+  input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; }
+  button { margin-top: 8px; padding: 8px 16px; }
+  fieldset { margin-top: 20px; }
+  label { display: block; margin: 6px 0; }
+  #out, #consent-out { min-height: 1.2em; }
+</style>
+</head>
+<body>
+<h1>Settings</h1>
+
+<h2>Model API key</h2>
+<p>Paste your Meta Model API key. It is saved to
+<code>~/.config/humanflow/runtime.env</code> (mode 600, outside the
+repo) and never displayed, logged or sent anywhere except the
+gateway's own calls to api.meta.ai. Loopback only. Restart the
+gateway after saving for the new key to take effect.</p>
+<form id="key-form">
+  <input id="key" type="password" autocomplete="off" placeholder="MODEL_API_KEY" aria-label="Meta Model API key">
+  <button type="submit">Save key</button>
+</form>
+<p id="out" role="status"></p>
+
+<h2>Privacy: what may be sensed</h2>
+<p>Nothing is sensed until you turn a source on here. This page is
+the acceptance step: the sensors start from deny-everything, a grant
+lasts only as long as you choose, and turning a source off stops
+sampling on the next tick. Only counts are ever recorded: keys and
+clicks as numbers, never what was typed, no screen pixels, no audio.</p>
+<form id="consent-form">
+  <fieldset>
+    <legend>Sources</legend>
+    <label><input type="checkbox" id="src-window"> Window: which app is in front, and its title</label>
+    <label><input type="checkbox" id="src-input"> Input: number of key presses (never the keys)</label>
+    <label><input type="checkbox" id="src-pointer"> Pointer: clicks and movement amount</label>
+    <label><input type="checkbox" id="src-idle"> Idle: how long since the last input</label>
+  </fieldset>
+  <label>Grant lasts
+    <select id="ttl">
+      <option value="3600">1 hour</option>
+      <option value="28800" selected>8 hours</option>
+      <option value="86400">24 hours</option>
+    </select>
+  </label>
+  <div>
+    <button type="submit">Apply grants</button>
+    <button type="button" id="revoke-all">Turn everything off</button>
+  </div>
+  <fieldset>
+    <legend>Window titles</legend>
+    <label><input type="checkbox" id="titles"> Include window titles
+      (redacted and truncated before they are stored; off drops them entirely)</label>
+  </fieldset>
+  <button type="button" id="titles-apply">Apply titles choice</button>
+</form>
+<p id="consent-out" role="status"></p>
+
+<p><a href="/dashboard">Back to dashboard</a></p>
+
+<script>
+(function () {
+  var SOURCES = ["window", "input", "pointer", "idle"];
+  function el(id) { return document.getElementById(id); }
+  function post(path, body) {
+    return fetch(path, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) throw new Error(j.error || "request failed");
+          return j;
+        });
+      });
+  }
+  function showState(state) {
+    SOURCES.forEach(function (s) {
+      el("src-" + s).checked = !!(state.sources || {})[s];
+    });
+    if (state.titles !== null && state.titles !== undefined) {
+      el("titles").checked = !!state.titles;
+    }
+  }
+  function load() {
+    fetch("/v1/settings/consent").then(function (r) { return r.json(); })
+      .then(showState)
+      .catch(function (e) { el("consent-out").textContent = String(e.message || e); });
+  }
+  el("key-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    post("/v1/settings/key", { api_key: el("key").value }).then(function (j) {
+      el("key").value = "";
+      el("out").textContent = "Saved (len=" + j.len + " sha256:" +
+        j.fingerprint + "). Restart the gateway: make gateway";
+    }).catch(function (e) { el("out").textContent = String(e.message || e); });
+  });
+  el("consent-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var chosen = SOURCES.filter(function (s) { return el("src-" + s).checked; });
+    var rest = SOURCES.filter(function (s) { return !el("src-" + s).checked; });
+    var jobs = [];
+    if (chosen.length) {
+      jobs.push(post("/v1/settings/consent",
+        { action: "grant", sources: chosen, ttl_s: Number(el("ttl").value) }));
+    }
+    if (rest.length) {
+      jobs.push(post("/v1/settings/consent",
+        { action: "revoke", sources: rest }));
+    }
+    if (!jobs.length) { load(); return; }
+    Promise.all(jobs).then(function () {
+      el("consent-out").textContent = "Saved. Sensors pick this up on their next tick.";
+      load();
+    }).catch(function (e) { el("consent-out").textContent = String(e.message || e); });
+  });
+  el("revoke-all").addEventListener("click", function () {
+    post("/v1/settings/consent", { action: "revoke", sources: [] }).then(function () {
+      el("consent-out").textContent = "Everything is off. Nothing will be sensed.";
+      load();
+    }).catch(function (e) { el("consent-out").textContent = String(e.message || e); });
+  });
+  el("titles-apply").addEventListener("click", function () {
+    post("/v1/settings/consent",
+      { action: "set_titles", sources: [], titles: el("titles").checked })
+      .then(function () {
+        el("consent-out").textContent = "Titles choice saved.";
+      })
+      .catch(function (e) { el("consent-out").textContent = String(e.message || e); });
+  });
+  load();
+}());
+</script>
+</body>
+</html>

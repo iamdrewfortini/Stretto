@@ -29,6 +29,7 @@ class ConsentStore:
             "SENSORS_CONSENT", DEFAULT_PATH)
         self.person = person
         self._grants = {}
+        self._titles = None      # settings-page preference: True/False/None
         self._mtime = None
         self.reload(force=True)
 
@@ -40,8 +41,10 @@ class ConsentStore:
         tmp = self.path + ".tmp"
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         try:
-            os.write(fd, json.dumps(
-                {"grants": self._grants}, sort_keys=True).encode())
+            raw = {"grants": self._grants}
+            if self._titles is not None:
+                raw["titles"] = self._titles  # keep the settings pref
+            os.write(fd, json.dumps(raw, sort_keys=True).encode())
         finally:
             os.close(fd)
         os.replace(tmp, self.path)
@@ -59,7 +62,9 @@ class ConsentStore:
             return
         try:
             with open(self.path, encoding="utf-8") as f:
-                self._grants = json.load(f).get("grants", {})
+                raw = json.load(f)
+            self._grants = raw.get("grants", {})
+            self._titles = raw.get("titles")
         except (OSError, ValueError):
             self._grants = {}
         self._mtime = m
@@ -116,6 +121,11 @@ class ConsentStore:
         self.reload()
         now = _now() if now is None else now
         return {s: self._allows(s, now, person) for s in SOURCES}
+
+    def titles_pref(self):
+        """Settings titles choice (True/False), or None when unset."""
+        self.reload()
+        return self._titles
 
 
 def parse_ttl(text):
