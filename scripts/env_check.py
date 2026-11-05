@@ -7,7 +7,15 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
-ENV, EXAMPLE = ROOT / ".env", ROOT / ".env.example"
+# The real env file lives OUTSIDE every worktree (default:
+# ~/.config/humanflow/runtime.env). HUMANFLOW_ENV overrides the
+# location. The repo-root .env is a legacy fallback only.
+ENV = Path(os.environ.get(
+    "HUMANFLOW_ENV",
+    Path.home() / ".config" / "humanflow" / "runtime.env"))
+if not os.environ.get("HUMANFLOW_ENV") and not ENV.is_file():
+    ENV = ROOT / ".env"
+EXAMPLE = ROOT / ".env.example"
 SECRETS = {"MODEL_API_KEY"}
 
 
@@ -42,8 +50,15 @@ def main():
     st = ENV.stat()
     ok("env.mode_600", stat.S_IMODE(st.st_mode) == 0o600, oct(stat.S_IMODE(st.st_mode)))
     ok("env.owner", st.st_uid == os.getuid())
-    ok("env.gitignored", git("check-ignore", "-q", ".env").returncode == 0)
-    ok("env.untracked", git("ls-files", "--error-unmatch", ".env").returncode != 0)
+    top = git("rev-parse", "--show-toplevel")
+    in_tree = top.returncode == 0 and str(ENV).startswith(
+        top.stdout.strip() + os.sep)
+    ok("env.outside_worktree", not in_tree, str(ENV))
+    if in_tree:
+        rel = str(ENV.relative_to(top.stdout.strip()))
+        ok("env.gitignored", git("check-ignore", "-q", rel).returncode == 0)
+        ok("env.untracked",
+           git("ls-files", "--error-unmatch", rel).returncode != 0)
 
     env, ex = parse(ENV), parse(EXAMPLE)
     missing = [k for k in ex if k not in env]
