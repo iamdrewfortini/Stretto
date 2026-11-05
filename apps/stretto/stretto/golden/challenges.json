@@ -1,0 +1,39 @@
+{
+ "challenges": [
+  {
+   "ask": "You left slack for 7 minutes, then came back to code. Want to move that to a scheduled break, or keep it as your reset?",
+   "compounded": {
+    "days30": 210,
+    "days7": 49
+   },
+   "days_seen": 4,
+   "fix": "Move the detour to a scheduled break: same pause, on purpose, after the focus block ends.",
+   "kind": "detour",
+   "minutes_per_day": 7,
+   "minutes_total": 14,
+   "places": [
+    "slack"
+   ],
+   "tier": "Warm-up",
+   "xp_reward": 10
+  }
+ ],
+ "days": [
+  {
+   "date": "2026-11-04",
+   "loss_min": 7,
+   "simulated": false
+  },
+  {
+   "date": "2026-11-03",
+   "loss_min": 7,
+   "simulated": false
+  }
+ ],
+ "simulated": false,
+ "total": {
+  "days30": 210,
+  "days7": 49,
+  "per_day": 7
+ }
+}

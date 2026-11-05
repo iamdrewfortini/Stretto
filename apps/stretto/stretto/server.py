@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, selftrain, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
+from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, lattice, predict, selftrain, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -418,6 +418,17 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("a turn needs you and/or reply text")
             tid = s.ux("INSERT INTO turns(you,reply,tools,ts) VALUES(?,?,?,?)", (you, reply, json.dumps(body.get("tools") or [])[:500], time.time()))
             return self._send(200, dict(id=tid))
+        if (method, path) == ("GET", "/api/predict"):
+            day = a.day(q.get("date")); pat = a.patterns(90)
+            ch = challenges.group([day]) if day["summary"]["total_s"] else dict(challenges=[])
+            plan = coach.plan(pat, round(day["loss_s"] / 60), round(day["summary"]["focus_s"] / 60))
+            return self._send(200, dict(next_places=predict.next_places(day["transitions"], q.get("place", "")) if q.get("place") else [],
+                                        forecast=predict.focus_forecast(pat), eta=predict.reclaim_eta(ch, plan["ramp"]),
+                                        basis="estimated from measured matrices"))
+        if (method, path) == ("GET", "/api/lattice"):
+            live = dict(transitions=a.day(q.get("date"))["transitions"], attention_weights=[attention.W_FRAG, attention.W_SHIFT, attention.W_DIST],
+                        price_matrix=meta.PRICES)
+            return self._send(200, dict(defs=lattice.DEFS, checks={n: list(v) for n, v in lattice.validate_all(live).items()}))
         if (method, path) == ("POST", "/api/selftrain/run"):
             return self._send(200, selftrain.run(s, a))
         if (method, path) == ("GET", "/api/selftrain"):

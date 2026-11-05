@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, meta, selftrain, topics, voicetree
+from stretto import calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, lattice, meta, predict, selftrain, topics, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -192,6 +192,25 @@ class SelfTrainEmbed(unittest.TestCase):
         self.assertTrue(out["trained"], out)
         self.assertGreater(out["terms_learned"], 0)
         self.assertEqual(len(selftrain.log(s)), 1)
+
+
+class LatticePredict(unittest.TestCase):
+    def test_golden_datasets_rederive_identically(self):
+        import subprocess, sys
+        r = subprocess.run([sys.executable, "tools/golden.py", "--check"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(lattice.golden("coach_ramp")["ramp"][0]["reclaim_min"], 10)
+
+    def test_lattice_checks_and_markov_prediction(self):
+        ok, probs = lattice.check("attention_weights", [0.45, 0.35, 0.20])
+        self.assertTrue(ok, probs)
+        ok, probs = lattice.check("embeddings", [embedder.dense("focus slack", ["focus", "slack"])])
+        self.assertTrue(ok, probs)
+        trans = lattice.golden("transitions")
+        top = predict.next_places(trans, "code")
+        self.assertTrue(top and top[0]["place"] == "slack" and 0 < top[0]["p"] <= 1)
+        fc = predict.focus_forecast(dict(hour_focus_s=[0] * 9 + [3600, 3600, 3600] + [0] * 12, days=5, best_window=None), now_hour=8)
+        self.assertEqual(fc["next3h_focus_min"], 180)
 
 
 class StaticCaching(unittest.TestCase):

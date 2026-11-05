@@ -1,0 +1,16 @@
+[
+ {
+  "kind": "detour",
+  "seconds": 300,
+  "where": [
+   "slack"
+  ]
+ },
+ {
+  "kind": "detour",
+  "seconds": 120,
+  "where": [
+   "slack"
+  ]
+ }
+]

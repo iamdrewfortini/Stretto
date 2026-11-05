@@ -1,0 +1,35 @@
+{
+ "avg_focus_min": 200,
+ "avg_loss_min": 40,
+ "best_window": {
+  "avg_focus_s": 3600,
+  "end_hour": 12,
+  "start_hour": 9
+ },
+ "metric": "time",
+ "note": "Set from your measured loss and best focus window.",
+ "ramp": [
+  {
+   "reclaim_min": 10,
+   "share": 0.25,
+   "week": 1
+  },
+  {
+   "reclaim_min": 14,
+   "share": 0.35,
+   "week": 2
+  },
+  {
+   "reclaim_min": 20,
+   "share": 0.5,
+   "week": 3
+  },
+  {
+   "reclaim_min": 26,
+   "share": 0.65,
+   "week": 4
+  }
+ ],
+ "teach": "Protect the best window first, batch the biggest leak second, review every Sunday: keep what reclaimed time, change one thing that did not.",
+ "total_reclaim_min": 490
+}

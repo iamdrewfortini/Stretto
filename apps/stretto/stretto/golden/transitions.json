@@ -1,0 +1,14 @@
+[
+ {
+  "avg_stay_s": 750,
+  "count": 2,
+  "dst": "slack",
+  "src": "code"
+ },
+ {
+  "avg_stay_s": 210,
+  "count": 2,
+  "dst": "code",
+  "src": "slack"
+ }
+]

@@ -6,7 +6,7 @@ compacts embeddings, stores folded artifacts, then audits the result: counts per
 pins with their tasks, and embeddings with no source (orphans). The audit is the coherence claim; read it, don't trust it."""
 import time
 
-from . import challenges, folding, honeycomb, topics
+from . import challenges, folding, honeycomb, lattice, meta, topics
 
 
 def run(store, api, do_compact=True):
@@ -36,4 +36,6 @@ def audit(store, api, folded=None, stored=0, comp=None, items=None):
                 compaction=comp or dict(), pins=dict(active=sum(1 for p in pins if p["status"] == "active"),
                                                      completed=sum(1 for p in pins if p["status"] == "completed"),
                                                      with_task=sum(1 for p in pins if p["fix"] in task_titles)),
-                orphans=orphans, coherent=not orphans, honeycomb=honeycomb.stats(store))
+                orphans=orphans, coherent=not orphans, honeycomb=honeycomb.stats(store),
+                lattice={n: dict(ok=v[0], problems=v[1]) for n, v in lattice.validate_all(
+                    dict(price_matrix=meta.PRICES, attention_weights=[0.45, 0.35, 0.20])).items()})
