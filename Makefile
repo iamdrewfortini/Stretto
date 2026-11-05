@@ -27,6 +27,8 @@ setup: ## create the real env OUTSIDE the worktree (0600), from the public examp
 	@if [ -f "$(ENV_FILE)" ]; then echo "exists: $(ENV_FILE) (left untouched)"; \
 	else $(PY) -c "import os,sys; src=open('.env.example').readlines(); out=[l.split(' #',1)[0].rstrip() for l in src if l.strip() and not l.startswith('#') and '=' in l]; fd=os.open('$(ENV_FILE)', os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o600); os.write(fd, ('\n'.join(out)+'\n').encode()); os.close(fd)"; \
 	chmod 600 "$(ENV_FILE)"; echo "created $(ENV_FILE) — set MODEL_API_KEY there (never in the repo)"; fi
+set-key: ## paste the Meta key once (hidden prompt, piped into the env, never printed)
+	$(PY) scripts/set_key.py
 env-check: ## prove the env is complete, private, local-only (never prints a secret)
 	HUMANFLOW_ENV="$(ENV_FILE)" $(PY) scripts/env_check.py
 why: ## the installer gate against The Why

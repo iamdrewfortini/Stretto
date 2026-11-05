@@ -40,6 +40,25 @@ class Validate(unittest.TestCase):
                   "correlation_id", "schema", "data"):
             self.assertIn(k, e)
 
+    def test_save_key_never_echoes(self):
+        import stat as statmod
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            env = Path(tmp) / "runtime.env"
+            env.write_text("RUNTIME_MODE=local\nMODEL_API_KEY=\n")
+            os.environ["HUMANFLOW_ENV"] = str(env)
+            try:
+                n, fp = devserver.save_key("x" * 24)
+            finally:
+                del os.environ["HUMANFLOW_ENV"]
+            body = env.read_text()
+            self.assertIn("MODEL_API_KEY=" + "x" * 24, body)
+            self.assertIn("RUNTIME_MODE=local", body)
+            self.assertEqual(oct(statmod.S_IMODE(env.stat().st_mode))[-3:], "600")
+            self.assertEqual(n, 24)
+            self.assertNotIn("x" * 24, fp)
+
     def test_dashboard_has_panel(self):
         html = devserver.dashboard_html()
         self.assertIn('id="attention-panel"', html)

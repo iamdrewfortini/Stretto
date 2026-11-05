@@ -11,6 +11,7 @@ sensors package; the production runtime remains packages/runtime
 import argparse
 import json
 import os
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -64,6 +65,57 @@ def wrap(payload, now=None):
     return out
 
 
+SETTINGS_HTML = """<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content='width=device-width,initial-scale=1'>
+<title>Humanflow settings</title><style>
+body{font-family:system-ui;margin:16px;max-width:560px}
+@media (prefers-color-scheme: dark){body{background:#111;color:#eee}}
+input{width:100%;padding:8px} button{margin-top:8px;padding:8px 16px}
+</style></head><body><h1>Settings</h1>
+<p>Paste your Meta Model API key. It is saved to
+<code>~/.config/humanflow/runtime.env</code> (mode 600, outside the
+repo) and never displayed, logged or sent anywhere except the
+gateway's own calls to api.meta.ai. Loopback only.</p>
+<form id="f"><input id="k" type="password" autocomplete="off"
+placeholder="MODEL_API_KEY" aria-label="Meta Model API key">
+<button type="submit">Save key</button></form>
+<p id="out" role="status"></p>
+<p><a href="/dashboard">Back to dashboard</a></p>
+<script>
+document.getElementById("f").addEventListener("submit", function (ev) {
+  ev.preventDefault();
+  var out = document.getElementById("out");
+  var key = document.getElementById("k").value;
+  fetch("/v1/settings/key", {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({api_key: key})})
+  .then(function (r) { return r.json().then(function (j) {
+    if (!r.ok) throw new Error(j.error || "save failed"); return j; }); })
+  .then(function (j) {
+    document.getElementById("k").value = "";
+    out.textContent = "Saved (len=" + j.len + " sha256:" + j.fingerprint +
+      "). Restart the gateway: make gateway";
+  }).catch(function (e) { out.textContent = String(e.message || e); });
+});
+</script></body></html>"""
+
+
+def save_key(api_key):
+    """Write MODEL_API_KEY into the external env. Returns (len, fp)."""
+    import hashlib
+    sys_path = os.path.join(HERE, "..", "..", "..", "scripts")
+    sys.path.insert(0, os.path.abspath(sys_path))
+    try:
+        from set_key import write_key
+    finally:
+        sys.path.pop(0)
+    env_path = os.environ.get(
+        "HUMANFLOW_ENV",
+        os.path.expanduser("~/.config/humanflow/runtime.env"))
+    from pathlib import Path
+    return write_key(Path(env_path), api_key)
+
+
 def dashboard_html():
     frag = open(os.path.join(HERE, "attention-panel.html"),
                 encoding="utf-8").read()
@@ -75,6 +127,7 @@ def dashboard_html():
             "@media (prefers-color-scheme: dark){body{background:#111;color:#eee}}"
             "#attention-timeline div{height:14px}"
             "</style></head><body><h1>Humanflow</h1>"
+            "<p><a href=\"/settings\">Settings</a></p>"
             + body + "</body></html>")
 
 
@@ -91,6 +144,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
+        if self.path == "/v1/settings/key":
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(n) or b"{}")
+                length, fp = save_key(str(body.get("api_key", "")))
+            except ValueError as e:
+                return self._send(400, json.dumps({"error": str(e)}))
+            except Exception:
+                return self._send(400, json.dumps({"error": "bad request"}))
+            return self._send(200, json.dumps(
+                {"ok": True, "len": length, "fingerprint": fp}))
         if self.path != "/v1/ingest":
             return self._send(404, json.dumps({"error": "not found"}))
         try:
@@ -105,6 +169,8 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, json.dumps({"accepted": len(out)}))
 
     def do_GET(self):
+        if self.path == "/settings":
+            return self._send(200, SETTINGS_HTML, "text/html")
         if self.path in ("/", "/dashboard"):
             return self._send(200, dashboard_html(), "text/html")
         if self.path == "/health":
