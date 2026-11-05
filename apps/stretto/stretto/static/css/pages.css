@@ -277,3 +277,43 @@ body, .side, .top, .card, .finding, .btn, .nav a { transition-property: backgrou
 .step.done:not(:last-child)::before { border-left-style: solid; border-color: var(--text); }
 .step-body { border: 0.5px solid var(--line); border-radius: var(--r2); padding: var(--s3) var(--s4); min-width: 0; display: grid; gap: 2px; }
 .step.current .step-body { border: 1.6px solid var(--line-2); box-shadow: var(--elev-2); } .step.next .step-body { color: var(--faint); } .step.next .step-body b { color: var(--muted); }
+
+/* Talk: a mic stage, then the conversation */
+.page-talk .talk-stage { display: grid; justify-items: center; gap: var(--s3); text-align: center; padding: var(--s6) var(--s4); }
+.page-talk .talk-mic { width: 112px; height: 112px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-content: center; gap: 2px;
+  background: var(--accent); color: var(--on-accent); box-shadow: var(--elev-2); transition: transform var(--d-snappy) var(--spring-snappy), background-color var(--fast) linear; }
+.page-talk .talk-mic:hover { transform: scale(1.04); }
+.page-talk .talk-mic.live { background: var(--signal); color: #fff; animation: ping 2.4s var(--ease) infinite; }
+.page-talk .talk-mic-label { font-size: var(--fs-cap2); font-weight: 600; }
+.page-talk .talk-state { margin: 0; }
+.page-talk .talk-partial { min-height: 1.6em; font-style: italic; color: var(--muted); margin: 0; max-width: 52ch; }
+.page-talk .talk-hints { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: center; align-items: center; font-size: var(--fs-cap); }
+.page-talk .talk-hint { cursor: pointer; }
+.page-talk .talk-log { display: grid; gap: var(--s3); max-height: 420px; overflow: auto; overscroll-behavior: contain; margin-bottom: var(--s3); }
+.page-talk .talk-you, .page-talk .talk-reply { display: grid; gap: 4px; padding: var(--s3) var(--s4); border-radius: var(--r2); background: var(--surface-2); }
+.page-talk .talk-reply { background: var(--tonic-soft); }
+.page-talk .talk-you p, .page-talk .talk-reply p { margin: 0; }
+.page-talk .talk-who { font-size: var(--fs-cap2); color: var(--faint); font-weight: 600; }
+.page-talk .talk-tools { margin-top: 2px; }
+.page-talk .talk-row { gap: var(--s2); } .page-talk .talk-row .grow { flex: 1; min-width: 0; }
+@media (max-width: 560px) { .page-talk .talk-mic { width: 96px; height: 96px; } }
+
+/* Leaks: score, tiles, ranked changes, trajectory */
+.page-leaks .lk-score { font-size: var(--fs-hero); letter-spacing: var(--trk-hero); font-weight: 600; line-height: 1; }
+.page-leaks .lk-comp h4, .page-leaks h4 { font-size: var(--fs-cap); color: var(--muted); font-weight: 600; margin: var(--s4) 0 var(--s2); }
+.page-leaks .lk-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: var(--s3); margin-top: var(--s2); }
+.page-leaks .lk-tile { background: var(--surface-2); border-radius: var(--r2); padding: var(--s3); }
+.page-leaks .lk-tile .k { text-transform: capitalize; }
+.page-leaks .lk-ranked { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.page-leaks .lk-ranked li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s3); padding: var(--s3); border-radius: var(--r2); background: var(--surface-2); }
+.page-leaks .lk-rank { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--tonic-soft); color: var(--tonic); font-weight: 700; font-size: var(--fs-foot); }
+.page-leaks .lk-ranked p { margin: 0 0 4px; }
+.page-leaks .lk-ranked .win { font-weight: 600; }
+.page-leaks .lk-ranked .cost { font-size: var(--fs-cap); color: var(--muted); }
+.page-leaks .lk-level { align-items: center; }
+.page-leaks .lk-traj { display: block; width: 100%; height: auto; }
+.page-leaks .lk-grid { stroke: var(--line-2); stroke-width: 1; }
+.page-leaks .lk-axis { fill: var(--faint); font-size: 10px; }
+.page-leaks .lk-cur { fill: none; stroke: var(--signal); stroke-width: 2; }
+.page-leaks .lk-adp { fill: none; stroke: var(--tonic); stroke-width: 2; stroke-dasharray: 5 3; }
+.page-leaks .lk-sw-cur { background: var(--signal); } .page-leaks .lk-sw-adp { background: var(--tonic); }

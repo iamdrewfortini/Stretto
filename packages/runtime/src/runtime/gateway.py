@@ -16,13 +16,22 @@ PASS_KEYS = {"messages", "tools", "tool_choice", "response_format", "temperature
 DROP_KEYS = {"stop", "logit_bias", "prediction", "web_search_options", "modalities", "audio", "frequency_penalty",
              "presence_penalty", "logprobs", "n", "seed", "user", "max_output_tokens"}
 RETRY_STATUS = {429, 500, 502, 503, 504}
-WEB = __import__("pathlib").Path(__file__).resolve().parents[2] / "web"
-PAGES = {"/": "voice.html", "/dashboard": "dashboard.html", "/leaks": "leaks.html"}
-STRETTO = __import__("pathlib").Path(__file__).resolve().parents[4] / "apps" / "stretto"  # the frontend; served at /
-MIME = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-        ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2"}
-STRETTO_CSP = ("default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
-               "connect-src 'self' ws://127.0.0.1:8788 ws://localhost:8788; worker-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'")
+HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length"}
+VOICE_CONNECT = "ws://127.0.0.1:8788 ws://localhost:8788"
+
+
+def widen_csp(csp):
+    """Let Stretto pages reach the local voice bridge and run the mic worklet; nothing else is widened."""
+    if not csp:
+        return csp
+    parts = [x.strip() for x in csp.split(";") if x.strip()]
+    names = {x.split()[0]: i for i, x in enumerate(parts)}
+    for name, extra in (("connect-src", "'self' " + VOICE_CONNECT), ("script-src", "'self' blob:"), ("worker-src", "'self' blob:")):
+        if name in names:
+            parts[names[name]] += " " + extra.replace("'self' ", "")
+        else:
+            parts.append(f"{name} {extra}")
+    return "; ".join(parts)
 
 
 class GatewayError(Exception):
@@ -219,7 +228,7 @@ def ingest(bus, body):
 
 
 def make_handler(gw, bus, registry, core=None, stretto=None):
-    """stretto: {"ctx": dict for route handlers, "token": per-process token} or None to serve only /v1."""
+    """stretto: {"host": loopback host, "port": int} of the Stretto server, which owns every path outside /v1; None = /v1 only."""
     class H(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
         server_version = "meta-coherence-gateway/1"
@@ -250,93 +259,49 @@ def make_handler(gw, bus, registry, core=None, stretto=None):
                                         "roles": v.get("roles", [])} for k, v in registry.models.items()]})
             if self.path.startswith("/v1/events"):
                 return self._events()
-            if stretto and self.path.startswith("/api/"):
-                return self._api("GET")
-            if stretto and STRETTO.is_dir():
-                return self._static(self.path.split("?", 1)[0])
-            page = PAGES.get(self.path.split("?", 1)[0])
-            if page and (WEB / page).is_file():
-                return self._page(WEB / page)
+            if stretto:
+                return self._proxy("GET")
             self._send(404, {"error": "not found"})
 
-        def _token_ok(self, query):
-            import hmac
-            got = self.headers.get("X-Stretto-Token") or (query.get("token") or [""])[0]
-            return hmac.compare_digest(got.encode(), stretto["token"].encode())
-
-        def _api(self, method):
-            from urllib.parse import parse_qs
-            from runtime import stretto_routes as SR
-            path, _, qs = self.path.partition("?")
-            query = parse_qs(qs)
-            if not self._token_ok(query):
-                return self._send(403, {"error": "missing or wrong Stretto token"})
-            if path == "/api/events" and method == "GET":
-                return self._stretto_events()
+        def _proxy(self, method):
+            """Stream one request to the Stretto server on loopback and its answer back, SSE included."""
+            import http.client
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n > 8 * 1024 * 1024:
+                return self._send(413, {"error": "body too large"})
+            body = self.rfile.read(n) if n else None
+            headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP}
+            conn = http.client.HTTPConnection(stretto["host"], stretto["port"], timeout=None if self.path.startswith("/api/events") else 60)
             try:
-                body = {}
-                if method == "POST":
-                    n = int(self.headers.get("Content-Length", "0"))
-                    if n > 1024 * 1024:
-                        raise SR.ApiError(413, "body too large")
-                    body = json.loads(self.rfile.read(n) or b"{}")
-                status, obj = SR.dispatch(stretto["ctx"], method, path, {k: v[0] for k, v in query.items()}, body)
-            except SR.ApiError as e:
-                status, obj = e.status, {"error": str(e)}
-            except (ValueError, KeyError, TypeError) as e:
-                status, obj = 400, {"error": f"bad request: {e}"}
-            except GatewayError as e:
-                status, obj = e.status, {"error": str(e)}
-            self._send(status, obj)
-
-        def _stretto_events(self):
-            from runtime import stretto_routes as SR
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream"); self.send_header("Cache-Control", "no-cache"); self.end_headers()
+                conn.request(method, self.path, body=body, headers=headers)
+                r = conn.getresponse()
+            except OSError as e:
+                return self._send(502, {"error": f"Stretto server not reachable on {stretto['host']}:{stretto['port']} ({e.__class__.__name__}); start it with apps/stretto/run.sh"})
+            self.send_response(r.status)
+            for k, v in r.getheaders():
+                if k.lower() in HOP:
+                    continue
+                self.send_header(k, widen_csp(v) if k.lower() == "content-security-policy" else v)
+            streaming = (r.getheader("Content-Type") or "").startswith("text/event-stream")
+            data = None if streaming else r.read()
+            if data is not None:
+                self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
             try:
-                status, timer = SR.dispatch(stretto["ctx"], "GET", "/api/timer", {}, {})
-            except Exception:
-                status, timer = 500, None
-            hello = timer if isinstance(timer, dict) and "timer" in timer else {"timer": timer if status == 200 else None}
-            _, idx = bus.since(0)  # live events only; the page loads history through the JSON endpoints
-            try:
-                self.wfile.write(f"retry: 3000\nevent: hello\ndata: {json.dumps(hello)}\n\n".encode()); self.wfile.flush()
-                while True:
-                    evs, idx = bus.since(idx)
-                    for ev in evs:
-                        for name, data in SR.translate(stretto["ctx"], ev):
-                            self.wfile.write(f"event: {name}\ndata: {json.dumps(data)}\n\n".encode())
-                    if evs:
-                        self.wfile.flush()
-                    else:
-                        self.wfile.write(b": keepalive\n\n"); self.wfile.flush()
-                    bus.wait(15)
+                if data is not None:
+                    self.wfile.write(data)
+                else:
+                    while True:
+                        line = r.readline()
+                        if not line:
+                            break
+                        self.wfile.write(line); self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError):
-                return
-
-        def _static(self, path):
-            rel = "index.html" if path in ("/", "") else path.lstrip("/")
-            target = (STRETTO / rel).resolve()
-            if not target.is_relative_to(STRETTO.resolve()) or not target.is_file():
-                return self._send(404, {"error": "not found"})
-            b = target.read_bytes()
-            if target.name == "index.html":
-                b = b.replace(b"__TOKEN__", stretto["token"].encode())
-            self.send_response(200)
-            self.send_header("Content-Type", MIME.get(target.suffix, "application/octet-stream")); self.send_header("Content-Length", str(len(b)))
-            self.send_header("Cache-Control", "no-store" if target.name == "index.html" else "no-cache")
-            self.send_header("Content-Security-Policy", STRETTO_CSP); self.send_header("X-Content-Type-Options", "nosniff")
-            self.end_headers(); self.wfile.write(b)
-
-        def _page(self, path):
-            b = path.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(b)))
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; "
-                             "style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:8788 ws://localhost:8788; "
-                             "worker-src blob: 'self'; img-src 'self' data:")
-            self.end_headers(); self.wfile.write(b)
+                pass
+            finally:
+                conn.close()
+            if streaming:
+                self.close_connection = True
 
         def _events(self):
             self.send_response(200)
@@ -356,8 +321,8 @@ def make_handler(gw, bus, registry, core=None, stretto=None):
         def do_POST(self):
             if not self._guard():
                 return
-            if stretto and self.path.startswith("/api/"):
-                return self._api("POST")
+            if stretto and not self.path.startswith("/v1/"):
+                return self._proxy("POST")
             if self.path not in ("/v1/chat/completions", "/v1/turn", "/v1/ingest"):
                 return self._send(404, {"error": "not found"})
             try:
@@ -427,11 +392,10 @@ def serve(env=os.environ):
     bus.seed_recent()
     tools = Tools(bus, owner=env.get("OWNER_ID", "owner"))
     core = VoiceCore(gw, tools, bus)
-    import secrets
-    from runtime import stretto_routes
-    loaded = stretto_routes.load()
-    stretto = {"token": secrets.token_urlsafe(24),
-               "ctx": {"bus": bus, "tools": tools, "core": core, "gateway": gw, "registry": reg, "clock": tools.clock, "store": {}}}
+    su = urlsplit(env.get("STRETTO_URL", "http://127.0.0.1:8760"))
+    if su.scheme != "http" or not _loopback(su.hostname or ""):
+        raise SystemExit("refusing to start: STRETTO_URL must be http on a loopback address")
+    stretto = {"host": su.hostname, "port": su.port or 80}
     srv = ThreadingHTTPServer((host, int(port)), make_handler(gw, bus, reg, core, stretto))
     srv.daemon_threads = True
     parts = {}
@@ -450,7 +414,7 @@ def serve(env=os.environ):
         start_voice_thread(core, bus, env); parts["voice"] = env.get("VOICE_BIND", "127.0.0.1:8788")
     except ImportError:
         parts["voice"] = False
-    parts["stretto"] = {"frontend": STRETTO.is_dir(), "api_modules": loaded, "routes": len(stretto_routes.ROUTES)}
+    parts["stretto"] = f"http://{stretto['host']}:{stretto['port']} (proxied for every path outside /v1)"
     bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact), **parts}, "runtime.gateway")
     print(f"gateway on http://{host}:{port} -> {gw.up.base} (egress: {','.join(allow)})", flush=True)
     srv.serve_forever()

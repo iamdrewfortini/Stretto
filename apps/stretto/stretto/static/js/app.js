@@ -6,12 +6,14 @@ import { icon, logo } from './ui/icons.js';
 import { toast } from './ui/toast.js';
 import { palette } from './ui/palette.js';
 import { skeleton, errorState, roll } from './ui/kit.js';
+import talk from './pages/talk.js';
 import today from './pages/today.js';
 import paths from './pages/paths.js';
 import focus from './pages/focus.js';
 import tasks from './pages/tasks.js';
 import reports from './pages/reports.js';
 import insights from './pages/insights.js';
+import leaks from './pages/leaks.js';
 import privacy from './pages/privacy.js';
 import devices from './pages/devices.js';
 import habits from './pages/habits.js';
@@ -22,8 +24,8 @@ import { mode } from './lib/mode.js';
 import { stream } from './lib/events.js';
 import { dur } from './lib/fmt.js';
 
-const PAGES = [today, focus, tasks, calendar, paths, reports, goals, habits, insights, privacy, devices, settings];
-const SECONDARY = new Set(['goals', 'habits', 'insights', 'privacy', 'devices', 'settings']);
+const PAGES = [talk, today, focus, tasks, calendar, paths, reports, goals, habits, insights, leaks, privacy, devices, settings];
+const SECONDARY = new Set(['goals', 'habits', 'insights', 'leaks', 'privacy', 'devices', 'settings']);
 const today_iso = () => iso(new Date());
 const cache = new Map();                 // cache, then revalidate: show the last data at once, refresh behind it
 let datePicker = null, liveTimer = null, lastOk = 0, online = true, seq = 0;
@@ -88,7 +90,7 @@ const prefetch = (p) => { const c = ctx(), key = `${p.id}|${c.date}`; if (cache.
 const navLink = (p) => h('a', { href: `#/${p.id}`, 'data-id': p.id, class: SECONDARY.has(p.id) ? 'sec' : null, onpointerenter: () => prefetch(p) }, icon(p.icon), h('span', {}, p.title), h('kbd', {}, `g ${p.key}`));
 const nav = h('nav', { class: 'nav', 'aria-label': 'Main' }, PAGES.filter((p) => !SECONDARY.has(p.id)).map(navLink), h('div', { class: 'nav-sep', role: 'presentation' }), PAGES.filter((p) => SECONDARY.has(p.id)).map(navLink));
 const themeBtn = h('button', { class: 'icon-btn', 'aria-label': 'Toggle light and dark theme', onclick: () => { const cur = document.documentElement.dataset.theme; state.set('theme', cur === 'dark' ? 'light' : 'dark'); applyTheme(); } }, icon('moon'));
-const DETAIL = { calendar: 'month of goal rings, the day’s schedule', goals: 'daily and weekly goals, budgets, level', today: 'tightness, attention, the day’s wave', focus: 'timer, ring, up next', tasks: 'list and board', paths: 'routes between apps', reports: 'trend, heat, goal calendar', habits: 'small daily practices', insights: 'inferred suggestions', privacy: 'notices and consent', devices: 'computers that report here', settings: 'goal, theme, rules' };
+const DETAIL = { calendar: 'month of goal rings, the day’s schedule', goals: 'daily and weekly goals, budgets, level', today: 'tightness, attention, the day’s wave', focus: 'timer, ring, up next', tasks: 'list and board', paths: 'routes between apps', reports: 'trend, heat, goal calendar', habits: 'small daily practices', insights: 'inferred suggestions', leaks: 'leak score, compounding, ranked changes', talk: 'realtime voice', privacy: 'notices and consent', devices: 'computers that report here', settings: 'goal, theme, rules' };
 const cmds = () => [...PAGES.map((p) => ({ group: 'Pages', label: p.title, detail: DETAIL[p.id] || '', keys: ['G', p.key.toUpperCase()], run: () => go(p.id, { d: query('d', '') }) })),
   { group: 'Day', label: 'Previous day', keys: ['['], run: () => step(-1) }, { group: 'Day', label: 'Next day', keys: [']'], run: () => step(1) }, { group: 'Day', label: 'Jump to today', run: () => patch({ d: '' }) },
   { group: 'Actions', label: 'Start focus · 25 min', detail: 'a block on the current task', run: () => go('focus', { d: '' }) }, { group: 'Actions', label: 'Toggle theme', run: () => themeBtn.click() },
@@ -120,7 +122,7 @@ addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette(cmds()); return; }
   if (e.metaKey || e.ctrlKey) return;
   if (g && Date.now() - g < 900) { const p = PAGES.find((x) => x.key === e.key); g = 0; if (p) go(p.id, { d: query('d', '') }); return; }
-  if (e.key === 'g') g = Date.now(); else if (e.key === '[') step(-1); else if (e.key === ']') step(1); else if (e.key === '?') toast('g then t f k c p r · o h i v d s: go to a page · [ and ]: change day · ⌘K: commands');
+  if (e.key === 'g') g = Date.now(); else if (e.key === '[') step(-1); else if (e.key === ']') step(1); else if (e.key === '?') toast('g then m t f k c p r · o h i l v d s: go to a page · [ and ]: change day · ⌘K: commands');
 });
 // Touch response: pressed on touch-down, released with a spring; a drag past the slop cancels the press (it was a scroll).
 const PRESS = '.btn, .icon-btn, .nav a, .finding, .palette li';
