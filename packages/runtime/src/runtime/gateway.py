@@ -378,6 +378,13 @@ def serve(env=os.environ):
     allow = [h.strip() for h in env.get("EGRESS_ALLOWLIST", "").split(",") if h.strip()]
     key = env.get("MODEL_API_KEY", "")
     if not key:
+        try:  # BYOK via the operator's own 1Password vault (issue #28); no-op without a bootstrap token
+            from runtime import secrets as _secrets
+            _secrets.resolve_missing(env)
+            key = env.get("MODEL_API_KEY", "")
+        except Exception:
+            key = ""
+    if not key:
         raise SystemExit("refusing to start: MODEL_API_KEY missing (run through scripts/with_env.sh)")
     reg = Registry.load(env.get("REGISTRY_PATH", "docs/spec/models.registry.json"))
     bus = EventBus(env.get("EVENT_LOG", "var/events.jsonl"))

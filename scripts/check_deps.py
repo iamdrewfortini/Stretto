@@ -2,7 +2,7 @@
 """Isolation check. Each package lists the sibling packages it may import in packages/<pkg>/DEPS. This script parses every source file with `ast`, fails on any import outside
 (standard library + own package + DEPS + the one declared third-party library), and fails if the package dependency graph has a cycle."""
 import ast, os, sys
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packages"); THIRD = {"harness": {"cryptography"}, "runtime": {"websockets"}}
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packages"); THIRD = {"harness": {"cryptography"}, "runtime": {"websockets", "onepassword"}}
 pk = sorted(d for d in os.listdir(ROOT) if os.path.isdir(os.path.join(ROOT, d)))
 deps = {p: [x for x in open(os.path.join(ROOT, p, "DEPS")).read().split()] for p in pk}; bad = []
 for p in pk:
