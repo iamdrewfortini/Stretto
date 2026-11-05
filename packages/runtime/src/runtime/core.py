@@ -31,10 +31,12 @@ class VoiceCore:
 
     def _context(self):
         s = self.tools.t_get_summary("today")
+        acts = s.get("by_activity_min") or {}
+        top = sorted(acts.items(), key=lambda kv: kv[1] or 0, reverse=True)[:3]
         open_tasks = self.tools.t_list_tasks()
-        open_tasks = [t for t in open_tasks if t["status"] != "done"][:8]
-        return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(s)}. "
-                f"Open tasks: {json.dumps(open_tasks)}")
+        open_tasks = [t for t in open_tasks if t["status"] != "done"][:5]
+        return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(dict(top))}. "
+                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}")
 
     def turn(self, text):
         with self.lock:  # one person, one conversation: turns are serial
@@ -65,10 +67,12 @@ class VoiceCore:
             out = self._fast(tid, text, t0)
             if out:
                 return out
-        msgs = [{"role": "system", "content": SYSTEM + "\n\n" + self._context()}, *self.history, {"role": "user", "content": text}]
+        hist = self.history[-4:]  # short voice turns: the last 4 messages keep the model fast and cache-hot
+        msgs = [{"role": "system", "content": SYSTEM + "\n\n" + self._context()}, *hist, {"role": "user", "content": text}]
         calls, model, reply = [], None, ""
         for _ in range(MAX_ROUNDS + 1):
-            data, model, _rid = self.gw.complete({"role": "voice.core", "messages": msgs, "tools": SCHEMAS, "tool_choice": "auto"})
+            data, model, _rid = self.gw.complete({"role": "voice.core", "messages": msgs, "tools": SCHEMAS, "tool_choice": "auto",
+                                                  "prompt_cache_key": "humanflow-voice-v1"})
             m = data["choices"][0]["message"]
             tcs = m.get("tool_calls") or []
             if not tcs or len(calls) >= MAX_ROUNDS * 4:
