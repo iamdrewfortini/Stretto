@@ -24,7 +24,7 @@ class AttentionPanel(unittest.TestCase):
         self.assertIn("reconnecting", html)       # SSE auto-reconnect
         self.assertIn("scenic route", html)        # detour callout
         dash = os.path.join(os.path.dirname(__file__), "..", "..",
-                            "runtime", "web", "dashboard.html")
+                            "runtime", "src", "runtime", "web", "dashboard.html")
         live = open(dash, encoding="utf-8").read()
         for i in ("paths-panel", "paths-route", "renderPaths"):
             self.assertIn(i, live)

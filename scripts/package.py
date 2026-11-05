@@ -29,6 +29,9 @@ def main():
     for p in pk:                                    # build from a clean temporary copy: building in place would write build/ and *.egg-info into the tree and dirty it
         with tempfile.TemporaryDirectory() as tmp:
             work = os.path.join(tmp, p); shutil.copytree(os.path.join(ROOT, "packages", p), work, ignore=shutil.ignore_patterns("build", "*.egg-info", "__pycache__", "dist"))
+            if p == "runtime":  # the model registry ships as package data so an installed gateway needs no checkout
+                dst = os.path.join(work, "src", "runtime", "data"); os.makedirs(dst, exist_ok=True)
+                shutil.copy2(os.path.join(ROOT, "docs", "spec", "models.registry.json"), os.path.join(dst, "models.registry.json"))
             sh([sys.executable, "-m", "build", "--wheel", "--outdir", os.path.join(bundle, "wheelhouse"), work], env=env)
             sh([sys.executable, "-m", "build", "--sdist", "--outdir", os.path.join(dist, "sdist"), work], env=env)
     wheels = sorted(glob.glob(os.path.join(bundle, "wheelhouse", "*.whl")))

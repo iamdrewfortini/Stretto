@@ -12,7 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "iamdrewfortini and contributors" }]
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: POSIX :: Linux", "Intended Audience :: Developers", "Topic :: Scientific/Engineering"]
-dependencies = ["metacoh-wf13d", "metacoh-coherence", "metacoh-metarouter", "metacoh-harness", "metacoh-telemetry", "metacoh-cells", "metacoh-perception", "metacoh-humanflow", "metacoh-assistant", "metacoh-finetune", "metacoh-handoff", "metacoh-resonate", "metacoh-adapters"]
+dependencies = ["metacoh-wf13d", "metacoh-coherence", "metacoh-metarouter", "metacoh-harness", "metacoh-telemetry", "metacoh-cells", "metacoh-perception", "metacoh-humanflow", "metacoh-assistant", "metacoh-finetune", "metacoh-handoff", "metacoh-resonate", "metacoh-adapters", "metacoh-runtime", "metacoh-sensors"]
 
 [project.scripts]
 metacoh = "metacoh.cli:main"

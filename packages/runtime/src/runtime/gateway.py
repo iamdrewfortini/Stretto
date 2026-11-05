@@ -16,7 +16,9 @@ PASS_KEYS = {"messages", "tools", "tool_choice", "response_format", "temperature
 DROP_KEYS = {"stop", "logit_bias", "prediction", "web_search_options", "modalities", "audio", "frequency_penalty",
              "presence_penalty", "logprobs", "n", "seed", "user", "max_output_tokens"}
 RETRY_STATUS = {429, 500, 502, 503, 504}
-WEB = __import__("pathlib").Path(__file__).resolve().parents[2] / "web"
+from pathlib import Path
+
+WEB = Path(__file__).resolve().parent / "web"
 PAGES = {"/": "voice.html", "/dashboard": "dashboard.html", "/settings": "settings.html"}
 
 
@@ -469,6 +471,25 @@ def make_handler(gw, bus, registry, core=None, env=None):
     return H
 
 
+def _default_registry(env):
+    """Registry location: explicit env, packaged copy, checkout path.
+
+    The bundle builder injects docs/spec/models.registry.json into
+    the runtime wheel as package data, so an installed gateway finds
+    it next to this module; a source checkout uses the spec file.
+    """
+    asked = env.get("REGISTRY_PATH")
+    if asked and Path(asked).is_file():
+        return asked
+    packaged = Path(__file__).resolve().parent / "data" / "models.registry.json"
+    if packaged.is_file():
+        return str(packaged)
+    spec = Path(__file__).resolve().parents[4] / "docs" / "spec" / "models.registry.json"
+    if spec.is_file():
+        return str(spec)
+    return asked or "docs/spec/models.registry.json"
+
+
 def serve(env=os.environ):
     host, port = env.get("GATEWAY_BIND", "127.0.0.1:8787").rsplit(":", 1)
     if env.get("RUNTIME_MODE") != "local" or not _loopback(host):
@@ -478,7 +499,7 @@ def serve(env=os.environ):
     if not key:
         print("gateway: no MODEL_API_KEY yet; model calls stay disabled "
               "until one is added at /settings", flush=True)
-    reg = Registry.load(env.get("REGISTRY_PATH", "docs/spec/models.registry.json"))
+    reg = Registry.load(_default_registry(env))
     bus = EventBus(env.get("EVENT_LOG", "var/events.jsonl"))
     try:
         from perception.redact import redact

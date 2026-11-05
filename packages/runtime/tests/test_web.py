@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for the runtime dashboard page (packages/runtime/web/dashboard.html).
+"""Tests for the runtime dashboard page (runtime/web/dashboard.html).
 
 The dashboard is one self-contained page: no external scripts, fonts, CSS
 or images, an EventSource on /v1/events, a turn form posting to /v1/turn,
@@ -13,7 +13,7 @@ import re
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WEB = os.path.normpath(os.path.join(HERE, "..", "web"))
+WEB = os.path.normpath(os.path.join(HERE, "..", "src", "runtime", "web"))
 DASHBOARD = os.path.join(WEB, "dashboard.html")
 VOICE = os.path.join(WEB, "voice.html")
 

@@ -7,7 +7,7 @@ def _check(name, fn):
     except Exception as e: return name, False, f"{type(e).__name__}: {e}"
 def versions():
     from importlib import metadata
-    names = ["metacoh"] + [f"metacoh-{p}" for p in ("wf13d", "coherence", "metarouter", "harness", "telemetry", "cells", "perception", "humanflow", "assistant", "finetune", "handoff", "resonate", "adapters")]
+    names = ["metacoh"] + [f"metacoh-{p}" for p in ("wf13d", "coherence", "metarouter", "harness", "telemetry", "cells", "perception", "humanflow", "assistant", "finetune", "handoff", "resonate", "adapters", "runtime", "sensors")]
     got = {n: metadata.version(n) for n in names}; return len(set(got.values())) == 1, f"{len(got)} distributions, all {next(iter(set(got.values())))}" if len(set(got.values())) == 1 else str(got)
 def wf13d_table():
     from importlib import resources

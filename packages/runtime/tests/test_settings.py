@@ -8,6 +8,24 @@ import unittest
 from runtime.gateway import apply_consent, consent_state, store_key
 
 
+class RegistryResolution(unittest.TestCase):
+    def test_explicit_registry_path_wins_and_packaged_fallback_exists(self):
+        from pathlib import Path
+
+        from runtime.gateway import _default_registry
+        spec = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "docs", "spec", "models.registry.json")
+        self.assertEqual(_default_registry({"REGISTRY_PATH": spec}), spec)
+        got = _default_registry({})
+        self.assertTrue(os.path.isfile(got), got)
+        self.assertIn("models.registry.json", got)
+        # In a checkout the packaged copy may not exist yet; the spec
+        # file is then the fallback and must load identically.
+        from runtime.registry import Registry
+        self.assertEqual(Registry.load(got).models,
+                         Registry.load(spec).models)
+
+
 class SettingsKey(unittest.TestCase):
     def test_stores_key_without_echoing_it(self):
         with tempfile.TemporaryDirectory() as tmp:

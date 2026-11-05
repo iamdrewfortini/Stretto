@@ -112,4 +112,6 @@ json.dump({"name": "metacoh", "version": manifest["version"], "commit": manifest
 PY
 trap - EXIT
 log "installed metacoh $("$PREFIX/bin/metacoh" version) to $PREFIX"
+log "run the gateway with: $PREFIX/bin/metacoh gateway   (then open http://127.0.0.1:8787/settings)"
+log "run the sensors with:  $PREFIX/bin/metacoh sensors probe"
 log "uninstall with: $0 --prefix $PREFIX --uninstall"
