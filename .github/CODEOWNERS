@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Default owner for everything; extend per directory as owners emerge from history.
+* @iamdrewfortini
+/apps/stretto/ @iamdrewfortini
+/packages/ @iamdrewfortini
+/scripts/ @iamdrewfortini
+/.github/ @iamdrewfortini
+/docs/ @iamdrewfortini
