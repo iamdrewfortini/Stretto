@@ -195,3 +195,24 @@ h1, h2, h3 { text-wrap: balance; } p { text-wrap: pretty; }
 ::view-transition-new(root) { animation: 280ms var(--spring-soft) both vt-in; }
 @keyframes vt-out { to { opacity: 0; } }
 @keyframes vt-in { from { opacity: 0; filter: blur(3px); } }
+/* Floating call: one pill for the whole app, fixed above content, never over the nav */
+.call-bar { position: fixed; right: var(--s5); bottom: var(--s5); z-index: 60; display: flex; align-items: center; gap: var(--s3);
+  max-width: min(430px, calc(100vw - 2 * var(--s4))); background: var(--material-strong);
+  -webkit-backdrop-filter: blur(28px) saturate(180%); backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid var(--line-2); border-radius: 999px; padding: 6px; box-shadow: var(--elev-3), var(--hi); }
+.call-fab { display: inline-flex; align-items: center; gap: var(--s2); border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-weight: 600; min-height: 44px; padding: 0 18px; box-shadow: var(--elev-1), var(--glow); }
+.call-live { display: flex; align-items: center; gap: var(--s3); min-width: 0; flex: 1; padding: 4px 4px 4px 6px; }
+.call-live[hidden] { display: none; }
+.call-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none;
+  transform: scale(calc(1 + var(--lvl, 0) * 1.2)); opacity: calc(.65 + var(--lvl, 0) * .35); }
+.call-bar[data-status="live"] .call-dot { animation: ping 2.4s var(--ease) infinite; }
+.call-text { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.call-line { font-size: var(--fs-foot); font-weight: 600; }
+.call-reply { font-size: var(--fs-cap); color: var(--muted); }
+.call-bar .call-hang { color: var(--signal-text); background: var(--signal-soft); }
+@media (hover: hover) { .call-bar .call-hang:hover { background: var(--signal-soft); color: var(--signal-text); } }
+@media (max-width: 600px) {
+  .call-bar { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .call-bar .call-dot { animation: none; } }
