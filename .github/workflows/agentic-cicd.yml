@@ -18,14 +18,23 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      # Repo secret supplied by the maintainer in Settings; referenced by
-      # name only. Never echoed; the script reads presence, not the value.
-      META_API_KEY: ${{ secrets.META_API_KEY }}
+      # The ONLY repo secret: the operator's own read-only 1Password
+      # service-account token (the 1st key, BYOK issue #28). Forks have
+      # their own or none; without it the resolver no-ops and cells skip.
+      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with: { python-version: "3.12" }
       - run: pip install -r .github/requirements-ci.txt
+      - name: Resolve operator secrets via 1Password SDK (values masked)
+        run: |
+          if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+            pip install onepassword-sdk==0.3.2
+            python scripts/op_secrets.py --github-env
+          else
+            echo "no bootstrap token (fork or unconfigured); model cells will skip"
+          fi
       - run: python scripts/agentic_cells.py --loops 3 --out agentic-summary.json --md agentic-summary.md
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
@@ -39,10 +48,18 @@ jobs:
         stage: [1, 2, 3, 4, 5, 6, 7, 8, 9]
         loop: [1, 2, 3]
     env:
-      META_API_KEY: ${{ secrets.META_API_KEY }}
+      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with: { python-version: "3.12" }
       - run: pip install -r .github/requirements-ci.txt
+      - name: Resolve operator secrets via 1Password SDK (values masked)
+        run: |
+          if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+            pip install onepassword-sdk==0.3.2
+            python scripts/op_secrets.py --github-env
+          else
+            echo "no bootstrap token (fork or unconfigured); model cells will skip"
+          fi
       - run: python scripts/agentic_cells.py --loops ${{ matrix.loop }} --out shard-${{ matrix.stage }}-${{ matrix.loop }}.json --md shard.md
