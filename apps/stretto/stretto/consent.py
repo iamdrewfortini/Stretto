@@ -59,6 +59,9 @@ NOTICES = {
 }
 
 
+BULK_PHRASE = "I AGREE: ALL"
+
+
 def phrase(family):
     return f"I AGREE: {family}"
 
@@ -119,6 +122,23 @@ def record(store, device, family, action, by, typed=""):
             (rec["device"], rec["family"], rec["version"], rec["action"], rec["granted_by"], rec["ts"], prev, _hash(prev, rec)))
     store.checkpoint(force=True)                       # an acceptance or a withdrawal must never be lost to a power cut
     return status(store, device)[family]
+
+
+def grant_many(store, device, families, by, typed=""):
+    """Single-form consent: one name, one typed BULK_PHRASE, one hash-chained grant per selected family.
+    The per-family notices above remain the text being accepted; the bulk form lists them on one page."""
+    fams = [f for f in dict.fromkeys(str(f) for f in (families or []))]
+    if not fams:
+        raise ValueError("choose at least one family")
+    for f in fams:
+        if f not in NOTICES:
+            raise ValueError("unknown consent family")
+    if str(typed).strip() != BULK_PHRASE:
+        raise ValueError(f"to accept, type exactly: {BULK_PHRASE}")
+    out = {}
+    for f in fams:
+        out[f] = record(store, device, f, "grant", by, typed=phrase(f))
+    return out
 
 
 def verify_chain(store):

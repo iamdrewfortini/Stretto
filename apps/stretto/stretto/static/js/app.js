@@ -97,6 +97,13 @@ const cmds = () => [...PAGES.map((p) => ({ group: 'Pages', label: p.title, detai
   { group: 'Actions', label: 'Start focus · 25 min', detail: 'a block on the current task', run: () => go('focus', { d: '' }) }, { group: 'Actions', label: 'Toggle theme', run: () => themeBtn.click() },
   { group: 'Actions', label: 'Load a simulated day', detail: 'demo data', run: async () => { const { api } = await import('./lib/api.js'); const r = await api.post('/api/demo/seed'); toast('Loaded a simulated day', 'good'); patch({ d: r.date }); } }];
 
+// Predictive preload: on idle, warm the likely-next pages in nav order, then the adjacent days of dated pages.
+// Prediction is nav order + yesterday/tomorrow — the two moves the date picker makes cheapest to want next.
+const idle = window.requestIdleCallback || ((f) => setTimeout(f, 600));
+idle(() => { const cur = page(); const ordered = [...PAGES.slice(PAGES.findIndex((p) => p.id === cur) + 1), ...PAGES.slice(0, PAGES.findIndex((p) => p.id === cur))];
+  ordered.forEach((p, i) => setTimeout(() => prefetch(p), i * 250));
+  const c = ctx(); PAGES.filter((p) => p.dated).forEach((p, i) => [-1, 1].forEach((n, j) => setTimeout(() => { const d2 = shiftDay(c.date, n); if (d2 > today_iso()) return; const k2 = `${p.id}|${d2}`; if (cache.has(k2)) return; p.load({ date: d2, isToday: d2 === today_iso() }).then((data) => { if (!cache.has(k2)) cache.set(k2, { data }); }).catch(() => {}); }, 1200 + (i * 2 + j) * 250))); });
+
 // Running session: a pill on every page while a timer runs (the live state of the whole app)
 const session = h('a', { class: 'session', href: '#/focus', hidden: true });
 function paintSession() {

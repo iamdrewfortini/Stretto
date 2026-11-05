@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, consent, daycache, demo, enroll, events, gamify, insights, merge, meta, patterns, segment
+from . import analyze, attention, bundle, consent, daycache, demo, enroll, events, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -88,7 +88,8 @@ class Api:
         return cats
 
     def settings(self):
-        return dict(goal_min=int(float(self.s.setting("goal_min", 240))), goal_week_min=self.goal_week_min(), budgets=self.budgets())
+        return dict(goal_min=int(float(self.s.setting("goal_min", 240))), goal_week_min=self.goal_week_min(), budgets=self.budgets(),
+                    model=meta.current_model(self.s), save_raw_on_host=self.s.setting("save_raw_on_host", "1") != "0")
 
     def budget_usd(self):
         return float(self.s.setting("insight_budget_usd", 0.25))     # daily cap on Meta spend; direct mode only
@@ -183,13 +184,14 @@ class Api:
         days = max(1, min(int(days), 90))
         iso = dt.date.today().isoformat()
         sums = daycache.ensure(self.s, self.rules(), *self.window(iso, days))
+        sim_days = {r["d"] for r in self.s.q("SELECT DISTINCT date(ts,'localtime') AS d FROM events WHERE src='simulated' AND ts>=? AND ts<?", self.window(iso, days))}
         empty = dict(focus_s=0, distraction_s=0, total_s=0, by_category={}, hours_focus=[0] * 24, loss_s=0)
         out = []
         for i in range(days - 1, -1, -1):
             d = (dt.date.fromisoformat(iso) - dt.timedelta(days=i)).isoformat()
             s = sums.get(d, empty)
             out.append(dict(date=d, focus_s=s["focus_s"], distraction_s=s["distraction_s"], total_s=s["total_s"], by_category=s["by_category"],
-                            hours=s["hours_focus"], loss_s=s["loss_s"]))
+                            hours=s["hours_focus"], loss_s=s["loss_s"], simulated=d in sim_days))
         before = (dt.date.fromisoformat(iso) - dt.timedelta(days=days)).isoformat()          # the day before the range starts
         prev = daycache.ensure(self.s, self.rules(), *self.window(before, days))
         return dict(days=out, goal_s=self.goal_s(), prev_total_focus_s=sum(v["focus_s"] for v in prev.values()))
@@ -344,14 +346,18 @@ class Handler(BaseHTTPRequestHandler):
                                                 hint=f"A person must accept the '{fam}' notice for device '{dev}' first."))
             if body.get("device_name") or body.get("os"):
                 s.touch_device(dev, body.get("device_name"), str(body.get("os", "")))
-            new = s.ingest(body.get("samples", []), src=src, device=dev, keep_input=consent.active(s, dev, "input-activity"))
+            samples = body.get("samples", [])
+            distilled = s.setting("save_raw_on_host", "1") == "0"
+            if distilled:   # distillation on the host: keep app + timing, drop window titles, domains and control names before anything is saved
+                samples = [dict(x, title="", domain="", ctl="") if isinstance(x, dict) else x for x in samples]
+            new = s.ingest(samples, src=src, device=dev, keep_input=consent.active(s, dev, "input-activity"))
             dropped_inp = s.last_input_dropped
             new_p = s.ingest_power(body.get("power", []), device=dev) if body.get("power") else 0
             if isinstance(body.get("apps"), list):
                 s.upsert_apps(dev, body["apps"])
             if body.get("cursor") is not None:   # the agent saves its progress with the batch it just sent
                 s.set_cursor(dev, src, body["cursor"], new)
-            return self._send(200, dict(stored=new, received=len(body.get("samples", [])), power=new_p, input_dropped=dropped_inp))
+            return self._send(200, dict(stored=new, received=len(body.get("samples", [])), power=new_p, input_dropped=dropped_inp, distilled=distilled))
         if (method, path) == ("GET", "/api/apps"):
             return self._send(200, dict(apps=s.q("SELECT device, app, display, publisher, version, ts FROM app_meta WHERE device=? ORDER BY app", (q.get("device", "local"),))))
         if (method, path) == ("GET", "/api/attention"):
@@ -367,6 +373,9 @@ class Handler(BaseHTTPRequestHandler):
         if (method, path) == ("POST", "/api/consent"):
             return self._send(200, consent.record(s, str(body.get("device", "local")), str(body.get("family", "")), str(body.get("action", "")),
                                                   body.get("granted_by", ""), str(body.get("typed", ""))))
+        if (method, path) == ("POST", "/api/consent/bulk"):
+            return self._send(200, dict(granted=consent.grant_many(s, str(body.get("device", "local")), body.get("families"), body.get("granted_by", ""), str(body.get("typed", ""))),
+                                        bulk_phrase=consent.BULK_PHRASE))
         if (method, path) == ("POST", "/api/purge"):
             return self._send(200, consent.purge(s, str(body.get("device", "local")), str(body.get("family", "")), str(body.get("confirm", ""))))
         if (method, path) == ("POST", "/api/agent/enroll"):
@@ -400,6 +409,16 @@ class Handler(BaseHTTPRequestHandler):
             code, _ = enroll.new_code(s)
             data, name = bundle.build(osn, f"http://{self.headers.get('Host')}", code)
             return self._send(200, raw=data, ctype="application/zip", filename=name)
+        if (method, path) == ("GET", "/api/graph"):
+            return self._send(200, graphmap.build(a.day(q.get("date"))))
+        if (method, path) == ("GET", "/api/honeycomb/stats"):
+            return self._send(200, honeycomb.stats(s))
+        if (method, path) == ("GET", "/api/voice/tree"):
+            day = a.day(q.get("date"))
+            f = insights.facts(day)
+            art, info = honeycomb.route(s, f)   # fast grounded fast-path: a cached, signature-matched reply if one exists
+            return self._send(200, dict(tree=voicetree.derive(day), graph=graphmap.build(day),
+                                        preload=dict(honeycomb=info, grounded_cached=art, model=meta.current_model(s))))
         if (method, path) == ("GET", "/api/meta/status"):
             return self._send(200, meta.status(s, a.budget_usd()))
         if (method, path) == ("GET", "/api/meta/calls"):
@@ -443,8 +462,8 @@ class Handler(BaseHTTPRequestHandler):
         if (method, path) == ("GET", "/api/settings"):
             return self._send(200, a.settings())
         if (method, path) == ("POST", "/api/settings"):
-            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets")):
-                raise ValueError("send goal_min, goal_week_min and/or budgets")
+            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets", "model", "save_raw_on_host")):
+                raise ValueError("send goal_min, goal_week_min, budgets, model and/or save_raw_on_host")
             new = {}                                                    # validate EVERYTHING first: a bad field changes nothing
             if "goal_min" in body:
                 new["goal_min"] = _whole(body["goal_min"], "goal_min", 10, 960)
@@ -461,6 +480,15 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError(f"unknown category '{str(cat)[:30]}'; budgets may name: {', '.join(sorted(allowed))}")
                     clean[cat] = _whole(mins, f"budget for {cat}", 0, 960)
                 new["budgets"] = json.dumps(clean, sort_keys=True)     # the object REPLACES the previous one; leave a category out to remove its budget
+            if "model" in body:
+                m = str(body["model"]).strip()[:60]
+                if m and not m.startswith(meta.META_PREFIXES):
+                    raise ValueError("model must be a Meta model (muse-, sam- or llama-...)")
+                new["model"] = m
+            if "save_raw_on_host" in body:
+                if not isinstance(body["save_raw_on_host"], bool):
+                    raise ValueError("save_raw_on_host must be true or false")
+                new["save_raw_on_host"] = "1" if body["save_raw_on_host"] else "0"
             for k, v in new.items():
                 s.set_setting(k, v)
             return self._send(200, a.settings())

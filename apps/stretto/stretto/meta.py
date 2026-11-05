@@ -18,6 +18,19 @@ DEFAULT_MODEL = "muse-spark-1.3"
 # USD per million tokens, list price (dev.meta.ai/models/muse-spark). Costs are estimates; Meta's billing is the record.
 PRICES = {"muse-spark-1.3": dict(input=1.25, cached=0.15, output=4.25)}
 META_PREFIXES = ("muse-", "sam-", "llama")
+# Models with known list prices. Any other Meta-prefixed model may be selected; its ledger cost is then None (unknown, never invented).
+KNOWN_MODELS = ("muse-spark-1.3",)
+
+
+def current_model(store=None):
+    """Selected model: STRETTO_MODEL env wins, then the person's `model` setting, then DEFAULT_MODEL. Non-Meta names fall back to the default."""
+    m = os.environ.get("STRETTO_MODEL", "").strip()
+    if not m and store is not None:
+        try:
+            m = str(store.setting("model", "") or "").strip()
+        except Exception:
+            m = ""
+    return m if m.startswith(META_PREFIXES) else DEFAULT_MODEL
 
 
 class ModelUnavailable(RuntimeError):
@@ -93,7 +106,7 @@ def status(store, budget_usd):
     import datetime as dt
     t0 = dt.datetime.combine(dt.date.today(), dt.time()).timestamp()
     row = store.q("SELECT COUNT(*) AS n, COALESCE(SUM(cost_usd),0) AS spent FROM model_calls WHERE ts>=? AND status='ok'", (t0,))[0]
-    return dict(mode=mode(), model=DEFAULT_MODEL, calls_today=row["n"], spent_today_usd=round(row["spent"], 6), budget_usd=budget_usd,
+    return dict(mode=mode(), model=current_model(store), known_models=list(KNOWN_MODELS), calls_today=row["n"], spent_today_usd=round(row["spent"], 6), budget_usd=budget_usd,
                 chain_ok=verify_chain(store))
 
 
@@ -115,8 +128,9 @@ def verify_chain(store):
     return True
 
 
-def chat(store, purpose, messages, budget_usd, model=DEFAULT_MODEL, max_tokens=1500):
+def chat(store, purpose, messages, budget_usd, model=None, max_tokens=1500):
     """One metered chat call to a Meta model. Returns dict(text, call_id, cost_usd, tokens). Raises ModelUnavailable or BudgetExceeded."""
+    model = model or current_model(store)
     m = mode()
     if not m:
         raise ModelUnavailable("no Meta model access: set MODEL_API_KEY (see .env.example) or STRETTO_REPLAY=<dir> to use recorded runs")

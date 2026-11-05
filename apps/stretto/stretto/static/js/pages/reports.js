@@ -4,7 +4,7 @@ import { h, s } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { dur, CAT, catVar } from '../lib/fmt.js';
 import { query, patch } from '../lib/router.js';
-import { emptyState , deltaChip } from '../ui/kit.js';
+import { emptyState, deltaChip, pill } from '../ui/kit.js';
 import { noteOf } from '../lib/harmony.js';
 
 const wd = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString([], { weekday: 'short' });
@@ -66,7 +66,7 @@ export default {
   view(d) {
     const days = d.range.days, goal = d.range.goal_s || 14400, active = days.filter((x) => x.total_s > 0);
     const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Range' }, [7, 30].map((n) => h('button', { 'aria-pressed': String(d.n === n), onclick: () => patch({ r: n === 7 ? '' : String(n) }) }, `${n} days`)));
-    const head = h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Reports'), h('p', {}, `${md(days[0].date)} – ${md(days[days.length - 1].date)} · ${active.length} active day${active.length === 1 ? '' : 's'}`)), seg);
+    const head = h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Reports'), h('p', {}, `${md(days[0].date)} – ${md(days[days.length - 1].date)} · ${active.length} active day${active.length === 1 ? '' : 's'}`)), days.some((x) => x.simulated) ? pill('Simulated data', '') : null, seg);
     if (!active.length) return h('div', { class: 'page' }, head, emptyState('Nothing measured in this range', 'Reports fill in as the collector records days. Load the simulated day from Today to explore.'));
     const tot = days.reduce((a, x) => a + x.focus_s, 0), lost = days.reduce((a, x) => a + (x.loss_s || 0), 0), bestDay = days.reduce((m, x) => (x.focus_s > m.focus_s ? x : m), days[0]), met = days.filter((x) => x.focus_s >= goal).length;
     const tile = (k, v, sub, tone) => h('div', { class: 'stat flat' }, h('span', { class: 'k' }, k), h('span', { class: 'v', style: tone ? { color: `var(--${tone})` } : {} }, v), h('span', { class: 's' }, sub));

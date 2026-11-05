@@ -60,21 +60,21 @@ export default {
   view(d, ctx) {
     const goal = d.range.goal_s || 14400, byDay = new Map(d.range.days.map((x) => [x.date, x]));
     const inMonth = d.range.days.filter((x) => monthOf(x.date) === d.ym && x.total_s > 0), met = inMonth.filter((x) => x.focus_s >= goal).length;
-    const head = h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Calendar'), h('p', {}, `${monthName(d.ym)} · ${inMonth.length} measured day${inMonth.length === 1 ? '' : 's'} · goal met on ${met}`)),
+    const head = h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Calendar'), h('p', {}, `${monthName(d.ym)} · ${inMonth.length} measured day${inMonth.length === 1 ? '' : 's'} · goal met on ${met}`)), d.day.simulated || d.range.days.some((x) => x.simulated) ? pill('Simulated data', '') : null,
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Month' }, h('button', { 'aria-label': 'Previous month', onclick: () => patch({ d: shiftMonth(d.ym, -1) + '-01' }) }, icon('left', 16)),
         h('button', { 'aria-pressed': 'true', onclick: () => patch({ d: '' }) }, 'This month'), h('button', { 'aria-label': 'Next month', disabled: d.ym >= monthOf(today()) ? true : null, onclick: () => patch({ d: shiftMonth(d.ym, 1) + '-01' }) }, icon('right', 16))));
     const month = h('section', { class: 'card', 'aria-labelledby': 'cal-h' }, h('header', {}, h('h3', { id: 'cal-h' }, monthName(d.ym)), h('small', {}, `ring = focus of ${dur(goal)} goal`)), monthGrid(d.ym, byDay, goal, ctx.date));
     const blocks = d.day.blocks || [], planned = d.tasks.filter((t) => t.planned_start && localDay(t.planned_start) === ctx.date && t.status !== 'done');
     const sessions = d.sessions || [];
     const dayCard = h('section', { class: 'card', 'aria-labelledby': 'day-h' }, h('header', {}, h('h3', { id: 'day-h' }, ctx.isToday ? 'Today' : new Date(ctx.date + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })),
-        h('small', {}, blocks.length ? `${blocks.length} blocks · ${dur(d.day.summary?.focus_s || 0)} focus` : 'nothing measured'), d.sessions === null ? pill('Sessions: soon', '') : null),
+        h('small', {}, blocks.length ? `${blocks.length} blocks · ${dur(d.day.summary?.focus_s || 0)} focus` : 'nothing measured'), d.sessions === null ? pill('Sessions unavailable', '') : null),
       blocks.length || sessions.length || planned.length ? timeline(ctx.date, blocks, sessions, planned, ctx.isToday) : emptyState(ctx.date > today() ? 'A day that hasn’t happened yet' : 'Nothing on this day', 'Measured blocks, timer sessions and planned tasks appear here.'),
       h('p', { class: 'faint cal-key' }, h('span', { class: 'cal-k blk' }, 'measured'), h('span', { class: 'cal-k ses' }, 'session'), h('span', { class: 'cal-k pln' }, 'planned')));
     // Upcoming: tasks due or planned in the next 7 days, grouped by day; "Plan here" writes planned_start on the selected day at 09:00
     const until = shiftDay(today(), 7), up = d.tasks.filter((t) => t.status !== 'done' && ((t.due && t.due >= today() && t.due <= until) || (t.planned_start && localDay(t.planned_start) >= today() && localDay(t.planned_start) <= until)));
     const groups = new Map(); up.forEach((t) => { const k = t.planned_start ? localDay(t.planned_start) : t.due; groups.set(k, [...(groups.get(k) || []), t]); });
     const plan = async (t, btn) => { btn.disabled = true; try { const at = new Date(ctx.date + 'T09:00:00').getTime() / 1000; await api.post(`/api/tasks/${t.id}`, { planned_start: at }); toast(`Planned: ${t.title}`, 'good'); go('calendar', { d: ctx.isToday ? '' : ctx.date }, { replace: true }); }
-      catch (e) { btn.disabled = false; toast(e.message.includes('planned') || e.message.includes('400') ? 'Planning needs the next server update' : e.message, 'bad'); } };
+      catch (e) { btn.disabled = false; toast(e.message, 'bad'); } };
     const upcoming = h('section', { class: 'card' }, h('header', {}, h('h3', {}, 'Upcoming'), h('small', {}, 'due or planned in the next 7 days')),
       up.length ? h('div', { class: 'stack' }, [...groups.keys()].sort().map((k) => h('div', { class: 'cal-grp' }, h('p', { class: 'faint cal-grp-h' }, k === today() ? 'Today' : new Date(k + 'T12:00:00').toLocaleDateString([], { weekday: 'long', day: 'numeric' })),
         groups.get(k).map((t) => h('div', { class: 'tk-row cal-up' }, h('span', { class: `tk-dot ${t.status}` }), h('span', { class: 'trunc grow' }, t.title), t.est_min ? h('small', { class: 'faint num' }, `${t.est_min} min`) : null,

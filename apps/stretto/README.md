@@ -15,7 +15,7 @@ This creates a data folder (`~/.stretto`), copies `.env.example` to `.env`, runs
 
 ## Meta models
 
-Every model call at runtime goes to a Meta model through the Meta Model API (`muse-spark-1.3`). Judges use their own key:
+Every model call at runtime goes to a Meta model through the Meta Model API (default `muse-spark-1.3`; choose another Meta `muse-`/`sam-`/`llama-` model in Settings or via `STRETTO_MODEL`). Validated replies are also kept in the honeycomb hex-cell cache, so a later day with the same finding signature can reuse a grounded reply with no new call. Judges use their own key:
 
 1. Create a key at https://dev.meta.ai.
 2. Put it in `.env` as `MODEL_API_KEY=...` (the file is created for you; it is git-ignored and never printed).
@@ -33,7 +33,7 @@ Each computer enrols with its own key (a one-time code, shown once, stored only 
 
 ## What is real, simulated, and not built
 
-* **Real and tested** (`python3 -m unittest discover -s tests -t .`): store, source merging, loss and path analysis, XP and streaks, patterns, consent, enrolment and scoping, agent bundle, permission plans, the Meta client and its guards, setup scripts.
+* **Real and tested** (`python3 -m unittest discover -s tests -t .`): store, source merging, loss and path analysis, XP and streaks, patterns, consent (single-form bulk grants, purge), enrolment and scoping, agent bundle, permission plans, the Meta client and its guards, model selection, distilled host saving, honeycomb artifact/vector cache with grounded routing, the day graph map (`/api/graph`), the derivable voice decision tree (`/api/voice/tree`, preloaded in Talk), predictive client preloading, setup scripts.
 * **Simulated:** the demo day (`Load a simulated day`) is generated data and is labelled *Simulated* everywhere it appears.
 * **Not built yet:** Windows lock/unlock and activity-history importers, a Wayland collector, scheduled-start for the server, TLS for remote mode.
 * **Verified only on:** macOS 12 (server, tests) and Windows 10 (agent probe, script parsing). Linux is tested through unit tests only.

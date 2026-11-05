@@ -41,7 +41,7 @@ export default {
     const byCat = {}; d.week.days.forEach((x) => { Object.entries(x.by_category || {}).forEach(([k, v]) => { byCat[k] = (byCat[k] || 0) + v; }); });
     const haveWeekCats = Object.keys(byCat).length > 0; if (!haveWeekCats) Object.entries(sm.by_category || {}).forEach(([k, v]) => { byCat[k] = v; });
     const cats = CAT.filter((c) => c !== 'Idle' && (byCat[c] || (budgets && budgets[c])));
-    const budget = h('section', { class: 'card', 'aria-labelledby': 'bg-h' }, h('header', {}, h('h3', { id: 'bg-h' }, 'Budgets by category'), h('small', {}, haveWeekCats ? 'this week' : 'today'), budgets ? null : pill('Budgets arrive with the next server update', '')),
+    const budget = h('section', { class: 'card', 'aria-labelledby': 'bg-h' }, h('header', {}, h('h3', { id: 'bg-h' }, 'Budgets by category'), h('small', {}, haveWeekCats ? 'this week' : 'today'), budgets && Object.keys(budgets).length ? null : pill('Set budgets in Settings', '')),
       cats.length ? h('div', { class: 'stack' }, cats.map((c) => h('div', { class: 'gl-cat', style: { '--c': catVar(c) } }, h('i', { class: `swatch tx tx-${c.toLowerCase()}` }), row(`${c} · ${noteOf(c)}`, byCat[c] || 0, budgets && budgets[c] ? budgets[c] * 60 : 0, budgets && budgets[c] ? null : 'no budget set'))))
         : h('p', { class: 'muted' }, 'Categories fill in as days are measured.'));
     // level, XP, streak, badges
@@ -50,7 +50,7 @@ export default {
       h('div', { class: 'row wrap' }, h('b', { class: 'big num' }, `Level ${xp.level}`), h('small', { class: 'faint num' }, `${xp.xp} / ${xp.next} XP`)),
       h('div', { class: 'bar' }, h('i', { style: { '--f': String(Math.min(1, (xp.xp - xp.floor) / span)) } })),
       (d.day.badges || []).length ? h('div', { class: 'row wrap gl-badges' }, d.day.badges.map((b) => pill(b, 'info'))) : h('p', { class: 'faint' }, 'Badges come from met goals and streaks; none yet.'));
-    return h('div', { class: 'page' }, h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Goals'), h('p', {}, 'What you are aiming for, and how this week is going against it.'))),
+    return h('div', { class: 'page' }, h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Goals'), h('p', {}, 'What you are aiming for, and how this week is going against it.')), d.week.days.some((x) => x.simulated) ? pill('Simulated data', '') : null),
       daily, h('div', { class: 'grid g-main' }, h('div', { class: 'stack' }, week, budget), level));
   },
 };

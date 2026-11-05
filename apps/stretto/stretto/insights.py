@@ -9,7 +9,7 @@ import json
 import re
 import time
 
-from . import meta
+from . import honeycomb, meta
 
 ZERO_WIDTH = re.compile("[​-‏‪-‮⁠-⁤﻿]")
 MEDICAL = re.compile(r"\b(diagnos\w*|medicat\w*|therapy|therapist|depress\w*|anxiety|adhd|disorder|clinical|prescri\w*|symptom\w*|mental health)\b", re.I)
@@ -97,10 +97,14 @@ def generate(store, day, device, budget_usd, refresh=False):
         hit = store.q("SELECT result FROM insight_cache WHERE date=? AND device=? AND facts_sha=?", (day["date"], device, sha))
         if hit:
             return dict(json.loads(hit[0]["result"]), cached=True)
+        twin, how = honeycomb.get(store, sha, f)
+        if twin is not None:
+            return dict(twin, cached=True, cache=how)
     call = meta.chat(store, "insights", messages(f), budget_usd, max_tokens=1200)
     result, dropped = validate(call["text"], f)
     out = dict(date=day["date"], basis="inferred", headline=result["headline"], actions=result["actions"], dropped=dropped,
                model=call["model"], mode=call["mode"], call_id=call["call_id"], cost_usd=call["cost_usd"], tokens=call["tokens"],
                facts_sha=sha, cached=False)
     store.x("INSERT OR REPLACE INTO insight_cache(date,device,facts_sha,result,ts) VALUES(?,?,?,?,?)", (day["date"], device, sha, json.dumps(out), time.time()))
+    honeycomb.put(store, sha, f, out)
     return out
