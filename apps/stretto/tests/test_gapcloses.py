@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, lattice, meta, predict, selftrain, topics, voicetree
+from stretto import ants, calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, lattice, meta, predict, selftrain, topics, tricache, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -211,6 +211,28 @@ class LatticePredict(unittest.TestCase):
         self.assertTrue(top and top[0]["place"] == "slack" and 0 < top[0]["p"] <= 1)
         fc = predict.focus_forecast(dict(hour_focus_s=[0] * 9 + [3600, 3600, 3600] + [0] * 12, days=5, best_window=None), now_hour=8)
         self.assertEqual(fc["next3h_focus_min"], 180)
+
+
+class TricacheAnts(unittest.TestCase):
+    def test_dna_fold_is_exact_and_tricache_levels(self):
+        s = Store(":memory:")
+        honeycomb.put(s, "sha1", FACTS, dict(headline="h", actions=[], cost_usd=0.01))
+        out = tricache.fold_lattice(s)
+        self.assertEqual(out["supercells"], 1)
+        self.assertGreaterEqual(out["mean_fold_variance"], 0.0)
+        art, how = tricache.get(s, "sha1", FACTS)
+        self.assertEqual(art["headline"], "h")
+        self.assertIn(how, ("L1-kv", "L2-honeycomb"))
+        self.assertEqual(tricache.stats(s)["dna_supercells"], 1)
+
+    def test_ants_find_circuit_and_bridges_deterministically(self):
+        trans = lattice.golden("transitions")
+        cat = {"code": "Build", "slack": "Communication"}
+        a1 = ants.simulate(trans, cat)
+        a2 = ants.simulate(trans, cat)
+        self.assertEqual(a1, a2)
+        self.assertTrue(a1["circuit"])
+        self.assertTrue(a1["pheromone"])
 
 
 class StaticCaching(unittest.TestCase):

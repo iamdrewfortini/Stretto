@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, lattice, predict, selftrain, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
+from . import analyze, ants, attention, bundle, calendars, challenges, coach, coherence, consent, lattice, predict, selftrain, tricache, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -418,6 +418,16 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("a turn needs you and/or reply text")
             tid = s.ux("INSERT INTO turns(you,reply,tools,ts) VALUES(?,?,?,?)", (you, reply, json.dumps(body.get("tools") or [])[:500], time.time()))
             return self._send(200, dict(id=tid))
+        if (method, path) == ("GET", "/api/tricache/stats"):
+            return self._send(200, tricache.stats(s))
+        if (method, path) == ("POST", "/api/tricache/fold"):
+            return self._send(200, tricache.fold_lattice(s))
+        if (method, path) == ("GET", "/api/ants"):
+            day = a.day(q.get("date"))
+            cat_of = {}
+            for b in day.get("blocks", []):
+                cat_of.setdefault(b.get("domain") or (b.get("app") or "").lower().removesuffix(".exe"), b["category"])
+            return self._send(200, ants.simulate(day["transitions"], cat_of))
         if (method, path) == ("GET", "/api/predict"):
             day = a.day(q.get("date")); pat = a.patterns(90)
             ch = challenges.group([day]) if day["summary"]["total_s"] else dict(challenges=[])

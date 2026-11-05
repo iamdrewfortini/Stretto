@@ -48,12 +48,28 @@ DEFS = {
                     invariant="row sums == range hours_focus totals", source="reports heatmap over Api.range"),
     "paths_field": dict(shape="(P) radial nodes sized by minutes + (P,P) edge widths by transition count", axes=["place", "place"], dtype="float",
                         invariant="node radius ∝ minutes; edge width ∝ count; highlight = one finding's places", source="charts/wave.field (backend evidence view)"),
+    "pheromone": dict(shape="(P,P) pheromone over measured transitions, seeded 1.0, evaporates 12%/generation",
+                      axes=["src place", "dst place"], dtype="float", invariant="deterministic for seed=7; strongest trail = optimized circuit", source="ants.simulate"),
+    "dna_supercells": dict(shape="2x2 DNA matrix per supercell: [[first cell, count],[cohesion, variance]] + centroid",
+                           axes=["supercell x", "supercell y"], dtype="mixed", invariant="centroid is the count-weighted mean of folded hex cells; variance is pooled spread (fold error, reported)", source="tricache.fold_lattice"),
     # Meta API contract (the only 'golden schema' a client may extract from the models)
     "meta_contract": dict(shape="chat: messages[] -> choices[0].message.content + usage{prompt,completion,reasoning,cached}; embeddings: input -> data[0].embedding[128+]",
                           axes=["field"], dtype="JSON", invariant="reply without usage is refused; non-Meta served model is refused; cost = price matrix x tokens",
                           source="meta.chat / embedder._meta against https://api.meta.ai/v1"),
     "price_matrix": dict(shape="(M, [input, cached, output] USD per 1M tokens)", axes=["model", "token kind"], dtype="float",
                          invariant="unknown model -> cost None, never invented", source="meta.PRICES (muse-spark-1.3: 1.25/0.15/4.25)"),
+}
+
+PRINCIPLES = {
+    "transitions": "You lose it in pieces. Small pieces — so measure the pieces.",
+    "findings_tensor": "Each one priced in minutes. Each one proven.",
+    "attention_weights": "Not mood. Pattern. And pattern can be changed.",
+    "coach_ramp": "Stretto does not choose your life. It holds you to the one you chose.",
+    "embeddings": "Teach it your world. Your words. Your rules.",
+    "honeycomb_cells": "Day after day, a shape appears.",
+    "challenge_groups": "Hunt it down. Cut it out.",
+    "meta_contract": "Every cost is written down. Nothing is hidden.",
+    "wave_packet": "Live. Measured as it happens.",
 }
 
 GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "golden")

@@ -6,18 +6,19 @@ compacts embeddings, stores folded artifacts, then audits the result: counts per
 pins with their tasks, and embeddings with no source (orphans). The audit is the coherence claim; read it, don't trust it."""
 import time
 
-from . import challenges, folding, honeycomb, lattice, meta, topics
+from . import challenges, folding, honeycomb, lattice, meta, topics, tricache
 
 
 def run(store, api, do_compact=True):
     items = folding.embed_all(store, api)
     folded = folding.fold(items)
     stored = folding.store_folded(store, folded)
+    tri = tricache.fold_lattice(store)
     comp = folding.compact(store) if do_compact else dict(duplicates_dropped=0, capped=0, kept=len(items))
-    return audit(store, api, folded=folded, stored=stored, comp=comp, items=items)
+    return audit(store, api, folded=folded, stored=stored, comp=comp, items=items, tri=tri)
 
 
-def audit(store, api, folded=None, stored=0, comp=None, items=None):
+def audit(store, api, folded=None, stored=0, comp=None, items=None, tri=None):
     if items is None:
         items = folding.load_items(store)
         if not items:   # nothing embedded yet: audit the live graph so a fresh system still reports coherently
@@ -32,7 +33,7 @@ def audit(store, api, folded=None, stored=0, comp=None, items=None):
     task_titles = {r["title"] for r in store.q("SELECT title FROM tasks")}
     orphans = sorted(f"{k}:{r}" for k, r in embedded - live)
     return dict(ts=time.time(), items=len(items), by_kind=by_kind, buckets=len(folded),
-                folded_buckets=sum(1 for b in folded if b["folded"]), honeycomb_artifacts=stored,
+                folded_buckets=sum(1 for b in folded if b["folded"]), honeycomb_artifacts=stored, tricache=tri or {},
                 compaction=comp or dict(), pins=dict(active=sum(1 for p in pins if p["status"] == "active"),
                                                      completed=sum(1 for p in pins if p["status"] == "completed"),
                                                      with_task=sum(1 for p in pins if p["fix"] in task_titles)),
