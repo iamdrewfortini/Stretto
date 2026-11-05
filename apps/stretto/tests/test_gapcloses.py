@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import calendars, challenges, coach, coherence, consent, folding, gamify, graphmap, honeycomb, meta, topics, voicetree
+from stretto import calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, meta, selftrain, topics, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -168,6 +168,30 @@ class TopicsFoldingCoherence(unittest.TestCase):
         prov = calendars.providers()
         self.assertEqual([p["id"] for p in prov], ["google", "icloud", "microsoft"])
         self.assertTrue(all(p["mode"] == "ics" or p["configured"] for p in prov))
+
+
+class SelfTrainEmbed(unittest.TestCase):
+    def test_dense_embedding_kv_and_tiers(self):
+        v1 = embedder.dense("focus detour slack", ["focus", "detour", "slack"])
+        self.assertEqual(len(v1), embedder.DIMS)
+        self.assertAlmostEqual(sum(x * x for x in v1), 1.0, places=3)
+        self.assertEqual(v1, embedder.dense("focus detour slack", ["focus", "detour", "slack"]))
+        self.assertGreater(kvcache.stats()["hits"], 0)
+        self.assertEqual(meta.model_for("main"), "muse-wonder-1.0")
+        self.assertEqual(meta.model_for("sub"), "muse-spark-1.3")
+
+    def test_selftrain_needs_data_then_learns_terms(self):
+        s = Store(":memory:")
+        out = selftrain.run(s, FakeApi())
+        self.assertFalse(out["trained"])   # honest: not enough local data yet
+        for i in range(14):
+            s.ux("INSERT INTO tasks(title,created) VALUES(?,?)", (f"focus build task {i}", float(i)))
+        challenges.pin(s, "detour", ["slack"], "batch slack checks", 10, "2026-11-01")
+        s.x("UPDATE pinned_challenges SET status='completed' WHERE kind='detour'")
+        out = selftrain.run(s, FakeApi())
+        self.assertTrue(out["trained"], out)
+        self.assertGreater(out["terms_learned"], 0)
+        self.assertEqual(len(selftrain.log(s)), 1)
 
 
 class StaticCaching(unittest.TestCase):

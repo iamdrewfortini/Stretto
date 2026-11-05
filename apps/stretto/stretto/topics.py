@@ -8,6 +8,7 @@ import math
 import re
 
 from . import challenges as _ch
+from . import embedder
 
 STOP = set("the a an and or to of in on for with my i it is are be this that from by at as into your you we our".split())
 SYN = {"deep": "focus", "coding": "build", "code": "build", "writing": "write", "email": "communication",
@@ -39,7 +40,8 @@ def cosine(a, b):
 
 
 def item(kind, ref, text, extra=None):
-    return dict(kind=kind, ref=str(ref), text=str(text)[:280], vec=vector(text), extra=extra or {})
+    text = str(text)[:280]
+    return dict(kind=kind, ref=str(ref), text=text, vec=vector(text), dense=embedder.dense(text, terms(text)), extra=extra or {})
 
 
 def collect(store, api):
@@ -96,5 +98,6 @@ def recall(items, query, limit=12):
     q = vector(query)
     if not q:
         return []
-    scored = [dict(kind=x["kind"], ref=x["ref"], text=x["text"], extra=x["extra"], score=cosine(q, x["vec"])) for x in items]
+    scored = [dict(kind=x["kind"], ref=x["ref"], text=x["text"], extra=x["extra"],
+                   score=embedder.cosine(embedder.dense(query, terms(query)), x["dense"]) if x.get("dense") else cosine(q, x["vec"])) for x in items]
     return [x for x in sorted(scored, key=lambda y: -y["score"]) if x["score"] > 0][:limit]

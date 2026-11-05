@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
+from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, selftrain, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -418,6 +418,11 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("a turn needs you and/or reply text")
             tid = s.ux("INSERT INTO turns(you,reply,tools,ts) VALUES(?,?,?,?)", (you, reply, json.dumps(body.get("tools") or [])[:500], time.time()))
             return self._send(200, dict(id=tid))
+        if (method, path) == ("POST", "/api/selftrain/run"):
+            return self._send(200, selftrain.run(s, a))
+        if (method, path) == ("GET", "/api/selftrain"):
+            return self._send(200, dict(log=selftrain.log(s), weights=len(selftrain.weights(s)),
+                                        scale=int(float(s.setting("honeycomb_scale", honeycomb.SCALE)))))
         if (method, path) == ("GET", "/api/coherence"):
             return self._send(200, coherence.audit(s, a))
         if (method, path) == ("POST", "/api/coherence/run"):

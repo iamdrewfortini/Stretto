@@ -13,6 +13,8 @@ import time
 import urllib.error
 import urllib.request
 
+from . import kvcache
+
 BASE = "https://api.meta.ai/v1"
 DEFAULT_MODEL = "muse-spark-1.3"
 # USD per million tokens, list price (dev.meta.ai/models/muse-spark). Costs are estimates; Meta's billing is the record.
@@ -20,6 +22,16 @@ PRICES = {"muse-spark-1.3": dict(input=1.25, cached=0.15, output=4.25)}
 META_PREFIXES = ("muse-", "sam-", "llama")
 # Models with known list prices. Any other Meta-prefixed model may be selected; its ledger cost is then None (unknown, never invented).
 KNOWN_MODELS = ("muse-spark-1.3",)
+
+
+TIERS = dict(main="muse-wonder-1.0", sub="muse-spark-1.3")   # Cookbook agent-framework tiering: wonder reasons, spark executes
+
+
+def model_for(tier, store=None):
+    """main -> muse-wonder-1.0 (or STRETTO_MODEL_MAIN), sub -> the person's selected spark-tier model."""
+    if tier == "main":
+        return os.environ.get("STRETTO_MODEL_MAIN", "").strip() or TIERS["main"]
+    return current_model(store)
 
 
 def current_model(store=None):
@@ -106,7 +118,7 @@ def status(store, budget_usd):
     import datetime as dt
     t0 = dt.datetime.combine(dt.date.today(), dt.time()).timestamp()
     row = store.q("SELECT COUNT(*) AS n, COALESCE(SUM(cost_usd),0) AS spent FROM model_calls WHERE ts>=? AND status='ok'", (t0,))[0]
-    return dict(mode=mode(), model=current_model(store), known_models=list(KNOWN_MODELS), calls_today=row["n"], spent_today_usd=round(row["spent"], 6), budget_usd=budget_usd,
+    return dict(mode=mode(), model=current_model(store), tiers={k: model_for(k, store) for k in TIERS}, kv=kvcache.stats(), known_models=list(KNOWN_MODELS), calls_today=row["n"], spent_today_usd=round(row["spent"], 6), budget_usd=budget_usd,
                 chain_ok=verify_chain(store))
 
 

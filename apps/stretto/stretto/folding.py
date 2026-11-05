@@ -21,14 +21,18 @@ def embed_all(store, api):
     for it in items:
         cell = ",".join(str(x) for x in honeycomb.cell([it["vec"].get(k, 0.0) for k in sorted(it["vec"])][:9] or [0.0]))
         store.x("INSERT OR REPLACE INTO embeddings(kind,ref,vec,text,cell,ts) VALUES(?,?,?,?,?,?)",
-                (it["kind"], it["ref"], json.dumps(it["vec"]), it["text"], cell, time.time()))
+                (it["kind"], it["ref"], json.dumps(it.get("dense") or list(it["vec"].values())), it["text"], cell, time.time()))
     return items
 
 
 def load_items(store):
     bind(store)
-    return [dict(kind=r["kind"], ref=r["ref"], text=r["text"], vec=json.loads(r["vec"]), extra={})
-            for r in store.q("SELECT * FROM embeddings ORDER BY ts")]
+    out = []
+    for r in store.q("SELECT * FROM embeddings ORDER BY ts"):
+        raw = json.loads(r["vec"])
+        out.append(dict(kind=r["kind"], ref=r["ref"], text=r["text"], vec=topics.vector(r["text"]),
+                        dense=raw if isinstance(raw, list) else None, extra={}))
+    return out
 
 
 def fold(items, threshold=0.30):
@@ -72,7 +76,7 @@ def compact(store, max_embeddings=500):
     seen, dropped = [], 0
     for r in rows:
         v = json.loads(r["vec"])
-        if any(r["kind"] == s[0] and topics.cosine(v, s[1]) >= 0.92 for s in seen):
+        if any(r["kind"] == s[0] and ((isinstance(v, list) and isinstance(s[1], list) and __import__("stretto.embedder", fromlist=["cosine"]).cosine(v, s[1]) >= 0.92) or (isinstance(v, dict) and isinstance(s[1], dict) and topics.cosine(v, s[1]) >= 0.92)) for s in seen):
             store.x("DELETE FROM embeddings WHERE kind=? AND ref=?", (r["kind"], r["ref"])); dropped += 1
         else:
             seen.append((r["kind"], v))

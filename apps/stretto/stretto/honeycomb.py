@@ -35,13 +35,15 @@ def signature(facts):
     return json.dumps([[f["kind"], f.get("places", [])] for f in facts.get("findings", [])], sort_keys=True)
 
 
-def cell(vec):
-    """Axial hex coordinates: one (q, r) pair per two vector axes, plus the leftover axis. Neighbours differ by 1."""
+def cell(vec, scale=None):
+    """Axial hex coordinates: one (q, r) pair per two vector axes, plus the leftover axis. Neighbours differ by 1.
+    scale defaults to SCALE; selftrain may learn a better one per instance (stored as the honeycomb_scale setting)."""
+    s = SCALE if scale is None else scale
     out = []
     for i in range(0, len(vec) - 1, 2):
-        out += [round(vec[i] * SCALE), round(vec[i + 1] * SCALE)]
+        out += [round(vec[i] * s), round(vec[i + 1] * s)]
     if len(vec) % 2:
-        out.append(round(vec[-1] * SCALE))
+        out.append(round(vec[-1] * s))
     return tuple(out)
 
 
@@ -72,7 +74,11 @@ def put(store, facts_sha, facts, artifact):
 def put_raw(store, key, vec, sig, artifact):
     """Store any artifact under a hex cell derived from its embedding vector. Used for coaching replies and folded topic buckets."""
     bind(store)
-    c = ",".join(str(x) for x in cell(vec))
+    try:
+        s = int(float(store.setting("honeycomb_scale", SCALE)))
+    except Exception:
+        s = SCALE
+    c = ",".join(str(x) for x in cell(vec, s))
     store.x("INSERT OR REPLACE INTO honeycomb(cell,facts_sha,vec,sig,artifact,ts) VALUES(?,?,?,?,?,?)",
             (c, str(key), json.dumps(vec), str(sig), json.dumps(artifact), time.time()))
 
