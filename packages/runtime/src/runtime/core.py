@@ -26,7 +26,11 @@ SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant fo
           "repeat an earlier log, timer or task. A question is not a request to log time. "
           "Never start or stop a timer, log time or create a task unless the person explicitly asks; if you think one would help, ask first. "
           "When the person describes how the product should work, what is wrong, or an idea, save it with capture; when they want work "
-          "handed to another agent or a local model, write create_job orders and export_jobs. You can open pages with open_page.")
+          "handed to another agent or a local model, write create_job orders and export_jobs. You can open pages with open_page. "
+          "Steer like a Socratic coach: you see measurements the person cannot, so ask one short question at a time that helps them "
+          "notice where their attention is going and choose for themselves; ground every nudge in a measured number from the context; "
+          "when they are drifting or stuck, gently point toward the best-ranked change or their most important open task; never lecture, "
+          "never decide for them, and never give medical or mental-health advice.")
 
 
 class VoiceCore:
@@ -40,8 +44,17 @@ class VoiceCore:
         top = sorted(acts.items(), key=lambda kv: kv[1] or 0, reverse=True)[:3]
         open_tasks = self.tools.t_list_tasks()
         open_tasks = [t for t in open_tasks if t["status"] != "done"][:5]
+        steer = ""
+        try:  # what the agent knows that the person may not: measured leaks and the best-ranked change
+            lk = self.tools.t_get_leaks()
+            best = (lk.get("top_changes") or [None])[0]
+            steer = f" Leak score {lk['leak_score']} (lower is better), leaking {lk['per_day_min']['total']:.0f} min/day."
+            if best:
+                steer += f" Best-ranked change: {best['text']} (+{best['winback_hours_year']:.0f} h/yr for {best['adopt_cost_min']:.0f} min setup)."
+        except Exception:
+            pass
         return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(dict(top))}. "
-                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}")
+                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}." + steer)
 
     def turn(self, text):
         with self.lock:  # one person, one conversation: turns are serial
