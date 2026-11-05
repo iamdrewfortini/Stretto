@@ -8,6 +8,9 @@ EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@(?!example\.(?:com|org|internal)\b)[A-Za-
 PATHS = re.compile(r"(?:[A-Za-z]:\\Users\\|/home/[a-z][a-z0-9_-]+/|/Users/[A-Za-z]+/)")
 KEYS = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bAKIA[0-9A-Z]{16}\b|\bghp_[A-Za-z0-9]{20,}\b|\bxox[baprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9_-]{16,}\b")
 FIXTURES = {"sk-abcdefghijklmnop1234"}
+BINARY_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".icns", ".pdf", ".zip", ".gz", ".tgz", ".woff", ".woff2", ".ttf", ".otf", ".mp3", ".mp4", ".mov", ".sqlite", ".db")
+# iCalendar UIDs in CalDAV test fixtures (identifiers, not mailboxes); exact values only, never a pattern
+FIXTURES.update({"abc-1@icloud.com", "abc-2@icloud.com", "stretto-task-7@stretto.local"})
 GENERIC_CIDRS = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")        # the three RFC 1918 blocks as policy text; any other private address is still a finding
 def main():
     deny = []
@@ -16,8 +19,10 @@ def main():
     for dp, dn, fs in os.walk(ROOT):
         dn[:] = [d for d in dn if d not in (".git", "__pycache__", "target", "dist", ".venv")]
         for f in fs:
-            if f.endswith((".tbl", ".pyc", ".so", ".a", ".rlib", ".rmeta", ".d", ".o")) or os.path.getsize(os.path.join(dp, f)) > 2_000_000: continue
+            if f.endswith((".tbl", ".pyc", ".so", ".a", ".rlib", ".rmeta", ".d", ".o") + BINARY_EXTS) or os.path.getsize(os.path.join(dp, f)) > 2_000_000: continue
             p = os.path.join(dp, f); rel = os.path.relpath(p, ROOT)
+            with open(p, "rb") as fh:
+                if b"\0" in fh.read(8192): continue   # binary content: line-oriented text scan does not apply
             for i, line in enumerate(open(p, encoding="utf-8", errors="ignore"), 1):
                 if os.path.basename(p) == "public_scan.py": continue
                 for g in GENERIC_CIDRS: line = line.replace(g, "")
