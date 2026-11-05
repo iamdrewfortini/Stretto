@@ -12,8 +12,9 @@ stops every adapter of that source on the next tick.
 """
 import os
 import time
+from collections import deque
 
-from .episodes import EpisodeBuilder
+from .episodes import EpisodeBuilder, categorize
 from .metrics import MetricsEngine
 from .narration import Narrator
 from .redact import clean_title
@@ -35,7 +36,7 @@ class Importer:
         self.metrics = MetricsEngine()
         self.narrator = Narrator()
         self._now = now_fn
-        self.tick_ms = []
+        self.tick_ms = deque(maxlen=3600)
         self.overruns = 0
         self._idle_s = 0.0
 
@@ -66,10 +67,12 @@ class Importer:
         t0 = time.perf_counter()
         wait_ms = 0.0
         window_sample = None
+        # One consent snapshot per tick: one file stat, not one per adapter.
+        granted = self.consent.state(now=now)
         for adapter, available, _why in self.adapters:
             if not available:
                 continue
-            if not self.consent.allows(adapter.source, now=now):
+            if not granted.get(adapter.source, False):
                 continue
             p0 = time.perf_counter()
             try:
@@ -87,10 +90,7 @@ class Importer:
                 if s.source == "idle":
                     self._idle_s = s.idle_s
                 elif s.source == "window":
-                    s.title = clean_title(s.title, self.titles_on) \
-                        if self.titles_on else None
-                    if not self.titles_on:
-                        s.title = None
+                    s.title = clean_title(s.title, True) if self.titles_on else None
                     window_sample = s
                 elif s.source in ("input", "pointer"):
                     self.metrics.note_input(now, s.keys + s.clicks)
@@ -104,10 +104,20 @@ class Importer:
             open_ep = None
             if self.builder.cur:
                 open_ep = dict(self.builder.cur)
-                open_ep["category"] = self.builder.resolver.resolve(
+                # Provisional category only: the resolver's ask is a
+                # model call and must never run on the tick path; the
+                # real resolution happens once at episode close.
+                open_ep["category"] = categorize(
                     open_ep["app"], open_ep.get("title") or "")
             rows = self.metrics.compute(
                 self.builder.closed, now, open_episode=open_ep)
+            # Bound memory: nothing reads episodes older than the
+            # widest window (3600s) plus a small margin.
+            cutoff = now - 3660.0
+            self.builder.closed = [e for e in self.builder.closed
+                                   if e["end"] >= cutoff]
+            self.builder.manual_spans = [
+                s for s in self.builder.manual_spans if s[1] >= cutoff]
             for row in rows:
                 self._emit({"type": "attention.metrics", "data": row})
             m10 = next((r for r in rows if r["window_s"] == 600), None)

@@ -12,7 +12,7 @@ lic = open(os.path.join(ROOT, "LICENSE"), encoding="utf-8").read()
 need("Apache License" in lic and "Version 2.0, January 2004" in lic and "END OF TERMS AND CONDITIONS" in lic and len(lic) > 10000, "LICENSE is not the full Apache-2.0 text")
 for f in ("NOTICE", "THIRD_PARTY.md", "docs/LICENSE-AND-TERMS.md", "docs/PACKAGING.md"): need(os.path.exists(os.path.join(ROOT, f)), f"missing {f}")
 third = open(os.path.join(ROOT, "THIRD_PARTY.md"), encoding="utf-8").read()
-SKIP = {".git", "__pycache__", "target", "dist"}
+SKIP = {".git", "__pycache__", "target", "dist", ".venv"}
 for dp, dn, fs in os.walk(ROOT):
     dn[:] = [d for d in dn if d not in SKIP]
     for f in fs:

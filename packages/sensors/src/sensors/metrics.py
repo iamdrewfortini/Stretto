@@ -53,7 +53,13 @@ class MetricsEngine:
             bounds = sum(1 for ep, _ in clipped
                          if lo < ep["start"] < now)
             longest, run = 0.0, 0.0
-            for ep, s in sorted(clipped, key=lambda x: x[0]["start"]):
+            # Episodes arrive chronologically from the builder; only
+            # sort when a caller handed us unordered input.
+            ordered = clipped if all(
+                clipped[i][0]["start"] <= clipped[i + 1][0]["start"]
+                for i in range(len(clipped) - 1)) else sorted(
+                    clipped, key=lambda x: x[0]["start"])
+            for ep, s in ordered:
                 run = run + s if ep.get("category") == "focus" else 0.0
                 longest = max(longest, run)
             keys = sum(c for t, c in self._inputs if t >= lo)

@@ -93,11 +93,7 @@ class Narrator:
                 "rank_score": round(won_min_week / self.adopt_cost_min, 2)}}
             self._last_suggestion = float(now)
             return ev
-        if metrics10["idle_ratio"] > 0.5:
-            text = "Mostly idle for 10 min; pick one small next step?"
-            ev = {"type": "narration.suggestion", "data": {
-                "text": text,
-                "evidence": f"idle_ratio={metrics10['idle_ratio']} over 600s"}}
-            self._last_suggestion = float(now)
-            return ev
+        # Idle branch: no calibrated won-back number exists for it, so
+        # the both-numbers rule suppresses it like any uncalibrated
+        # suggestion. Never emit a suggestion without both numbers.
         return None

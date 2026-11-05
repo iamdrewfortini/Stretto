@@ -15,7 +15,6 @@ import platform
 import shutil
 import subprocess
 import threading
-import time
 from dataclasses import dataclass, field
 
 
@@ -63,8 +62,15 @@ def registry():
 
 
 def _run(argv, timeout=0.2):
-    return subprocess.run(argv, capture_output=True, text=True,
-                          timeout=timeout).stdout.strip()
+    # Non-zero exit raises: callers treat a failed OS tool as "no
+    # sample" (poll) or "unavailable" (probe). Returning empty stdout
+    # instead let probes report available for a broken tool.
+    r = subprocess.run(argv, capture_output=True, text=True,
+                       timeout=timeout)
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"{argv[0]} exited {r.returncode}: {r.stderr.strip()[:120]}")
+    return r.stdout.strip()
 
 
 def _have(tool):
@@ -89,21 +95,22 @@ class MacWindowAdapter:
             return False, f"unavailable: osascript: {e}"
 
     def poll(self, now):
+        # One osascript spawn per poll, not two: it returns
+        # "app\ntitle" (title empty when the app has no front window).
         try:
-            app = _run(["osascript", "-e",
-                        'tell application "System Events" to '
-                        "get name of first process whose frontmost is true"],
+            out = _run(["osascript", "-e",
+                        'tell application "System Events"\n'
+                        "set p to first process whose frontmost is true\n"
+                        "set t to \"\"\n"
+                        "try\n"
+                        "set t to name of front window of p\n"
+                        "end try\n"
+                        "return (name of p) & linefeed & t\n"
+                        "end tell"],
                        timeout=1.0)
-            title = ""
-            try:
-                title = _run(["osascript", "-e",
-                              'tell application "System Events" to '
-                              "get name of front window of first process "
-                              "whose frontmost is true"], timeout=1.0)
-            except Exception:
-                title = ""
         except Exception:
             return []
+        app, _, title = out.partition("\n")
         return [Sample("window", now, app=app, title=title)] if app else []
 
 
@@ -168,9 +175,11 @@ class LinuxWindowAdapter:
         return True, "available"
 
     def poll(self, now):
+        # Two spawns, not three: xdotool chains getactivewindow +
+        # getwindowname in one invocation (window id, then title).
         try:
-            wid = _run(["xdotool", "getactivewindow"])
-            title = _run(["xdotool", "getwindowname", wid]) if wid else ""
+            out = _run(["xdotool", "getactivewindow", "getwindowname"])
+            wid, _, title = out.partition("\n")
             cls = _run(["xprop", "-id", wid, "WM_CLASS"]) if wid else ""
             app = cls.split('"')[1] if '"' in cls else ""
         except Exception:
@@ -211,6 +220,7 @@ class LinuxInputAdapter:
         self._px = 0.0
         self._lock = threading.Lock()
         self._proc = None
+        self._started = False
         self._last = (0, 0, 0.0)
 
     def probe(self):
@@ -226,24 +236,35 @@ class LinuxInputAdapter:
             self._proc = subprocess.Popen(
                 ["xinput", "test-xi2", "--root"],
                 stdout=subprocess.PIPE, text=True)
-            lx = ly = None
             for line in self._proc.stdout:
-                with self._lock:
-                    if "EVENT type 2" in line or "RawKeyPress" in line:
+                # Classify without the lock; only the increment
+                # needs it, so poll() never waits on string matching.
+                if "EVENT type 2" in line or "RawKeyPress" in line:
+                    with self._lock:
                         self._keys += 1
-                    elif "EVENT type 4" in line or "RawButtonPress" in line:
+                elif "EVENT type 4" in line or "RawButtonPress" in line:
+                    with self._lock:
                         self._clicks += 1
-                    elif "EVENT type 17" in line or "RawMotion" in line:
+                elif "EVENT type 17" in line or "RawMotion" in line:
+                    with self._lock:
                         self._px += 1.0  # per-event step; no coords kept
         except Exception:
-            self._proc = None
+            pass
+        finally:
+            with self._lock:
+                self._proc = None
+                self._started = False
 
     def poll(self, now):
-        if self._proc is None:
-            threading.Thread(target=self._reader, daemon=True).start()
-            time.sleep(0.01)
+        start = False
         with self._lock:
+            if not self._started:
+                self._started = start = True
             cur = (self._keys, self._clicks, self._px)
+        if start:
+            # No inline sleep: the first poll reports zero deltas and
+            # later polls pick up whatever the reader has counted.
+            threading.Thread(target=self._reader, daemon=True).start()
         d = tuple(c - p for c, p in zip(cur, self._last))
         self._last = cur
         out = []

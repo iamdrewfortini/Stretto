@@ -9,6 +9,7 @@ phone, Luhn-checked card) so the standalone agent enforces the same
 bar without importing a sibling package. Tests cross-check parity
 against ``perception.redact`` when that package is importable.
 """
+import hashlib
 import re
 
 MAX_TITLE = 80
@@ -41,6 +42,14 @@ _CARD = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
 def redact(text):
     """Return (clean_text, counts) with secrets replaced by tags."""
     counts = {}
+    text = text or ""
+    # Fast path: digit/@ patterns need a digit or '@'; the API-key
+    # shapes are the only ones that can appear without either, so
+    # their literal prefixes must also be absent. Most window titles
+    # have none of these; skip all regex work for them.
+    if not any(ch.isdigit() for ch in text) and "@" not in text and \
+            not any(k in text for k in ("eyJ", "sk-", "ghp_", "AKIA", "xox")):
+        return text, counts
 
     def card(m):
         d = re.sub(r"\D", "", m.group(0))
@@ -49,7 +58,7 @@ def redact(text):
             return "[CARD]"
         return m.group(0)
 
-    text = _CARD.sub(card, text or "")
+    text = _CARD.sub(card, text)
     for name, pat in _PATTERNS:
         text, n = pat.subn(f"[{name}]", text)
         if n:
@@ -57,9 +66,26 @@ def redact(text):
     return text, counts
 
 
+_title_cache = {}
+_TITLE_CACHE_MAX = 128
+
+
 def clean_title(raw, titles_on=True):
-    """Redact + truncate a window title; None when titles are off."""
+    """Redact + truncate a window title; None when titles are off.
+
+    Most ticks repeat the previous title verbatim, so recent
+    results are cached (bounded, oldest evicted). Keys are SHA-256
+    digests: raw titles are never retained, only redacted results.
+    """
     if not titles_on or raw is None:
         return None
+    key = hashlib.sha256(str(raw).encode()).hexdigest()
+    hit = _title_cache.get(key)
+    if hit is not None:
+        return hit
     clean, _ = redact(str(raw))
-    return clean[:MAX_TITLE]
+    clean = clean[:MAX_TITLE]
+    if len(_title_cache) >= _TITLE_CACHE_MAX:
+        _title_cache.pop(next(iter(_title_cache)))
+    _title_cache[key] = clean
+    return clean

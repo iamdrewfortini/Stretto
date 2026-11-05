@@ -50,7 +50,9 @@ def wrap(payload, now=None):
     now = time.time() if now is None else now
     host = payload.get("source_host", "unknown")
     out = []
-    with LOCK:
+    # BUS and SEQ are guarded by COND (not LOCK) so SSE readers can
+    # wait on the same lock they read under: no lost wakeups.
+    with COND:
         for e in payload["events"]:
             SEQ[0] += 1
             out.append({
@@ -60,7 +62,6 @@ def wrap(payload, now=None):
                 "schema": 1, "data": e.get("data", {})})
         BUS.extend(out)
         del BUS[:-500]
-    with COND:
         COND.notify_all()
     return out
 
@@ -181,20 +182,23 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()
-            seen = 0
+            seen = 0  # last SEQ delivered; BUS is trimmed, indexes lie
             try:
                 while True:
-                    with LOCK:
-                        fresh = BUS[seen:]
-                        seen = len(BUS)
+                    with COND:
+                        fresh = [e for e in BUS
+                                 if int(e["id"][1:]) > seen]
+                        if fresh:
+                            seen = int(fresh[-1]["id"][1:])
+                        else:
+                            COND.wait(timeout=5)
                     for e in fresh:
                         self.wfile.write(
                             f"data: {json.dumps(e)}\n\n".encode())
                     self.wfile.flush()
-                    with COND:
-                        COND.wait(timeout=5)
-                    self.wfile.write(b": keepalive\n\n")
-                    self.wfile.flush()
+                    if not fresh:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError, OSError):
                 return
             return

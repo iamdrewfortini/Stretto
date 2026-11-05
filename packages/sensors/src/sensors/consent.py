@@ -101,18 +101,21 @@ class ConsentStore:
             "person": person, "action": "revoke",
             "sources": sorted(sources or SOURCES)}}
 
-    def allows(self, source, now=None, person=None):
-        self.reload()
-        now = _now() if now is None else now
+    def _allows(self, source, now, person):
         g = self._grants.get(person or self.person)
         if not g or g.get("revoked"):
             return False
         exp = g.get("sources", {}).get(source)
         return bool(exp and now < exp)
 
+    def allows(self, source, now=None, person=None):
+        self.reload()
+        return self._allows(source, _now() if now is None else now, person)
+
     def state(self, now=None, person=None):
+        self.reload()
         now = _now() if now is None else now
-        return {s: self.allows(s, now=now, person=person) for s in SOURCES}
+        return {s: self._allows(s, now, person) for s in SOURCES}
 
 
 def parse_ttl(text):

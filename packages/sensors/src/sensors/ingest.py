@@ -13,6 +13,7 @@ import json
 import socket
 import time
 import urllib.request
+from collections import deque
 from urllib.parse import urlparse
 
 ALLOWED_PREFIXES = ("telemetry.", "activity.", "attention.",
@@ -40,7 +41,7 @@ class IngestClient:
         self.max_batch = max_batch
         self._opener = opener or urllib.request.urlopen
         self._now = now_fn
-        self.queue = []          # (queued_ts, event)
+        self.queue = deque()     # (queued_ts, event)
         self._last_flush = 0.0
         self._backoff_until = 0.0
         self._failures = 0
@@ -56,7 +57,7 @@ class IngestClient:
     def _prune(self):
         cutoff = self._now() - self.buffer_s
         while self.queue and self.queue[0][0] < cutoff:
-            self.queue.pop(0)
+            self.queue.popleft()
             self.dropped += 1
 
     def flush(self, force=False):
@@ -69,7 +70,7 @@ class IngestClient:
                           or now < self._backoff_until):
             return 0
         self._last_flush = now
-        batch = [e for _, e in self.queue[:self.max_batch]]
+        batch = [e for _, e in list(self.queue)[:self.max_batch]]
         body = json.dumps({"source_host": self.source_host,
                            "events": batch}).encode()
         req = urllib.request.Request(
@@ -82,7 +83,10 @@ class IngestClient:
             self._failures += 1
             self._backoff_until = now + min(30.0, 2 ** (self._failures - 1))
             return 0
-        del self.queue[:len(batch)]
+        # Drop only what the gateway accepted; a partial accept keeps
+        # the rest queued for the next attempt instead of losing it.
+        for _ in range(min(accepted, len(batch))):
+            self.queue.popleft()
         self._failures = 0
         self.sent += accepted
         return accepted
