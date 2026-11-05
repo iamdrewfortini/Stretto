@@ -16,7 +16,7 @@ def main():
     for dp, dn, fs in os.walk(ROOT):
         dn[:] = [d for d in dn if d not in (".git", "__pycache__", "target", "dist", ".venv")]
         for f in fs:
-            if f.endswith((".tbl", ".pyc", ".so", ".a", ".rlib", ".rmeta", ".d", ".o")) or os.path.getsize(os.path.join(dp, f)) > 2_000_000: continue
+            if f.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".tbl", ".pyc", ".so", ".a", ".rlib", ".rmeta", ".d", ".o")) or os.path.getsize(os.path.join(dp, f)) > 2_000_000: continue
             p = os.path.join(dp, f); rel = os.path.relpath(p, ROOT)
             for i, line in enumerate(open(p, encoding="utf-8", errors="ignore"), 1):
                 if os.path.basename(p) == "public_scan.py": continue
