@@ -192,10 +192,10 @@ class Handler(BaseHTTPRequestHandler):
                             f"data: {json.dumps(e)}\n\n".encode())
                     self.wfile.flush()
                     with COND:
-                        COND.wait(timeout=15)
+                        COND.wait(timeout=5)
                     self.wfile.write(b": keepalive\n\n")
                     self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, OSError):
                 return
             return
         return self._send(404, json.dumps({"error": "not found"}))
@@ -205,6 +205,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8787)
     a = ap.parse_args()
+    ThreadingHTTPServer.daemon_threads = True
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
     print(f"dashboard http://127.0.0.1:{a.port}/dashboard", flush=True)
     srv.serve_forever()
