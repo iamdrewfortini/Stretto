@@ -206,6 +206,8 @@ def main():
     ap.add_argument("--port", type=int, default=8787)
     a = ap.parse_args()
     ThreadingHTTPServer.daemon_threads = True
+    ThreadingHTTPServer.request_queue_size = 64
+    ThreadingHTTPServer.allow_reuse_address = True
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
     print(f"dashboard http://127.0.0.1:{a.port}/dashboard", flush=True)
     srv.serve_forever()
