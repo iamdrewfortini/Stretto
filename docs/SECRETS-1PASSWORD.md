@@ -14,11 +14,13 @@ operator's own vault and is never printed, logged, or committed.
 1. **No 1Password.** Put your own `MODEL_API_KEY` in a `.env` file with
    mode `0600` next to the repo (see `.env.example`). Everything works;
    this is the default and the fallback.
-2. **1Password.** Create a vault named `Stretto-CI` in your own account
-   (or edit the references in `docs/spec/secrets.registry.json`, or set
-   `OP_REF_<NAME>` environment overrides to your own vault/items). Add
-   your items there, create a **read-only service account** scoped to
-   that vault, and supply its token as `OP_SERVICE_ACCOUNT_TOKEN`.
+2. **1Password (existing vault, nothing new to create).** Use a vault
+   you already have. Edit the `YourExistingVault` segment of the
+   references in `docs/spec/secrets.registry.json`, or set
+   `OP_REF_<NAME>` environment overrides, so each `op://` reference
+   points at an item in that existing vault. Grant a **read-only
+   service account** access to that vault in 1Password and supply its
+   token as `OP_SERVICE_ACCOUNT_TOKEN`.
 
 ## Where the 1st key goes
 
