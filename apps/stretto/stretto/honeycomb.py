@@ -98,6 +98,8 @@ def route(store, facts, cost_weight=0.05):
     v, sig, c0 = vector(facts), signature(facts), cell(vector(facts))
     best, visited = None, 0
     rows = store.q("SELECT cell, vec, sig, artifact FROM honeycomb")
+    if not rows:
+        return None, dict(cells_visited=0, similarity=0.0, grounded=False)
     by_cell = {}
     for r in rows:
         by_cell.setdefault(r["cell"], []).append(r)
@@ -118,9 +120,9 @@ def route(store, facts, cost_weight=0.05):
                 if best is None or score > best[0]:
                     best = (score, art, sim, key)
             nxt.extend(neighbours(c))
-        if best is not None:
+        if best is not None or visited > 512:   # hard cap: the voice fast path must stay fast even on a sparse comb
             break
-        ring = list(set(nxt) - seen)
+        ring = list(set(nxt) - seen)[:512]
         if not ring:
             break
     if best is None:
