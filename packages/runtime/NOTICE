@@ -1,0 +1,14 @@
+Meta Coherence Hive
+Copyright 2026 iamdrewfortini and contributors
+
+This product was written for the Meta Global AI Developer Hackathon (virtual, building
+period 27 October to 4 November 2026) and is licensed under the Apache License,
+Version 2.0 (see LICENSE).
+
+Trademarks: "Meta", "Muse", "Glimmer" and "SAM" are trademarks of their respective
+owners and are used here only to name the models this software is designed to call.
+This project is independent and is not endorsed by or affiliated with Meta Platforms,
+Inc. No model weights are distributed with this software.
+
+Native artifacts (the Rust libraries) statically include parts of the Rust standard
+library, which is licensed under MIT OR Apache-2.0. See THIRD_PARTY.md.

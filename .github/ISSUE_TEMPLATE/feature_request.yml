@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a way Humanflow could save more time or attention
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: The problem, description: "What takes your time or attention today? Describe it from your own work."}
+    validations: {required: true}
+  - type: textarea
+    id: idea
+    attributes: {label: What you would like Humanflow to do}
+    validations: {required: true}
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Boundaries
+      options:
+        - label: This keeps the person's data local and owner-only, and needs no raw audio, screen pixels or keystroke content.
+          required: true
+        - label: This is not medical, mental-health or wellbeing advice and does not profile personality.
+          required: true

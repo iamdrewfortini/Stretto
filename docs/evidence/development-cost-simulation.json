@@ -1,0 +1,1815 @@
+{
+  "status": "PASS",
+  "scope": "seeded synthetic simulation only; no live API or measured billing",
+  "objective": "minimum expected declared cost satisfying supplied success floor, within finite attempt set",
+  "scenarios": [
+    {
+      "scenario": "cheap-then-frontier",
+      "passed": true,
+      "optimization": {
+        "min_success": 0.95,
+        "exact_min_success": "19/20",
+        "candidates": [
+          {
+            "id": "economy",
+            "model": "muse-wonder-1.0",
+            "role": "coder",
+            "cost": 1,
+            "success_probability": 0.75
+          },
+          {
+            "id": "frontier",
+            "model": "muse-spark-1.3",
+            "role": "coder",
+            "cost": 8,
+            "success_probability": 0.99
+          }
+        ],
+        "max_attempts": 2,
+        "policies_evaluated": [
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.75,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "3/4"
+            },
+            "meets_floor": false
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              },
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              }
+            ],
+            "expected_cost": 8.01,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "801/100",
+              "success_probability": "399/400"
+            },
+            "meets_floor": true
+          }
+        ],
+        "assumptions": [
+          "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+          "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+          "Fallback is attempted only after failure; stop on first success.",
+          "Distinct endpoint IDs do not prove independent failures in real deployments.",
+          "Optimality covers only the supplied finite candidate set and attempt limit."
+        ],
+        "evidence_scope": "synthetic_cost_model",
+        "status": "OK",
+        "policy": {
+          "attempts": [
+            {
+              "id": "economy",
+              "model": "muse-wonder-1.0",
+              "role": "coder",
+              "cost": 1,
+              "success_probability": 0.75
+            },
+            {
+              "id": "frontier",
+              "model": "muse-spark-1.3",
+              "role": "coder",
+              "cost": 8,
+              "success_probability": 0.99
+            }
+          ],
+          "expected_cost": 3.0,
+          "success_probability": 0.9975,
+          "exact": {
+            "expected_cost": "3",
+            "success_probability": "399/400"
+          },
+          "meets_floor": true
+        },
+        "optimality": {
+          "method": "exhaustive rational enumeration",
+          "evaluated_policy_count": 4,
+          "feasible_policy_count": 3,
+          "exact_cost_gap_to_oracle": "0"
+        }
+      },
+      "simulations": [
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 0,
+          "successes": 9973,
+          "attempts_used": 12469,
+          "observed_success_probability": 0.9973,
+          "observed_mean_cost": 2.9752,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.000200000000000089,
+            "mean_cost": 0.024799999999999933
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 1,
+          "successes": 9960,
+          "attempts_used": 12504,
+          "observed_success_probability": 0.996,
+          "observed_mean_cost": 3.0032,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0015000000000000568,
+            "mean_cost": 0.0032000000000000917
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 2,
+          "successes": 9976,
+          "attempts_used": 12461,
+          "observed_success_probability": 0.9976,
+          "observed_mean_cost": 2.9688,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 9.999999999998899e-05,
+            "mean_cost": 0.031200000000000117
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 3,
+          "successes": 9981,
+          "attempts_used": 12517,
+          "observed_success_probability": 0.9981,
+          "observed_mean_cost": 3.0136,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0005999999999999339,
+            "mean_cost": 0.013599999999999834
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 4,
+          "successes": 9973,
+          "attempts_used": 12493,
+          "observed_success_probability": 0.9973,
+          "observed_mean_cost": 2.9944,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.000200000000000089,
+            "mean_cost": 0.005599999999999827
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 5,
+          "successes": 9967,
+          "attempts_used": 12480,
+          "observed_success_probability": 0.9967,
+          "observed_mean_cost": 2.984,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0008000000000000229,
+            "mean_cost": 0.016000000000000014
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 6,
+          "successes": 9970,
+          "attempts_used": 12514,
+          "observed_success_probability": 0.997,
+          "observed_mean_cost": 3.0112,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.000500000000000056,
+            "mean_cost": 0.011200000000000099
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 7,
+          "successes": 9965,
+          "attempts_used": 12501,
+          "observed_success_probability": 0.9965,
+          "observed_mean_cost": 3.0008,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.75
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 3.0,
+            "success_probability": 0.9975,
+            "exact": {
+              "expected_cost": "3",
+              "success_probability": "399/400"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0010000000000000009,
+            "mean_cost": 0.0007999999999999119
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.18327820667611633,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "frontier-is-cheaper-after-failures",
+      "passed": true,
+      "optimization": {
+        "min_success": 0.95,
+        "exact_min_success": "19/20",
+        "candidates": [
+          {
+            "id": "economy",
+            "model": "muse-wonder-1.0",
+            "role": "coder",
+            "cost": 1,
+            "success_probability": 0.05
+          },
+          {
+            "id": "frontier",
+            "model": "muse-spark-1.3",
+            "role": "coder",
+            "cost": 8,
+            "success_probability": 0.99
+          }
+        ],
+        "max_attempts": 2,
+        "policies_evaluated": [
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.05
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.05,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "1/20"
+            },
+            "meets_floor": false
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.05
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.6,
+            "success_probability": 0.9905,
+            "exact": {
+              "expected_cost": "43/5",
+              "success_probability": "1981/2000"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              },
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.05
+              }
+            ],
+            "expected_cost": 8.01,
+            "success_probability": 0.9905,
+            "exact": {
+              "expected_cost": "801/100",
+              "success_probability": "1981/2000"
+            },
+            "meets_floor": true
+          }
+        ],
+        "assumptions": [
+          "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+          "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+          "Fallback is attempted only after failure; stop on first success.",
+          "Distinct endpoint IDs do not prove independent failures in real deployments.",
+          "Optimality covers only the supplied finite candidate set and attempt limit."
+        ],
+        "evidence_scope": "synthetic_cost_model",
+        "status": "OK",
+        "policy": {
+          "attempts": [
+            {
+              "id": "frontier",
+              "model": "muse-spark-1.3",
+              "role": "coder",
+              "cost": 8,
+              "success_probability": 0.99
+            }
+          ],
+          "expected_cost": 8.0,
+          "success_probability": 0.99,
+          "exact": {
+            "expected_cost": "8",
+            "success_probability": "99/100"
+          },
+          "meets_floor": true
+        },
+        "optimality": {
+          "method": "exhaustive rational enumeration",
+          "evaluated_policy_count": 4,
+          "feasible_policy_count": 3,
+          "exact_cost_gap_to_oracle": "0"
+        }
+      },
+      "simulations": [
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 0,
+          "successes": 9908,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9908,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0008000000000000229,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 1,
+          "successes": 9894,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9894,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0006000000000000449,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 2,
+          "successes": 9895,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9895,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0004999999999999449,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 3,
+          "successes": 9895,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9895,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0004999999999999449,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 4,
+          "successes": 9897,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9897,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.00029999999999996696,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 5,
+          "successes": 9903,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9903,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.00029999999999996696,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 6,
+          "successes": 9897,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9897,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.00029999999999996696,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 7,
+          "successes": 9899,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9899,
+          "observed_mean_cost": 8.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 9.999999999998899e-05,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.1629139614898812,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 3,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cheap-sufficient",
+      "passed": true,
+      "optimization": {
+        "min_success": 0.95,
+        "exact_min_success": "19/20",
+        "candidates": [
+          {
+            "id": "economy",
+            "model": "muse-wonder-1.0",
+            "role": "coder",
+            "cost": 1,
+            "success_probability": 0.96
+          },
+          {
+            "id": "frontier",
+            "model": "muse-spark-1.3",
+            "role": "coder",
+            "cost": 8,
+            "success_probability": 0.99
+          }
+        ],
+        "max_attempts": 2,
+        "policies_evaluated": [
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.99,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "99/100"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              }
+            ],
+            "expected_cost": 1.32,
+            "success_probability": 0.9996,
+            "exact": {
+              "expected_cost": "33/25",
+              "success_probability": "2499/2500"
+            },
+            "meets_floor": true
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.99
+              },
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 8.01,
+            "success_probability": 0.9996,
+            "exact": {
+              "expected_cost": "801/100",
+              "success_probability": "2499/2500"
+            },
+            "meets_floor": true
+          }
+        ],
+        "assumptions": [
+          "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+          "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+          "Fallback is attempted only after failure; stop on first success.",
+          "Distinct endpoint IDs do not prove independent failures in real deployments.",
+          "Optimality covers only the supplied finite candidate set and attempt limit."
+        ],
+        "evidence_scope": "synthetic_cost_model",
+        "status": "OK",
+        "policy": {
+          "attempts": [
+            {
+              "id": "economy",
+              "model": "muse-wonder-1.0",
+              "role": "coder",
+              "cost": 1,
+              "success_probability": 0.96
+            }
+          ],
+          "expected_cost": 1.0,
+          "success_probability": 0.96,
+          "exact": {
+            "expected_cost": "1",
+            "success_probability": "24/25"
+          },
+          "meets_floor": true
+        },
+        "optimality": {
+          "method": "exhaustive rational enumeration",
+          "evaluated_policy_count": 4,
+          "feasible_policy_count": 4,
+          "exact_cost_gap_to_oracle": "0"
+        }
+      },
+      "simulations": [
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 0,
+          "successes": 9624,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9624,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0024000000000000687,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 1,
+          "successes": 9568,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9568,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0031999999999999806,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 2,
+          "successes": 9599,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9599,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 9.999999999998899e-05,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 3,
+          "successes": 9586,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9586,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0013999999999999568,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 4,
+          "successes": 9598,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9598,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.00019999999999997797,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 5,
+          "successes": 9599,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9599,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 9.999999999998899e-05,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 6,
+          "successes": 9617,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9617,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.0017000000000000348,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        },
+        {
+          "status": "PASS",
+          "evidence_scope": "seeded_synthetic_simulation",
+          "trials": 10000,
+          "seed": 7,
+          "successes": 9598,
+          "attempts_used": 10000,
+          "observed_success_probability": 0.9598,
+          "observed_mean_cost": 1.0,
+          "exact_policy": {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.96
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.96,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "24/25"
+            }
+          },
+          "absolute_error": {
+            "success_probability": 0.00019999999999997797,
+            "mean_cost": 0.0
+          },
+          "hoeffding_bounds": {
+            "success_absolute_tolerance": 0.02036424518623515,
+            "cost_absolute_tolerance": 0.02036424518623515,
+            "joint_failure_probability_at_most": 0.001
+          },
+          "assumptions": [
+            "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+            "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+            "Fallback is attempted only after failure; stop on first success.",
+            "Distinct endpoint IDs do not prove independent failures in real deployments.",
+            "Optimality covers only the supplied finite candidate set and attempt limit."
+          ],
+          "oracle_comparison": {
+            "method": "exhaustive rational enumeration",
+            "evaluated_policy_count": 4,
+            "feasible_policy_count": 4,
+            "exact_cost_gap_to_oracle": "0"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "infeasible-refuses",
+      "passed": true,
+      "optimization": {
+        "min_success": 0.99,
+        "exact_min_success": "99/100",
+        "candidates": [
+          {
+            "id": "economy",
+            "model": "muse-wonder-1.0",
+            "role": "coder",
+            "cost": 1,
+            "success_probability": 0.2
+          },
+          {
+            "id": "frontier",
+            "model": "muse-spark-1.3",
+            "role": "coder",
+            "cost": 8,
+            "success_probability": 0.3
+          }
+        ],
+        "max_attempts": 2,
+        "policies_evaluated": [
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.2
+              }
+            ],
+            "expected_cost": 1.0,
+            "success_probability": 0.2,
+            "exact": {
+              "expected_cost": "1",
+              "success_probability": "1/5"
+            },
+            "meets_floor": false
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.3
+              }
+            ],
+            "expected_cost": 8.0,
+            "success_probability": 0.3,
+            "exact": {
+              "expected_cost": "8",
+              "success_probability": "3/10"
+            },
+            "meets_floor": false
+          },
+          {
+            "attempts": [
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.2
+              },
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.3
+              }
+            ],
+            "expected_cost": 7.4,
+            "success_probability": 0.44,
+            "exact": {
+              "expected_cost": "37/5",
+              "success_probability": "11/25"
+            },
+            "meets_floor": false
+          },
+          {
+            "attempts": [
+              {
+                "id": "frontier",
+                "model": "muse-spark-1.3",
+                "role": "coder",
+                "cost": 8,
+                "success_probability": 0.3
+              },
+              {
+                "id": "economy",
+                "model": "muse-wonder-1.0",
+                "role": "coder",
+                "cost": 1,
+                "success_probability": 0.2
+              }
+            ],
+            "expected_cost": 8.7,
+            "success_probability": 0.44,
+            "exact": {
+              "expected_cost": "87/10",
+              "success_probability": "11/25"
+            },
+            "meets_floor": false
+          }
+        ],
+        "assumptions": [
+          "Supplied costs and success probabilities are synthetic declarations, not live measurements.",
+          "Attempt successes are independent; each attempt incurs its fixed declared cost.",
+          "Fallback is attempted only after failure; stop on first success.",
+          "Distinct endpoint IDs do not prove independent failures in real deployments.",
+          "Optimality covers only the supplied finite candidate set and attempt limit."
+        ],
+        "evidence_scope": "synthetic_cost_model",
+        "status": "NO_SIGNAL",
+        "policy": null,
+        "reason": "No admissible supplied policy meets the required success floor."
+      },
+      "simulations": []
+    }
+  ]
+}
