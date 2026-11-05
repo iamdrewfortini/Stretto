@@ -39,6 +39,17 @@ async function probe() {
 }
 
 const bar = h('div', { class: 'guide', role: 'navigation', 'aria-label': 'Your next step' });
+// Reserve page space for the fixed bar while it is visible; release it when hidden. Body padding and
+// scroll-padding read --guide-space, so the lowest card and scrollIntoView targets clear the bar.
+const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function reserve() {
+  const root = document.documentElement;
+  if (bar.hidden || !bar.isConnected) { root.style.setProperty('--guide-space', '0px'); return; }
+  const bottom = parseFloat(getComputedStyle(bar).bottom) || 0;
+  root.style.setProperty('--guide-space', `${Math.ceil(bar.offsetHeight + bottom + 12)}px`);
+}
+if (typeof ResizeObserver === 'function') new ResizeObserver(reserve).observe(bar);
+addEventListener('resize', reserve);
 let dismissedDay = '';
 try { dismissedDay = localStorage.getItem('stretto.guide.dismissed') || ''; } catch {}
 
@@ -46,14 +57,14 @@ let lastSpot = '';
 function spotlight(stepId) {
   document.querySelectorAll('.guide-target').forEach((e) => e.classList.remove('guide-target'));
   const t = document.querySelector('[data-next]') || document.querySelector('.nextstep .btn.primary') || document.querySelector('main .btn.primary');
-  if (t) { t.classList.add('guide-target'); if (lastSpot !== stepId) { lastSpot = stepId; t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
+  if (t) { t.classList.add('guide-target'); if (lastSpot !== stepId) { lastSpot = stepId; t.scrollIntoView({ block: 'nearest', behavior: reduceMotion() ? 'auto' : 'smooth' }); } }
 }
 
 export async function paintGuide(currentPage) {
-  if (dismissedDay === new Date().toISOString().slice(0, 10)) { bar.hidden = true; return; }
+  if (dismissedDay === new Date().toISOString().slice(0, 10)) { bar.hidden = true; reserve(); return; }
   const done = await probe().catch(() => ({}));
   const idx = STEPS.findIndex((s) => !done[s.id]);
-  clear(bar); bar.hidden = false;
+  clear(bar); bar.hidden = false; requestAnimationFrame(reserve);
   const dots = h('div', { class: 'guide-track', 'aria-hidden': 'true' },
     STEPS.map((s, i) => h('span', { class: `guide-dot${done[s.id] ? ' done' : i === idx ? ' now' : ''}` }, done[s.id] ? '✓' : String(i + 1))));
   if (idx === -1) {
@@ -69,6 +80,6 @@ export async function paintGuide(currentPage) {
   if (currentPage === step.id) setTimeout(() => spotlight(step.id), 350);
 }
 function closeBtn() {
-  return h('button', { class: 'icon-btn guide-x', 'aria-label': 'Hide the guide for today', onclick: () => { dismissedDay = new Date().toISOString().slice(0, 10); try { localStorage.setItem('stretto.guide.dismissed', dismissedDay); } catch {} bar.hidden = true; } }, '×');
+  return h('button', { class: 'icon-btn guide-x', 'aria-label': 'Hide the guide for today', onclick: () => { dismissedDay = new Date().toISOString().slice(0, 10); try { localStorage.setItem('stretto.guide.dismissed', dismissedDay); } catch {} bar.hidden = true; reserve(); } }, '×');
 }
 export const guideBar = bar;

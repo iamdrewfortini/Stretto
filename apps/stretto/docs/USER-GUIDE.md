@@ -56,7 +56,8 @@ on exactly one next step, and that step's button pulses on its page.
 - **States:** Measured day (ring) · Planned (marker) · Connections card: Google, iCloud, Microsoft
   each "ICS ready", or "Live sync configured" only when credentials truly exist.
 - **Help:** Export `.ics` (planned tasks + sessions) or import any `.ics` into planned tasks.
-- **Still needs development:** Live OAuth/CalDAV sync itself; ICS is the shipped bridge.
+- **iCloud:** read-only CalDAV sync via `POST /api/calendar/caldav/sync` when ICLOUD_CALDAV_USER, ICLOUD_CALDAV_PASSWORD and ICLOUD_CALDAV_URL are set (503 `not_configured` otherwise).
+- **Still needs development:** Live Google/Microsoft OAuth sync; ICS is their shipped bridge.
 
 ## Reports — the week, counted
 
@@ -125,8 +126,16 @@ on exactly one next step, and that step's button pulses on its page.
   headless screenshot); Talk tree rendered a literal "null"; challenge titles rendered
   "[object Object]"; single-day compounded chart drew nothing without explanation; the model
   gateway returned a bare 500 instead of a structured refusal.
-- **Open, by design or backlog:** guide bar can overlap the lowest card on short viewports;
-  Challenges XP pays on pattern absence; coach met/missed weeks are manual; Calendar live sync is
-  ICS-only until credentials exist; Talk depends on the :8788 voice runtime; no remote-mode TLS yet
-  (documented in Settings' threat notes); simulated pill placement is complete on finding pages
-  and range pages, and aggregate headers inherit the range flag.
+- **Fixed in the cost-ordered pass (same day, partly by delegated subshell agents, all reviewed and
+  tested before merge):** guide bar reserves its own space and releases it when dismissed; Talk
+  degrades to an explicit offline state with the local tree still working and no dead mic; coach
+  weeks met/missed are auto-detected from measured weeks (manual settings remain an override);
+  challenge XP gained a verified half tier (measured minutes/day halved over 3+ days) beside the
+  clean-day full tier; iCloud CalDAV read-only sync ships behind its three env credentials and
+  iCloud-style TZID events now land at the right hour; remote mode gained `--tls` with a
+  self-signed certificate generated into the data folder and its fingerprint printed at start.
+- **Still open:** Google/Microsoft live sync remains ICS until OAuth credentials exist (iCloud
+  CalDAV is the only live path); Talk still depends on the separate :8788 voice runtime for ears,
+  by design; challenge full-tier XP still pays on one clean measured day (the pattern gone that
+  day — verified, but a single day); self-signed TLS needs fingerprint verification by the user,
+  it is not a public CA.

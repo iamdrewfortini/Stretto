@@ -32,7 +32,10 @@ function pauseAfterS() {
 // 500 ms of 16 kHz 16-bit PCM kept so resume never clips the first word.
 const RING_BYTES = 16000 * 2 * 0.5;
 
-const state = { status: 'idle', muted: false, partial: '', turns: [], speaking: false };
+// runtime: reachability of the external voice runtime that serves both the
+// socket and /v1/turn — 'unknown' | 'checking' | 'up' | 'down'. status 'offline'
+// means a call was refused because the runtime is down; the mic is never held then.
+const state = { status: 'idle', muted: false, partial: '', turns: [], speaking: false, runtime: 'unknown' };
 const listeners = new Set();
 const emit = () => { for (const fn of [...listeners]) { try { fn(state); } catch { /* a dead view must not kill the call */ } } };
 const setState = (patch) => { Object.assign(state, patch); emit(); };
@@ -133,10 +136,43 @@ function openSocket() {
       if (!wantLive) return;
       if (!retried) {
         retried = true;
-        openSocket().then((s) => { ws = s; }).catch(() => { wantLive = false; stopAudio(); setState({ status: 'error' }); });
-      } else { wantLive = false; stopAudio(); setState({ status: 'error' }); }
+        openSocket().then((s) => { ws = s; }).catch(() => { goOffline(); });
+      } else { goOffline(); }
     };
   });
+}
+
+// Probe the runtime with the same socket the call uses; never sends 'start'.
+// One probe at a time; a blackholed port gives up after PROBE_MS.
+const PROBE_MS = 3000;
+let probing = null;
+function probe() {
+  if (probing) return probing;
+  setState({ runtime: 'checking' });
+  probing = new Promise((resolve) => {
+    let sock, done = false;
+    const finish = (up) => {
+      if (done) return; done = true; clearTimeout(timer);
+      try { if (sock) { sock.onopen = sock.onerror = sock.onclose = null; sock.close(); } } catch { /* already gone */ }
+      probing = null;
+      if (up) setState({ runtime: 'up', status: state.status === 'offline' ? 'idle' : state.status });
+      else setState({ runtime: 'down' });
+      resolve(up);
+    };
+    const timer = setTimeout(() => finish(false), PROBE_MS);
+    try { sock = new WebSocket(WS_URL); } catch { finish(false); return; }
+    sock.onopen = () => finish(true);
+    sock.onerror = sock.onclose = () => finish(false);
+  });
+  return probing;
+}
+
+// The runtime went away mid-call or on dial: release the mic and say so.
+function goOffline() {
+  wantLive = false; thinking = false;
+  if (ws) { try { ws.close(); } catch { /* already gone */ } ws = null; }
+  stopAudio();
+  setState({ status: 'offline', runtime: 'down', partial: '', speaking: false });
 }
 
 function stopAudio() {
@@ -205,8 +241,9 @@ async function resume() {
     lastSpeechAt = performance.now();
     setState({ status: 'live' });
   } catch {
-    if (state.status === 'connecting') setState({ status: 'paused' });
-    toast('Could not resume the call', 'bad');
+    if (state.status !== 'connecting') return;
+    goOffline();   // a paused call holds the mic; never leave it held with no runtime
+    toast('Voice runtime unreachable — call ended. Open Talk for what still works.', 'bad');
   }
 }
 
@@ -229,13 +266,20 @@ async function start() {
   if (state.status === 'paused') { resume(); return; }
   if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch { /* idle */ } }
   setState({ status: 'connecting', speaking: false });
+  // Ask the runtime before the mic: no runtime means no mic, never a silent dead one.
+  if (state.runtime !== 'up' && !(await probe())) {
+    if (state.status === 'connecting') setState({ status: 'offline' });
+    return;
+  }
+  if (state.status !== 'connecting') return;   // hung up while probing
   retried = false; wantLive = true; thinking = false;
   noiseFloor = 0.02; lastSpeechAt = performance.now(); speechStartAt = 0; ring = []; ringBytes = 0;
+  let socketFailed = false;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     actx = new (window.AudioContext || window.webkitAudioContext)();
     await actx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
-    ws = await openSocket();
+    ws = await openSocket().catch((e) => { socketFailed = true; throw e; });
     const src = actx.createMediaStreamSource(stream);
     analyser = actx.createAnalyser(); analyser.fftSize = 512;
     src.connect(analyser);
@@ -243,8 +287,9 @@ async function start() {
     node.port.onmessage = (e) => { if (e && e.data) onFrame(e.data); };
     src.connect(node);
     if (orbEl && !raf) raf = requestAnimationFrame(tickLevel);
-    setState({ status: 'live' });
+    setState({ status: 'live', runtime: 'up' });
   } catch (e) {
+    if (socketFailed) { goOffline(); return; }
     wantLive = false;
     if (ws) { try { ws.close(); } catch { /* already gone */ } ws = null; }
     stopAudio();
@@ -270,15 +315,32 @@ function mute(on) {
   setState({ muted: v, speaking: v ? false : state.speaking });
 }
 
+// Typed turns also go through the voice runtime. Resolves true when a reply
+// landed, false otherwise (so the caller can keep the typed text).
 async function send(text) {
   const q = (text || '').trim();
-  if (!q) return;
+  if (!q) return false;
+  let res;
   try {
-    const res = await fetch(TURN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: q }) });
+    res = await fetch(TURN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: q }) });
+  } catch {
+    setState({ runtime: 'down' });
+    toast('Voice runtime unreachable — typed turns need it too.', 'bad');
+    return false;
+  }
+  // 404/502/503/504: nothing answers /v1/turn, which means the runtime is not there.
+  if ([404, 502, 503, 504].includes(res.status)) {
+    setState({ runtime: 'down' });
+    toast('Voice runtime unreachable — typed turns need it too.', 'bad');
+    return false;
+  }
+  try {
     const m = await res.json();
+    if (!m || typeof m.reply !== 'string') { toast((m && (m.error || m.message)) || `Turn failed (${res.status})`, 'bad'); return false; }
     pushReply({ you: q, text: m.reply, tools: (m.tool_calls || []).map((c) => c.name || 'tool'), ms: m.ms, path: m.path });
     (m.actions || []).forEach(runAction);
-  } catch (e) { toast((e && e.message) || 'Turn failed', 'bad'); }
+    return true;
+  } catch (e) { toast((e && e.message) || 'Turn failed', 'bad'); return false; }
 }
 
 export const call = {
@@ -287,12 +349,13 @@ export const call = {
   hangup,
   mute,
   send,
+  probe,
   on(fn) { listeners.add(fn); return () => { listeners.delete(fn); }; },
 };
 
 // The orb's visual state: the socket status plus thinking/speaking overlays.
 function orbState(s) {
-  if (s.status === 'error') return 'error';
+  if (s.status === 'error' || s.status === 'offline') return 'error';
   if (s.status === 'paused') return 'paused';
   if (s.status === 'connecting') return 'connecting';
   if (s.status === 'idle') return 'idle';
@@ -320,12 +383,16 @@ export function mountCallBar(parent) {
   const paint = (s) => {
     const st = orbState(s);
     bar.dataset.state = st;
-    orb.setAttribute('aria-label', ORB_LABEL[st] || 'Call Stretto');
+    orb.setAttribute('aria-label', s.status === 'offline' ? 'Voice runtime offline — check again' : (ORB_LABEL[st] || 'Call Stretto'));
     orb.setAttribute('aria-pressed', String(st === 'listening' || st === 'thinking' || st === 'speaking'));
     if (glyph.childNodes.length) glyph.replaceChildren();
     glyph.append(icon(st === 'idle' || st === 'error' ? 'play' : 'stop', 20));
     const last = s.turns.length ? s.turns[s.turns.length - 1].reply : '';
-    if (last && last !== tipFor) {
+    if (s.status === 'offline') {
+      tipFor = ''; clearTimeout(tipTimer);
+      tip.textContent = 'Voice runtime offline (:8788) — open Talk for what still works.';
+      tip.hidden = false;
+    } else if (last && last !== tipFor) {
       tipFor = last;
       tip.textContent = last;
       tip.hidden = false;

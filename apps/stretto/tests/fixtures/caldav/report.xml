@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <response><href>/123456/calendars/work/abc.ics</href><propstat><prop><C:calendar-data><![CDATA[BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:abc-1@icloud.com
+DTSTART:20261105T090000Z
+SUMMARY:Design review with the platform team about the calendar sy
+ nc rollout
+END:VEVENT
+BEGIN:VEVENT
+UID:stretto-task-7@stretto.local
+DTSTART:20261106T100000Z
+SUMMARY:Our own export
+END:VEVENT
+BEGIN:VEVENT
+UID:abc-2@icloud.com
+DTSTART;VALUE=DATE:20261107
+SUMMARY:Offsite\, day one
+END:VEVENT
+END:VCALENDAR
+]]></C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat></response>
+  <response><href>/123456/calendars/work/gone.ics</href><status>HTTP/1.1 404 Not Found</status></response>
+</multistatus>

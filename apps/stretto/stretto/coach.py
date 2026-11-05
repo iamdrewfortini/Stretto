@@ -19,6 +19,23 @@ def rank(level):
     return dict(title=cur[1], next=(dict(level=nxt[0], title=nxt[1]) if nxt else None))
 
 
+def weeks_record(weeks, goal_week_s):
+    """weeks: [(focus_s, total_s)] for the completed weeks, MOST RECENT FIRST. Returns (weeks_met, weeks_missed) as plan() expects:
+    met = weeks among the last 4 whose focus reached the weekly goal; missed = consecutive misses counted back from the most recent week.
+    A week with nothing tracked at all is no signal, not a miss: it is not counted and it ends the missed run."""
+    met, missed, run = 0, 0, True
+    for focus_s, total_s in weeks[:4]:
+        if total_s <= 0:
+            run = False
+            continue
+        if focus_s >= goal_week_s:
+            met += 1
+            run = False
+        elif run:
+            missed += 1
+    return met, missed
+
+
 def plan(patterns, avg_loss_min, avg_focus_min, weeks_met=0, weeks_missed=0, horizon_weeks=4):
     """patterns: patterns.profile_from_summaries output (best_window, trend...). Returns the ramp + coaching line."""
     base = [0.25, 0.35, 0.50, 0.65][:horizon_weeks] if horizon_weeks <= 4 else [0.25, 0.35, 0.50, 0.65] + [0.75] * (horizon_weeks - 4)

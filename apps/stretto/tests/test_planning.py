@@ -222,5 +222,54 @@ class Goals(Base):
         self.assertEqual(self.call("GET", "/api/goals?days=abc")[0], 400)
 
 
+class CoachWeeks(Base):
+    """Met / missed weeks for the coach are measured from completed Monday-Sunday weeks, not typed in by hand."""
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        back = TODAY.weekday() + 1                                       # days back to last Sunday, the end of the latest completed week
+        for k in (back + 3, back + 10):                                  # one tracked day in each of the two most recent completed weeks
+            cls.store.ingest(demo.samples(day0(k), seed=k), "collector", "d")
+
+    def setUp(self):
+        self.store.x("DELETE FROM settings")
+
+    def weeks(self):
+        code, r = self.call("GET", "/api/coach/plan")
+        self.assertEqual(code, 200)
+        return r["weeks"], r["plan"]
+
+    def test_record_rule_most_recent_first(self):
+        from stretto.coach import weeks_record
+        self.assertEqual(weeks_record([(100, 200), (100, 200), (10, 200), (100, 200)], 60), (3, 0))
+        self.assertEqual(weeks_record([(10, 200), (10, 200), (100, 200), (10, 200)], 60), (1, 2))   # missed run stops at the met week
+        self.assertEqual(weeks_record([(10, 200), (0, 0), (10, 200), (10, 200)], 60), (0, 1))       # an untracked week is no signal and ends the run
+        self.assertEqual(weeks_record([(60, 60)] * 6, 60), (4, 0))                                  # goal is inclusive; only the last 4 count
+        self.assertEqual(weeks_record([], 60), (0, 0))
+
+    def test_low_weekly_goal_means_both_tracked_weeks_were_met(self):
+        self.call("POST", "/api/settings", dict(goal_week_min=60))
+        w, p = self.weeks()
+        self.assertEqual((w["met"], w["missed"], w["source"]), (2, 0, dict(met="auto", missed="auto")))
+        self.assertIn("steepens 15%", p["note"])
+
+    def test_high_weekly_goal_means_two_consecutive_misses(self):
+        self.call("POST", "/api/settings", dict(goal_week_min=4800))
+        w, p = self.weeks()
+        self.assertEqual((w["met"], w["missed"]), (0, 2))
+        self.assertIn("eases 10%", p["note"])
+
+    def test_default_weekly_goal_is_five_times_the_daily_goal(self):
+        self.call("POST", "/api/settings", dict(goal_min=960))           # 4800 min/week: a single demo day cannot reach it
+        self.assertEqual(self.weeks()[0]["missed"], 2)
+
+    def test_manual_setting_overrides_only_when_explicitly_non_default(self):
+        self.call("POST", "/api/settings", dict(goal_week_min=4800, coach_met=0, coach_missed=0))
+        self.assertEqual(self.weeks()[0]["missed"], 2)                   # 0 is the default: still measured
+        self.call("POST", "/api/settings", dict(coach_met=3))
+        w, _ = self.weeks()
+        self.assertEqual((w["met"], w["missed"], w["source"]), (3, 2, dict(met="manual", missed="auto")))
+
+
 if __name__ == "__main__":
     unittest.main()

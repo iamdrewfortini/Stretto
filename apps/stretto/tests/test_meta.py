@@ -94,6 +94,28 @@ def sim_day():
     return dict(date=(dt.date.today() - dt.timedelta(days=1)).isoformat(), summary=analyze.summary(bl), findings=found, loss_s=loss, sources=[])
 
 
+class GatewayKey(unittest.TestCase):
+    def test_short_key_refused_before_any_gateway_call(self):
+        with mock.patch.object(meta, "_gateway", side_effect=AssertionError("called")):
+            with self.assertRaises(meta.ModelUnavailable):
+                meta.gateway_set_key("short")
+
+    def test_key_is_forwarded_to_the_gateway_settings_endpoint(self):
+        seen = {}
+        def fake(method, path, body=None, timeout=2.5):
+            seen.update(method=method, path=path, body=body)
+            return dict(ok=True, len=24, fingerprint="abcd1234")
+        with mock.patch.object(meta, "_gateway", side_effect=fake):
+            out = meta.gateway_set_key("k" * 24)
+        self.assertEqual((seen["method"], seen["path"]), ("POST", "/v1/settings/key"))
+        self.assertEqual(seen["body"], {"api_key": "k" * 24})
+        self.assertNotIn("k" * 24, json.dumps(out))
+
+    def test_gateway_down_is_a_clear_status_not_an_error(self):
+        with mock.patch.object(meta, "_gateway", side_effect=meta.ModelUnavailable("down")):
+            self.assertEqual(meta.gateway_status(), {"gateway_up": False, "key_present": False})
+
+
 class Insights(unittest.TestCase):
     def setUp(self):
         self.day = sim_day()
@@ -193,6 +215,20 @@ class Http(unittest.TestCase):
         self.call("POST", "/api/consent", dict(device="dX", family="meta-insights", action="grant", granted_by="T P", typed=consent.phrase("meta-insights")))
         self.call("POST", "/api/consent", dict(device="dX", family="meta-insights", action="revoke", granted_by="T P"))
         self.assertEqual(self.call("POST", "/api/insights", dict(device="dX", date="2026-11-03"))[0], 403)
+
+    def test_settings_key_passes_through_and_is_never_stored(self):
+        seen = {}
+        def fake_set(key):
+            seen["key"] = key
+            return dict(ok=True, len=len(key), fingerprint="abcd1234")
+        with mock.patch.object(meta, "gateway_set_key", side_effect=fake_set), \
+                mock.patch.object(meta, "gateway_status", return_value={"gateway_up": True, "key_present": True}):
+            code, r = self.call("POST", "/api/settings", dict(model_api_key="s" * 24))
+        self.assertEqual(code, 200)
+        self.assertEqual(seen["key"], "s" * 24)
+        self.assertTrue(r["model_key_present"])
+        self.assertIsNone(self.store.setting("model_api_key"))
+        self.assertNotIn("s" * 24, json.dumps(r))
 
     def test_notice_lists_what_is_sent_and_never_sent(self):
         n = self.call("GET", "/api/consent/notice?family=meta-insights")[1]

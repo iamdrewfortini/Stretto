@@ -87,6 +87,59 @@ def mode():
     return None
 
 
+GATEWAY_DEFAULT = "http://127.0.0.1:8787"
+
+
+def gateway_url():
+    """The backend gateway this app passes the model key to (loopback only)."""
+    u = os.environ.get("STRETTO_GATEWAY_URL", GATEWAY_DEFAULT).rstrip("/")
+    from urllib.parse import urlsplit
+    if urlsplit(u).hostname not in ("127.0.0.1", "localhost", "::1"):
+        raise ModelUnavailable("STRETTO_GATEWAY_URL must be a loopback address")
+    return u
+
+
+def _gateway(method, path, body=None, timeout=2.5):
+    """One call to the backend gateway. The key is never logged or returned."""
+    req = urllib.request.Request(gateway_url() + path, method=method,
+                                 data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"})
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(req, timeout=timeout) as r:
+            return json.loads(r.read(1_000_000) or b"{}")
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read() or b"{}").get("error", "")
+        except ValueError:
+            msg = ""
+        raise ModelUnavailable(f"backend gateway answered {e.code}" + (f": {msg}" if msg else "")) from None
+    except (urllib.error.URLError, OSError):
+        raise ModelUnavailable("backend gateway unreachable: start it first (metacoh gateway), then save the key again") from None
+
+
+def gateway_status():
+    """{gateway_up, key_present} for the settings page; down is a state, not an error."""
+    try:
+        r = _gateway("GET", "/healthz")
+        return {"gateway_up": True, "key_present": bool(r.get("key_present"))}
+    except ModelUnavailable:
+        return {"gateway_up": False, "key_present": False}
+
+
+def gateway_set_key(key):
+    """Pass the person's key through to the backend gateway, its only holder.
+
+    Stretto never stores the key: not in its settings, database or logs.
+    The gateway writes it to its protected env file and answers with a
+    length and fingerprint only, which is all this returns.
+    """
+    key = str(key or "").strip()
+    if len(key) < 20:
+        raise ModelUnavailable("that key looks too short; refusing to save it")
+    return _gateway("POST", "/v1/settings/key", {"api_key": key})
+
+
 def cost_usd(model, prompt, cached, completion):
     p = PRICES.get(model)
     return round(((prompt - cached) * p["input"] + cached * p["cached"] + completion * p["output"]) / 1e6, 6) if p else None

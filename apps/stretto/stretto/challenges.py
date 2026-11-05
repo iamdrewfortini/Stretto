@@ -51,21 +51,29 @@ def pins(store):
 
 
 def check_completion(store, days):
-    """A pin completes on the first measured day AFTER its pin date with no matching finding. Awards XP once."""
+    """A pin completes two verified ways, each awarded once:
+    FULL  — first measured day after pinning with no matching finding: full XP.
+    HALF  — the pattern still occurs, but its measured minutes/day over the window fell to <=50% of the
+            pin-time rate (pin xp == minutes/day at pinning) across >=3 measured days: half XP.
+    Absence alone no longer pays without the reduction check when other window days still show the pattern."""
     bind(store)
     done = []
     for p in pins(store):
         if p["status"] != "active":
             continue
-        for d in days:
-            if d["date"] <= p["pinned_date"] or not d["summary"].get("total_s", 1):
-                continue
-            hit = any(f["kind"] == p["kind"] and list(f["where"][:4]) == p["places"] for f in d["findings"])
-            if not hit:
-                store.x("UPDATE pinned_challenges SET status='completed', completed_date=? WHERE id=?", (d["date"], p["id"]))
-                store.x("INSERT OR IGNORE INTO xp_awards(pin_id,xp,date) VALUES(?,?,?)", (p["id"], p["xp"], d["date"]))
+        after = [d for d in days if d["date"] > p["pinned_date"] and d["summary"].get("total_s", 1)]
+        clean = next((d for d in after if not any(f["kind"] == p["kind"] and list(f["where"][:4]) == p["places"] for f in d["findings"])), None)
+        if clean is not None and len(after) >= 1:
+            store.x("UPDATE pinned_challenges SET status='completed', completed_date=? WHERE id=?", (clean["date"], p["id"]))
+            store.x("INSERT OR IGNORE INTO xp_awards(pin_id,xp,date) VALUES(?,?,?)", (p["id"], p["xp"], clean["date"]))
+            done.append(p["id"])
+            continue
+        if len(after) >= 3 and p["xp"]:
+            mins = [sum(f["seconds"] for f in d["findings"] if f["kind"] == p["kind"] and list(f["where"][:4]) == p["places"]) / 60.0 for d in after]
+            if sum(mins) / len(mins) <= 0.5 * p["xp"]:
+                store.x("UPDATE pinned_challenges SET status='completed', completed_date=? WHERE id=?", (after[-1]["date"], p["id"]))
+                store.x("INSERT OR IGNORE INTO xp_awards(pin_id,xp,date) VALUES(?,?,?)", (p["id"], max(1, p["xp"] // 2), after[-1]["date"]))
                 done.append(p["id"])
-                break
     return done
 
 

@@ -29,16 +29,49 @@ export default {
     const input = h('input', { class: 'input grow', type: 'text', placeholder: 'Type instead of speaking', 'aria-label': 'Type instead of speaking' });
     const sendBtn = h('button', { class: 'btn primary' }, 'Send');
 
+    // Offline state: the voice runtime (socket + /v1/turn) is external. When it does not
+    // answer, say exactly what still works, what does not, and the one next step.
+    const checkBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => call.probe() }, 'Check again');
+    const offlineWhy = h('p', {});
+    const offline = h('section', { class: 'card err talk-offline', role: 'alert', 'aria-labelledby': 'talk-off-h', hidden: true },
+      h('header', {}, h('h3', { id: 'talk-off-h' }, 'Voice runtime offline'), pill('ws://127.0.0.1:8788/', 'bad')),
+      offlineWhy,
+      h('ul', {},
+        h('li', {}, h('strong', {}, 'Still works: '), d && d.vt && d.vt.tree
+          ? '“Today, as questions” below — the decision tree runs locally in this page, no runtime needed. Saved turns stay in Topics & Recall.'
+          : 'Saved turns stay in Topics & Recall. (Today’s decision tree did not load either — reload the page once Stretto is up.)'),
+        h('li', {}, h('strong', {}, 'Not possible now: '), 'speaking, and typed conversation — typed lines go to the same runtime (/v1/turn), so Send is off. The mic is not opened.'),
+        h('li', {}, h('strong', {}, 'Next step: '), 'start the Humanflow voice runtime on this machine so it listens on 127.0.0.1:8788, then press Check again.')),
+      h('div', { class: 'row' }, checkBtn));
+
+    let hints = null;   // built below; paint runs only after it exists
     let postedTurns = 0;   // persist finished turns server-side so conversations bucket, embed and recall like everything else
     const persist = (turns) => { for (let i = postedTurns; i < turns.length; i++) { const t = turns[i]; if (t.reply) { postedTurns = i + 1; api.post('/api/turns', { you: t.you || '', reply: t.reply, tools: t.tools || [] }).catch(() => {}); } } };
     const metaLine = (t) => [t.path ? String(t.path) : '', t.ms != null ? `${t.ms} ms` : ''].filter(Boolean).join(' · ');
     const paint = (s) => {
       persist(s.turns || []);
       const live = s.status === 'live' || s.status === 'connecting';
-      const label = s.status === 'live' ? (s.muted ? 'Live · muted' : 'Listening') : s.status === 'connecting' ? 'Connecting…' : s.status === 'error' ? 'Error — press the mic to retry' : 'Idle';
+      const down = s.runtime === 'down' && !live;
+      const checking = s.runtime === 'checking' && !live;
+      const label = down ? 'Voice offline' : checking ? 'Checking voice…'
+        : s.status === 'live' ? (s.muted ? 'Live · muted' : 'Listening') : s.status === 'connecting' ? 'Connecting…' : s.status === 'error' ? 'Error — press the mic to retry' : 'Idle';
       status.textContent = label;
-      status.className = `pill${s.status === 'live' ? ' good' : s.status === 'connecting' ? ' warn' : s.status === 'error' ? ' bad' : ''}`.trim();
-      stateLine.textContent = label === 'Idle' ? 'Idle — press the mic to speak.' : label;
+      status.className = `pill${s.status === 'live' ? ' good' : (s.status === 'connecting' || checking) ? ' warn' : (s.status === 'error' || down) ? ' bad' : ''}`.trim();
+      stateLine.textContent = down ? 'Voice runtime unreachable — the mic stays off. See below.'
+        : checking ? 'Checking the voice runtime…' : label === 'Idle' ? 'Idle — press the mic to speak.' : label;
+      offline.hidden = !down;
+      offlineWhy.textContent = s.status === 'offline' && s.turns.length
+        ? 'The call ended because the voice runtime stopped answering. Nothing is listening.'
+        : 'Stretto cannot reach the voice runtime, so nothing is listening.';
+      checkBtn.disabled = checking;
+      checkBtn.textContent = checking ? 'Checking…' : 'Check again';
+      micBtn.disabled = down || checking;
+      micBtn.setAttribute('aria-label', down ? 'Microphone unavailable — voice runtime offline' : 'Start or stop the microphone');
+      micBtn.style.opacity = down ? '0.45' : '';
+      micBtn.style.cursor = down ? 'not-allowed' : '';
+      input.disabled = sendBtn.disabled = down;
+      input.placeholder = down ? 'Typing needs the voice runtime too — offline' : 'Type instead of speaking';
+      if (hints) for (const b of hints.querySelectorAll('button')) b.disabled = down;
       partial.textContent = s.partial || '';
       micBtn.classList.toggle('live', live);
       micBtn.setAttribute('aria-pressed', String(live));
@@ -57,11 +90,11 @@ export default {
     micBtn.addEventListener('click', () => {
       if (call.state.status === 'live' || call.state.status === 'connecting') call.hangup(); else call.start();
     });
-    const sendText = (v) => { const q = (v || '').trim(); if (!q) return; input.value = ''; call.send(q); };
+    const sendText = async (v) => { const q = (v || '').trim(); if (!q || call.state.runtime === 'down') return; input.value = ''; if (!(await call.send(q)) && !input.value) input.value = q; };
     sendBtn.addEventListener('click', () => sendText(input.value));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendText(input.value); });
 
-    const hints = h('div', { class: 'talk-hints', 'aria-label': 'Example phrases' }, h('span', { class: 'faint' }, 'Try saying'),
+    hints = h('div', { class: 'talk-hints', 'aria-label': 'Example phrases' }, h('span', { class: 'faint' }, 'Try saying'),
       HINTS.map((ph) => h('button', { class: 'chip talk-hint', onclick: () => call.send(ph) }, ph)));
     // Derivable decision tree for today, preloaded with its graph + honeycomb route in one /api/voice/tree call.
     // Walking it is local and instant; a grounded cached reply (preload.grounded_cached) answers with no model call.
@@ -80,8 +113,10 @@ export default {
     const convo = h('section', { class: 'card talk-convo' }, h('header', {}, h('h3', {}, 'Conversation')), log,
       h('div', { class: 'row talk-row' }, input, sendBtn));
 
-    const root = h('div', { class: 'page page-talk quiet' }, head, stage, treeCard, convo);
+    const root = h('div', { class: 'page page-talk quiet' }, head, offline, stage, treeCard, convo);
     paint(call.state);
+    // Know before the first press whether anyone is listening; a live or paused call already answered.
+    if (call.state.runtime !== 'up' && !['live', 'connecting', 'paused'].includes(call.state.status)) call.probe();
     const unsub = call.on(paint);
     const gone = new MutationObserver(() => {
       if (document.body.contains(root)) return;

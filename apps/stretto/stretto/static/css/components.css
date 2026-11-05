@@ -151,7 +151,8 @@ html.modal .shell { transform: scale(.985); filter: saturate(.9); }
 @keyframes targetpulse { 0%, 100% { box-shadow: 0 0 0 0 var(--tonic-soft); } 50% { box-shadow: 0 0 0 7px transparent; } }
 @media (prefers-reduced-motion: reduce) { .guide-dot.now, .guide-target { animation: none; outline: 2px solid var(--tonic); outline-offset: 2px; } }
 @media (max-width: 700px) { .guide-hint { display: none; } .guide { bottom: 8px; } }
-body { padding-bottom: 64px; }
+html { scroll-padding-bottom: var(--guide-space, 0px); }
+body { padding-bottom: var(--guide-space, 0px); }
 .empty { display: grid; justify-items: center; gap: var(--s3); padding: var(--s7) var(--s5); text-align: center; color: var(--muted); }
 .empty h3 { color: var(--text); }
 .err { border-color: var(--bad); }

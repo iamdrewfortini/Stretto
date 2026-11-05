@@ -88,10 +88,31 @@ class Api:
         return cats
 
     def settings(self):
+        gw = meta.gateway_status()
         return dict(goal_min=int(float(self.s.setting("goal_min", 240))), goal_week_min=self.goal_week_min(), budgets=self.budgets(),
-                    model=meta.current_model(self.s), save_raw_on_host=self.s.setting("save_raw_on_host", "1") != "0",
+                    model=meta.current_model(self.s), model_key_present=gw["key_present"], gateway_up=gw["gateway_up"], save_raw_on_host=self.s.setting("save_raw_on_host", "1") != "0",
                     value_metric=self.s.setting("value_metric", "time"), horizon_weeks=int(float(self.s.setting("horizon_weeks", 4))),
                     coach_met=int(float(self.s.setting("coach_met", 0))), coach_missed=int(float(self.s.setting("coach_missed", 0))))
+
+    def coach_weeks(self, today=None):
+        """(weeks_met, weeks_missed, source) for coach.plan, from the last 4 COMPLETED Monday-Sunday weeks measured against the weekly goal.
+        A coach_met / coach_missed setting overrides its own number only when explicitly set to a non-default (non-zero) value."""
+        today = today or dt.date.today()
+        last_sunday = today - dt.timedelta(days=today.weekday() + 1)
+        sums = daycache.ensure(self.s, self.rules(), *self.window(last_sunday.isoformat(), 28))
+        weeks = []
+        for w in range(4):                                                    # most recent completed week first
+            days = [(last_sunday - dt.timedelta(days=7 * w + i)).isoformat() for i in range(7)]
+            weeks.append((sum(sums.get(d, {}).get("focus_s", 0) for d in days), sum(sums.get(d, {}).get("total_s", 0) for d in days)))
+        met, missed = coach.weeks_record(weeks, self.goal_week_min() * 60)
+        src = {}
+        for k in ("coach_met", "coach_missed"):
+            v = self.s.setting(k)
+            src[k] = int(float(v)) if v is not None and int(float(v)) != 0 else None
+        out_met = src["coach_met"] if src["coach_met"] is not None else met
+        out_missed = src["coach_missed"] if src["coach_missed"] is not None else missed
+        source = dict(met="manual" if src["coach_met"] is not None else "auto", missed="manual" if src["coach_missed"] is not None else "auto")
+        return out_met, out_missed, source
 
     def budget_usd(self):
         return float(self.s.setting("insight_budget_usd", 0.25))     # daily cap on Meta spend; direct mode only
@@ -495,15 +516,14 @@ class Handler(BaseHTTPRequestHandler):
             sessions = [dict(r) for r in s.q("SELECT m.id, m.label, m.start, m.end, t.title AS task_title FROM timers m LEFT JOIN tasks t ON t.id=m.task_id WHERE m.start>=? AND m.start<=?", (lo, hi))]
             return self._send(200, raw=calendars.export_ics(tasks, sessions).encode(), ctype="text/calendar", filename="stretto.ics")
         if (method, path) == ("POST", "/api/calendar/import"):
-            events_in = calendars.parse_ics(body.get("ics", ""))
-            created = skipped = 0
-            for ev in events_in:
-                if ev["uid"].startswith("stretto-"):
-                    skipped += 1; continue
-                if s.q("SELECT id FROM tasks WHERE title=? AND planned_start=?", (ev["title"], ev["start_ts"])):
-                    skipped += 1; continue
-                s.ux("INSERT INTO tasks(title,planned_start,created) VALUES(?,?,?)", (ev["title"], ev["start_ts"], time.time())); created += 1
-            return self._send(200, dict(created=created, skipped=skipped, seen=len(events_in)))
+            return self._send(200, calendars.import_events(s, calendars.parse_ics(body.get("ics", ""))))
+        if (method, path) == ("POST", "/api/calendar/caldav/sync"):
+            try:
+                return self._send(200, calendars.caldav_sync(s))
+            except calendars.CalDAVError as e:              # reason codes only: no URL, user or password ever leaves here
+                if e.reason == "not_configured":
+                    return self._send(503, dict(error="caldav_not_configured", reason="not_configured", missing=calendars.caldav_missing()))
+                return self._send(502, dict(error="caldav_sync_failed", reason=e.reason, upstream_status=e.status))
         if (method, path) == ("GET", "/api/challenges"):
             n = max(1, min(int(q.get("days", 7)), 30))
             rng = a.range(n)
@@ -527,11 +547,12 @@ class Handler(BaseHTTPRequestHandler):
             act = [x for x in rng["days"] if x["total_s"] > 0] or rng["days"]
             avg_loss = round(sum(x["loss_s"] for x in act) / max(1, len(act)) / 60)
             avg_focus = round(sum(x["focus_s"] for x in act) / max(1, len(act)) / 60)
-            plan = coach.plan(a.patterns(90), avg_loss, avg_focus,
-                              weeks_met=int(float(s.setting("coach_met", 0))), weeks_missed=int(float(s.setting("coach_missed", 0))),
+            met, missed, source = a.coach_weeks()
+            plan = coach.plan(a.patterns(90), avg_loss, avg_focus, weeks_met=met, weeks_missed=missed,
                               horizon_weeks=max(1, min(int(float(s.setting("horizon_weeks", 4))), 12)))
             xp = a.day()["xp"]
-            return self._send(200, dict(plan=plan, xp=xp, metric=s.setting("value_metric", "time")))
+            return self._send(200, dict(plan=plan, xp=xp, metric=s.setting("value_metric", "time"),
+                                        weeks=dict(met=met, missed=missed, source=source)))
         if (method, path) == ("GET", "/api/graph"):
             return self._send(200, graphmap.build(a.day(q.get("date"))))
         if (method, path) == ("GET", "/api/honeycomb/stats"):
@@ -585,8 +606,8 @@ class Handler(BaseHTTPRequestHandler):
         if (method, path) == ("GET", "/api/settings"):
             return self._send(200, a.settings())
         if (method, path) == ("POST", "/api/settings"):
-            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets", "model", "save_raw_on_host", "value_metric", "horizon_weeks", "coach_met", "coach_missed")):
-                raise ValueError("send goal_min, goal_week_min, budgets, model, save_raw_on_host, value_metric, horizon_weeks, coach_met and/or coach_missed")
+            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets", "model", "model_api_key", "save_raw_on_host", "value_metric", "horizon_weeks", "coach_met", "coach_missed")):
+                raise ValueError("send goal_min, goal_week_min, budgets, model, model_api_key, save_raw_on_host, value_metric, horizon_weeks, coach_met and/or coach_missed")
             new = {}                                                    # validate EVERYTHING first: a bad field changes nothing
             if "goal_min" in body:
                 new["goal_min"] = _whole(body["goal_min"], "goal_min", 10, 960)
@@ -624,6 +645,11 @@ class Handler(BaseHTTPRequestHandler):
                 new["coach_missed"] = _whole(body["coach_missed"], "coach_missed", 0, 52)
             for k, v in new.items():
                 s.set_setting(k, v)
+            if "model_api_key" in body:      # passes through to the backend gateway, its only holder; never stored here
+                try:
+                    meta.gateway_set_key(body["model_api_key"])
+                except meta.ModelUnavailable as e:
+                    raise ValueError(str(e)) from None
             return self._send(200, a.settings())
         if (method, path) == ("GET", "/api/sessions"):
             f, t = _iso(q.get("from"), "from"), _iso(q.get("to"), "to")

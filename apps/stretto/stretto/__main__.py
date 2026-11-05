@@ -25,6 +25,7 @@ def _args(argv):
     ap.add_argument("--out", default=None, help="backup: folder to write to (default: <data>/backups)")
     ap.add_argument("--host", default="127.0.0.1", help="bind address; anything but 127.0.0.1/localhost is remote mode")
     ap.add_argument("--allow-host", action="append", default=[], help="exact Host header value to accept in remote mode, e.g. mac.tailnet.ts.net:8760")
+    ap.add_argument("--tls", action="store_true", help="remote mode over HTTPS with a self-signed cert generated into the data folder (fingerprint printed at start)")
     return ap.parse_args(argv)
 
 
@@ -62,10 +63,24 @@ def serve(a):
     from . import bond as _bond
     _b = _bond.ensure(store, _tok)   # install-time fusion: gateway, client and agent bonded to one permanent record
     srv, tok = make_server(store, a.port, token=_tok, host=a.host, allow_hosts=a.allow_host)
+    if getattr(a, "tls", False):
+        if a.host in ("127.0.0.1", "localhost"):
+            print("ERROR: --tls is for remote mode; bind a non-loopback --host with --allow-host", flush=True); return 2
+        import ssl as _ssl, subprocess as _sp, hashlib as _hl
+        cert, key = os.path.join(a.data, "tls-cert.pem"), os.path.join(a.data, "tls-key.pem")
+        if not (os.path.isfile(cert) and os.path.isfile(key)):
+            cn = (a.allow_host[0].split(":")[0] if a.allow_host else a.host)
+            _sp.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", cert,
+                     "-days", "825", "-subj", f"/CN={cn}"], check=True, capture_output=True)
+            os.chmod(key, 0o600)
+        ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_SERVER); ctx.load_cert_chain(cert, key)
+        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+        fp = _hl.sha256(open(cert, "rb").read()).hexdigest()
+        print(f"TLS on (self-signed, cert in data folder) SHA256:{fp[:32]}... — verify this fingerprint on the client", flush=True)
     from . import meta
     mode = "REMOTE (token on every API call)" if a.host not in ("127.0.0.1", "localhost") else "loopback only"
     d = store.durability()
-    print(f"Stretto on http://{a.host}:{srv.server_address[1]}  [{mode}]  data: {a.data}  Meta models: {meta.mode() or 'not configured (see: doctor)'}"
+    print(f"Stretto on {'https' if getattr(a, 'tls', False) else 'http'}://{a.host}:{srv.server_address[1]}  [{mode}]  data: {a.data}  Meta models: {meta.mode() or 'not configured (see: doctor)'}"
           f"  durability: {d['journal_mode']}/{d['synchronous']}/fullfsync={'on' if d['fullfsync'] else 'off'}", flush=True)
     print(f"Bond {_b['id']} (hashes only; no secret stored) — check locks any time: python3 -m stretto bond", flush=True)
     # SIGTERM (kill, service managers) and Ctrl-C both end in a clean shutdown: checkpoint the log into the database file, then close.
