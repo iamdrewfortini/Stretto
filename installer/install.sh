@@ -57,7 +57,11 @@ PY
 
 verify_bundle() {
   [ -f "$BUNDLE/SHA256SUMS" ] || die "SHA256SUMS missing from the bundle"
-  (cd "$BUNDLE" && sha256sum --check --quiet SHA256SUMS) || die "checksum verification FAILED: the bundle is damaged or modified"
+  if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$BUNDLE" && sha256sum --check --quiet SHA256SUMS) || die "checksum verification FAILED: the bundle is damaged or modified"
+  else  # macOS ships shasum, not sha256sum
+    (cd "$BUNDLE" && shasum -a 256 --check SHA256SUMS > /dev/null) || die "checksum verification FAILED: the bundle is damaged or modified"
+  fi
   log "checksums OK ($(wc -l < "$BUNDLE/SHA256SUMS") files)"
   if [ -f "$BUNDLE/scripts/why_check.py" ]; then
     "$PYTHON" "$BUNDLE/scripts/why_check.py" "$BUNDLE" || die "why-check FAILED: bundle no longer carries The Why"
@@ -92,8 +96,8 @@ ln -sf "$PREFIX/venv/bin/metacoh" "$PREFIX/bin/metacoh"; TRACKED+=("$PREFIX/bin/
 if [ "$NATIVE" = 1 ] && [ -d "$BUNDLE/native" ]; then
   mkdir -p "$PREFIX/lib/pkgconfig" "$PREFIX/include"
   for f in "$BUNDLE"/native/lib/*; do [ -f "$f" ] && install -m 0755 "$f" "$PREFIX/lib/" && TRACKED+=("$PREFIX/lib/$(basename "$f")"); done
-  for f in "$BUNDLE"/native/include/*.h; do install -m 0644 "$f" "$PREFIX/include/" && TRACKED+=("$PREFIX/include/$(basename "$f")"); done
-  for f in "$BUNDLE"/native/lib/pkgconfig/*.pc; do sed "s|@PREFIX@|$PREFIX|g" "$f" > "$PREFIX/lib/pkgconfig/$(basename "$f")" && TRACKED+=("$PREFIX/lib/pkgconfig/$(basename "$f")"); done
+  for f in "$BUNDLE"/native/include/*.h; do [ -f "$f" ] && install -m 0644 "$f" "$PREFIX/include/" && TRACKED+=("$PREFIX/include/$(basename "$f")"); done
+  for f in "$BUNDLE"/native/lib/pkgconfig/*.pc; do [ -f "$f" ] && sed "s|@PREFIX@|$PREFIX|g" "$f" > "$PREFIX/lib/pkgconfig/$(basename "$f")" && TRACKED+=("$PREFIX/lib/pkgconfig/$(basename "$f")"); done
   log "native libraries and headers installed"
 fi
 

@@ -31,6 +31,17 @@ installer/install.sh --prefix P --uninstall
 
 The installer verifies every file against `SHA256SUMS` (and the signature when present), creates an isolated virtualenv, installs from the bundled wheelhouse with `--no-index --require-hashes`, installs native libraries and headers, runs `metacoh doctor`, writes an uninstall receipt, and **rolls back everything on any failure**. Re-running it upgrades cleanly. `scripts/test_install.sh` exercises all of this, including a tampered bundle, a broken lockfile and a leftover-file check [C:installer-round-trip].
 
+## Run the installed application <!-- no-claim -->
+
+The installed command is the whole self-hosted application; no source checkout is needed at run time:
+
+```
+~/.local/share/metacoh/bin/metacoh gateway    # local runtime; starts keyless
+~/.local/share/metacoh/bin/metacoh sensors probe
+```
+
+The gateway reads its non-secret defaults, then the owner env file at `~/.config/humanflow/runtime.env` when present, then the process environment. Events and the ledger live under `~/.local/share/humanflow/`. The model registry and the dashboard, voice and settings pages ship inside the runtime wheel, injected and packaged at bundle-build time from their single sources. Open the settings page in a browser to add the model key and to accept or revoke sensing; the sensors agent reads the same consent file.
+
 ## What `metacoh doctor` checks
 
 Nine checks, none of which touches the network, a camera or a cluster: distribution versions agree, the WF-13D table checksum and lookup, the ant locking on an empty grid, consent default-deny, the Meta-only policy, the distance-from-coherence arithmetic, the mirror and the 4-cube, Handoff gap detection, and the resonance beat.

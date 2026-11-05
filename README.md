@@ -118,6 +118,7 @@ python scripts/make_figures.py --check
 ```
 tar xzf metacoh-0.1.0-linux-x86_64.tar.gz && cd metacoh-0.1.0
 installer/install.sh --user && ~/.local/share/metacoh/bin/metacoh doctor
+~/.local/share/metacoh/bin/metacoh gateway    # then open http://127.0.0.1:8787/settings
 ```
 
 Offline, hash-pinned, rollback-safe, with an uninstall receipt: see [docs/PACKAGING.md](docs/PACKAGING.md). From source: `python scripts/run_all_tests.py`.
