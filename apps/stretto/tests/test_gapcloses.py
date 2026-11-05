@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import consent, graphmap, honeycomb, meta, voicetree
+from stretto import challenges, coach, consent, gamify, graphmap, honeycomb, meta, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -92,6 +92,33 @@ class HoneycombGraphVoice(unittest.TestCase):
         self.assertIn("14 minutes", t["nodes"]["root"]["say"])
         self.assertEqual(t["nodes"]["n0"]["finding"], "f0")
         self.assertEqual(voicetree.derive(dict(fake_day(), findings=[]))["nodes"]["root"]["kind"], "affirm")
+
+
+class ChallengesCoach(unittest.TestCase):
+    def test_grouped_compounded_loss_and_simplest_fix(self):
+        d1 = dict(fake_day(), loss_s=840)
+        d2 = dict(fake_day(), date="2026-11-03", loss_s=840)
+        out = challenges.group([d1, d2])
+        self.assertEqual(len(out["challenges"]), 1)
+        c = out["challenges"][0]
+        self.assertEqual(c["minutes_per_day"], 14)
+        self.assertEqual(c["compounded"]["days30"], 420)
+        self.assertIn("scheduled break", c["fix"])
+        self.assertTrue(c["ask"])
+        self.assertEqual(c["xp_reward"], 14)
+        self.assertEqual(out["total"]["days30"], 420)
+
+    def test_coach_ramp_pushes_and_eases_and_ranks(self):
+        p = coach.plan(dict(best_window=dict(start_hour=9, end_hour=12)), 40, 200)
+        self.assertEqual([r["reclaim_min"] for r in p["ramp"]], [10, 14, 20, 26])
+        self.assertEqual(p["metric"], "time")
+        up = coach.plan({}, 40, 200, weeks_met=1)
+        self.assertEqual(up["ramp"][0]["reclaim_min"], 12)  # 10 * 1.15 rounds to 12 (banker's? round(11.5)=12)
+        down = coach.plan({}, 40, 200, weeks_missed=2)
+        self.assertEqual(down["ramp"][0]["reclaim_min"], 9)
+        self.assertEqual(coach.rank(1)["title"], "Starter")
+        self.assertEqual(coach.rank(12)["title"], "Timewright")
+        self.assertIn("rank", gamify.level(5000))
 
 
 class StaticCaching(unittest.TestCase):

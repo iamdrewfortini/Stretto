@@ -10,7 +10,8 @@ def xp_for_day(focus_s, goal_s):
 
 def level(xp):
     lv = int(math.sqrt(max(xp, 0) / 50)) + 1
-    return dict(level=lv, xp=xp, floor=50 * (lv - 1) ** 2, next=50 * lv ** 2)
+    from .coach import rank
+    return dict(level=lv, xp=xp, floor=50 * (lv - 1) ** 2, next=50 * lv ** 2, rank=rank(lv))
 
 
 def streak(focus_by_day, today, goal_s, rest_per_week=1):

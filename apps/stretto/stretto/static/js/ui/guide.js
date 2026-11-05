@@ -12,7 +12,7 @@ const seen = (id) => { try { return !!localStorage.getItem(seenKey(id)); } catch
 const STEPS = [
   { id: 'privacy', label: 'Accept consent', hint: 'Read a notice and accept it — nothing is collected before this.' },
   { id: 'today', label: 'Measure a day', hint: 'Let the agent record, or load the labelled simulated day.' },
-  { id: 'paths', label: 'See the biggest route', hint: 'Open the route behind the costliest finding.' },
+  { id: 'paths', label: 'Face the biggest challenge', hint: 'One grouped pattern, compounded. Read its simplest fix.' },
   { id: 'focus', label: 'Run one focus block', hint: 'Start a 25-minute block on a task, or on none.' },
   { id: 'insights', label: 'Get coaching', hint: 'Generate Insights: measured findings, phrased by the model.' },
 ];

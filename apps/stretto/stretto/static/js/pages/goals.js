@@ -18,8 +18,8 @@ export default {
   id: 'goals', key: 'o', dated: false, title: 'Goals', icon: 'spark',
   load: async () => {
     const tod = iso(new Date());
-    const [settings, week, day] = await Promise.all([api.get('/api/settings'), api.get('/api/range?days=7'), api.get(`/api/day?date=${tod}`)]);
-    return { settings, week, day, tod };
+    const [settings, week, day, coachR] = await Promise.all([api.get('/api/settings'), api.get('/api/range?days=7'), api.get(`/api/day?date=${tod}`), api.get('/api/coach/plan').catch(() => null)]);
+    return { settings, week, day, tod, coachR };
   },
   view(d) {
     const sm = d.day.summary || {}, goal = (d.settings.goal_min || 240) * 60, weekGoal = (d.settings.goal_week_min ? d.settings.goal_week_min * 60 : goal * 5), budgets = d.settings.budgets || null;
@@ -46,11 +46,16 @@ export default {
         : h('p', { class: 'muted' }, 'Categories fill in as days are measured.'));
     // level, XP, streak, badges
     const xp = d.day.xp || { level: 1, xp: 0, floor: 0, next: 100 }, span = Math.max(1, xp.next - xp.floor);
-    const level = h('section', { class: 'card', 'aria-labelledby': 'lv-h' }, h('header', {}, h('h3', { id: 'lv-h' }, 'Level and streak'), pill(d.day.streak ? `${d.day.streak}-day streak` : 'no streak yet', d.day.streak ? 'good' : '')),
+    const coachCard = d.coachR ? h('section', { class: 'card', 'aria-labelledby': 'co-h' }, h('header', {}, h('h3', { id: 'co-h' }, 'Coach: your horizon'), pill('priced in time reclaimed', 'info')),
+      h('p', {}, d.coachR.plan.note), h('p', { class: 'muted' }, d.coachR.plan.teach),
+      h('div', { class: 'stack' }, d.coachR.plan.ramp.map((r) => h('p', {}, h('b', { class: 'num' }, `Week ${r.week}: reclaim ${r.reclaim_min} min/day`), h('span', { class: 'faint' }, ` — ${Math.round(r.share * 100)}% of measured daily loss (${d.coachR.plan.avg_loss_min} min)`)))),
+      h('p', { class: 'faint' }, `Across the horizon: ${dur(d.coachR.plan.total_reclaim_min * 60)} to win back. Best window: ${d.coachR.plan.best_window ? `${d.coachR.plan.best_window.start_hour}:00–${d.coachR.plan.best_window.end_hour}:00` : 'not enough days yet'}. Set weeks met/missed in Settings to steepen or ease the ramp.`)) : null;
+    const level = h('section', { class: 'card', 'aria-labelledby': 'lv-h' }, h('header', {}, h('h3', { id: 'lv-h' }, 'Level, rank and streak'), pill(d.day.streak ? `${d.day.streak}-day streak` : 'no streak yet', d.day.streak ? 'good' : '')),
+      h('p', {}, h('b', {}, `Rank: ${xp.rank ? xp.rank.title : 'Starter'}`), xp.rank && xp.rank.next ? h('span', { class: 'faint' }, ` · next: ${xp.rank.next.title} at level ${xp.rank.next.level}`) : h('span', { class: 'faint' }, ' · top rank') ),
       h('div', { class: 'row wrap' }, h('b', { class: 'big num' }, `Level ${xp.level}`), h('small', { class: 'faint num' }, `${xp.xp} / ${xp.next} XP`)),
       h('div', { class: 'bar' }, h('i', { style: { '--f': String(Math.min(1, (xp.xp - xp.floor) / span)) } })),
       (d.day.badges || []).length ? h('div', { class: 'row wrap gl-badges' }, d.day.badges.map((b) => pill(b, 'info'))) : h('p', { class: 'faint' }, 'Badges come from met goals and streaks; none yet.'));
     return h('div', { class: 'page' }, h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Goals'), h('p', {}, 'What you are aiming for, and how this week is going against it.')), d.week.days.some((x) => x.simulated) ? pill('Simulated data', '') : null),
-      daily, h('div', { class: 'grid g-main' }, h('div', { class: 'stack' }, week, budget), level));
+      daily, h('div', { class: 'grid g-main' }, h('div', { class: 'stack' }, week, budget, coachCard), level));
   },
 };

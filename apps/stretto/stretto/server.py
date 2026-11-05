@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, consent, daycache, demo, enroll, events, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, voicetree
+from . import analyze, attention, bundle, challenges, coach, consent, daycache, demo, enroll, events, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -89,7 +89,9 @@ class Api:
 
     def settings(self):
         return dict(goal_min=int(float(self.s.setting("goal_min", 240))), goal_week_min=self.goal_week_min(), budgets=self.budgets(),
-                    model=meta.current_model(self.s), save_raw_on_host=self.s.setting("save_raw_on_host", "1") != "0")
+                    model=meta.current_model(self.s), save_raw_on_host=self.s.setting("save_raw_on_host", "1") != "0",
+                    value_metric=self.s.setting("value_metric", "time"), horizon_weeks=int(float(self.s.setting("horizon_weeks", 4))),
+                    coach_met=int(float(self.s.setting("coach_met", 0))), coach_missed=int(float(self.s.setting("coach_missed", 0))))
 
     def budget_usd(self):
         return float(self.s.setting("insight_budget_usd", 0.25))     # daily cap on Meta spend; direct mode only
@@ -409,6 +411,21 @@ class Handler(BaseHTTPRequestHandler):
             code, _ = enroll.new_code(s)
             data, name = bundle.build(osn, f"http://{self.headers.get('Host')}", code)
             return self._send(200, raw=data, ctype="application/zip", filename=name)
+        if (method, path) == ("GET", "/api/challenges"):
+            n = max(1, min(int(q.get("days", 7)), 30))
+            rng = a.range(n)
+            days = [a.day(x["date"]) for x in rng["days"] if x["total_s"] > 0]
+            return self._send(200, challenges.group(days))
+        if (method, path) == ("GET", "/api/coach/plan"):
+            rng = a.range(30)
+            act = [x for x in rng["days"] if x["total_s"] > 0] or rng["days"]
+            avg_loss = round(sum(x["loss_s"] for x in act) / max(1, len(act)) / 60)
+            avg_focus = round(sum(x["focus_s"] for x in act) / max(1, len(act)) / 60)
+            plan = coach.plan(a.patterns(90), avg_loss, avg_focus,
+                              weeks_met=int(float(s.setting("coach_met", 0))), weeks_missed=int(float(s.setting("coach_missed", 0))),
+                              horizon_weeks=max(1, min(int(float(s.setting("horizon_weeks", 4))), 12)))
+            xp = a.day()["xp"]
+            return self._send(200, dict(plan=plan, xp=xp, metric=s.setting("value_metric", "time")))
         if (method, path) == ("GET", "/api/graph"):
             return self._send(200, graphmap.build(a.day(q.get("date"))))
         if (method, path) == ("GET", "/api/honeycomb/stats"):
@@ -462,8 +479,8 @@ class Handler(BaseHTTPRequestHandler):
         if (method, path) == ("GET", "/api/settings"):
             return self._send(200, a.settings())
         if (method, path) == ("POST", "/api/settings"):
-            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets", "model", "save_raw_on_host")):
-                raise ValueError("send goal_min, goal_week_min, budgets, model and/or save_raw_on_host")
+            if not any(k in body for k in ("goal_min", "goal_week_min", "budgets", "model", "save_raw_on_host", "value_metric", "horizon_weeks", "coach_met", "coach_missed")):
+                raise ValueError("send goal_min, goal_week_min, budgets, model, save_raw_on_host, value_metric, horizon_weeks, coach_met and/or coach_missed")
             new = {}                                                    # validate EVERYTHING first: a bad field changes nothing
             if "goal_min" in body:
                 new["goal_min"] = _whole(body["goal_min"], "goal_min", 10, 960)
@@ -489,6 +506,16 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(body["save_raw_on_host"], bool):
                     raise ValueError("save_raw_on_host must be true or false")
                 new["save_raw_on_host"] = "1" if body["save_raw_on_host"] else "0"
+            if "value_metric" in body:
+                if body["value_metric"] != "time":
+                    raise ValueError("value_metric is 'time' in this build: minutes reclaimed is the measure")
+                new["value_metric"] = "time"
+            if "horizon_weeks" in body:
+                new["horizon_weeks"] = _whole(body["horizon_weeks"], "horizon_weeks", 1, 12)
+            if "coach_met" in body:
+                new["coach_met"] = _whole(body["coach_met"], "coach_met", 0, 52)
+            if "coach_missed" in body:
+                new["coach_missed"] = _whole(body["coach_missed"], "coach_missed", 0, 52)
             for k, v in new.items():
                 s.set_setting(k, v)
             return self._send(200, a.settings())
