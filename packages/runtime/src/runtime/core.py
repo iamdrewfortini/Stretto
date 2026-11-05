@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """VoiceCore: the single agent the person talks to. One turn = the person's words -> Muse Spark with tools (through the
 gateway, role voice.core) -> at most MAX_ROUNDS tool rounds -> a short reply meant to be spoken. Every step is a bus event."""
+import os
 import json, threading, time, uuid
 from datetime import datetime
 
@@ -33,6 +34,24 @@ SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant fo
           "never decide for them, and never give medical or mental-health advice.")
 
 
+def coherence(tools):
+    """How coherent the person's day is, from their own measurements, 0..1. Three equal parts: low leakage, a clear current
+    focus (a running timer or a task in progress) and the focus share of tracked time today. Below the target the agent
+    asks one Socratic question aimed at the weakest part; at or above it, it stays out of the way."""
+    parts = {}
+    try:
+        parts["leakage"] = 1 - tools.t_get_leaks()["leak_score"] / 100
+    except Exception:
+        parts["leakage"] = 0.5
+    doing = any(t["status"] == "doing" for t in tools.t_list_tasks())
+    parts["clear focus"] = 1.0 if (tools.timer or doing) else 0.0
+    summ = tools.t_get_summary("today")
+    total = summ.get("total_min") or 0
+    parts["focus share"] = ((summ.get("by_activity_min") or {}).get("focus", 0) / total) if total else 0.0
+    score = sum(parts.values()) / len(parts)
+    return {"score": round(score, 3), "parts": {k: round(v, 3) for k, v in parts.items()}, "weakest": min(parts, key=parts.get)}
+
+
 class VoiceCore:
     def __init__(self, gateway, tools, bus, history_turns=6, clock=time.time, fast=True):
         self.gw, self.tools, self.bus, self.n, self.clock, self.fast = gateway, tools, bus, history_turns, clock, fast
@@ -53,8 +72,15 @@ class VoiceCore:
                 steer += f" Best-ranked change: {best['text']} (+{best['winback_hours_year']:.0f} h/yr for {best['adopt_cost_min']:.0f} min setup)."
         except Exception:
             pass
+        c = coherence(self.tools)
+        target = float(os.environ.get("COHERENCE_TARGET", "0.7"))
+        if c["score"] < target:
+            mode = (f" Coherence {c['score']:.2f} is below the target {target:.2f}; weakest part: {c['weakest']}. "
+                    f"Ask ONE short Socratic question aimed at that part.")
+        else:
+            mode = f" Coherence {c['score']:.2f} meets the target {target:.2f}: do not ask questions; confirm briefly and stay out of the way."
         return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(dict(top))}. "
-                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}." + steer)
+                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}." + steer + mode)
 
     def turn(self, text):
         with self.lock:  # one person, one conversation: turns are serial
