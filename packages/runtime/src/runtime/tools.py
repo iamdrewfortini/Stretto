@@ -36,6 +36,18 @@ SCHEMAS = [
         {"task_id": {"type": "string"}, "status": {"type": "string", "enum": list(STATUSES)}, "note": {"type": "string", "maxLength": 280}},
         ["task_id", "status"]),
     _fn("list_tasks", "List the owner's tasks, optionally by status.", {"status": {"type": "string", "enum": list(STATUSES)}}),
+    _fn("capture", "Save something the person said so nothing is lost: an idea, product feedback, a bug, a decision or a note. "
+        "Use this whenever they describe how something should work or what is wrong; do not turn it into a task unless asked.",
+        {"kind": {"type": "string", "enum": ["idea", "feedback", "bug", "decision", "note"]}, "text": {"type": "string", "maxLength": 2000},
+         "area": {"type": "string", "maxLength": 60, "description": "the page or part of the product it is about, e.g. privacy, insights, installer"}},
+        ["kind", "text"]),
+    _fn("create_job", "Write a job order another agent or a local coding model can execute: what to build, why, and how to check it is done.",
+        {"title": {"type": "string", "maxLength": 140}, "why": {"type": "string", "maxLength": 1000},
+         "done_when": {"type": "string", "maxLength": 1000}, "area": {"type": "string", "maxLength": 60},
+         "priority": {"type": "integer", "minimum": 1, "maximum": 5}}, ["title", "why", "done_when"]),
+    _fn("export_jobs", "Build the handoff file for a local model: every captured idea, feedback and bug plus all job orders, in priority "
+        "order, as one Markdown file. Returns its path.", {}),
+    _fn("hang_up", "End the voice call when the person says goodbye or asks to hang up.", {}),
     _fn("open_page", "Show the person a page of the Stretto app.",
         {"page": {"type": "string", "enum": list(PAGES)}}, ["page"]),
     _fn("get_leaks", "The owner's time leaks: leak score (lower is better), minutes leaked per day, what that compounds to over a "
@@ -46,7 +58,7 @@ SCHEMAS = [
 class Tools:
     def __init__(self, bus, owner="owner", clock=time.time, stretto=None):
         self.bus, self.owner, self.clock, self.lock, self.stretto = bus, owner, clock, threading.Lock(), stretto
-        self.events, self.tasks, self.timer = [], {}, None
+        self.events, self.tasks, self.timer, self.notes, self.jobs = [], {}, None, [], []
         for ev in bus.replay():
             self.apply(ev)
         # replay first, then subscribe: each event is applied exactly once
@@ -65,6 +77,10 @@ class Tools:
                 self.timer = None
             elif t == "task.created":
                 self.tasks[d["task_id"]] = dict(d)
+            elif t == "note.captured":
+                self.notes.append(d)
+            elif t == "job.created":
+                self.jobs.append(d)
             elif t == "task.updated" and d["task_id"] in self.tasks:
                 self.tasks[d["task_id"]].update(status=d["status"])
 
@@ -162,6 +178,41 @@ class Tools:
             raise ToolError(f"status must be one of {STATUSES}")
         self._emit("task.updated", dict(task_id=task_id, status=status, note=note[:280]))
         return {"task_id": task_id, "status": status}
+
+    def t_capture(self, kind, text, area=""):
+        d = dict(note_id="nte_" + uuid.uuid4().hex[:8], kind=kind, text=text.strip()[:2000], area=area[:60], t=self.clock())
+        if not d["text"]:
+            raise ToolError("text required")
+        self._emit("note.captured", d)
+        self.notes.append(d)
+        return {"note_id": d["note_id"], "kind": kind, "saved": True}
+
+    def t_create_job(self, title, why, done_when, area="", priority=3):
+        d = dict(job_id="job_" + uuid.uuid4().hex[:8], title=title[:140], why=why[:1000], done_when=done_when[:1000], area=area[:60],
+                 priority=int(priority), t=self.clock())
+        self._emit("job.created", d)
+        self.jobs.append(d)
+        return {"job_id": d["job_id"], "title": d["title"], "priority": d["priority"]}
+
+    def t_export_jobs(self):
+        import os
+        lines = ["# Stretto job orders", "", "Captured by the Stretto voice agent from the owner's spoken feedback. Highest priority first.", ""]
+        for j in sorted(self.jobs, key=lambda j: (j["priority"], j["t"])):
+            lines += [f"## [{j['priority']}] {j['title']}" + (f"  ({j['area']})" if j["area"] else ""), "", f"**Why:** {j['why']}", "",
+                      f"**Done when:** {j['done_when']}", ""]
+        if self.notes:
+            lines += ["## Captured notes", ""] + [f"- **{n['kind']}**" + (f" ({n['area']})" if n["area"] else "") + f": {n['text']}" for n in self.notes] + [""]
+        path = os.path.abspath(os.path.join(os.environ.get("JOBS_DIR", "var/jobs"), "JOBS.md"))
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+        os.replace(tmp, path)
+        self._emit("jobs.exported", {"path": path, "jobs": len(self.jobs), "notes": len(self.notes)})
+        return {"path": path, "jobs": len(self.jobs), "notes": len(self.notes)}
+
+    def t_hang_up(self):
+        return {"hangup": True}
 
     def t_open_page(self, page):
         if page not in PAGES:

@@ -11,6 +11,8 @@ from runtime.tools import MUTATING, SCHEMAS, run_tool
 def actions_for(calls):
     """UI actions the browser should take after a turn: go to a page the agent opened, refresh after any change."""
     acts = [{"action": "navigate", "page": c["result"]["navigate"]} for c in calls if c["ok"] and isinstance(c.get("result"), dict) and c["result"].get("navigate")]
+    if any(c["ok"] and isinstance(c.get("result"), dict) and c["result"].get("hangup") for c in calls):
+        acts.append({"action": "hangup"})
     if any(c["ok"] and c["name"] in MUTATING for c in calls):
         acts.append({"action": "refresh"})
     return acts
@@ -21,7 +23,10 @@ SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant fo
           "your tools; never invent numbers. When the person states what they did or are doing, log or time it. "
           "If their goal is unclear, ask one short question. Their data is theirs alone. "
           "Act only on the person's latest message: everything earlier in the conversation is already done, so never "
-          "repeat an earlier log, timer or task. A question is not a request to log time.")
+          "repeat an earlier log, timer or task. A question is not a request to log time. "
+          "Never start or stop a timer, log time or create a task unless the person explicitly asks; if you think one would help, ask first. "
+          "When the person describes how the product should work, what is wrong, or an idea, save it with capture; when they want work "
+          "handed to another agent or a local model, write create_job orders and export_jobs. You can open pages with open_page.")
 
 
 class VoiceCore:
