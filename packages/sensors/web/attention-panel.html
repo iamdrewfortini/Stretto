@@ -1,11 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-<!-- Attention panel fragment for packages/runtime/web/dashboard.html.
-     Integration: paste this section where panels are declared and the
-     script before </body>. Built only from SSE events on /v1/events.
-     No external resources, no HTML injection of event data, textContent
-     only, 375px-safe, inherits dashboard dark-mode styles. -->
+<!-- Attention + Paths fragment. Built only from SSE events on
+     /v1/events. No external resources, no HTML injection of event
+     data, textContent only, 375px-safe, dark-mode inherits. -->
 <section id="attention-panel" aria-label="Attention">
-  <h2>Attention</h2>
+  <h2>Attention <span id="att-conn" role="status">connecting…</span></h2>
   <div id="attention-gauges">
     <span>Focus <b id="att-focus-ratio">–</b></span>
     <span>Idle <b id="att-idle-ratio">–</b></span>
@@ -17,16 +15,64 @@
   <p id="attention-suggestion"></p>
   <ul id="attention-log" style="max-height:12em;overflow:auto"></ul>
   <div id="attention-consent"></div>
+  <details id="attention-formula"><summary>How it’s measured</summary>
+    <p>Focus and idle are shares of measured episode seconds in the
+    last 10 minutes. Switches/min counts episode boundaries.
+    Input/min counts keys and clicks only, never their content.
+    A summary of measured things, not a medical measure.</p>
+  </details>
+</section>
+<section id="paths-panel" aria-label="Paths">
+  <h2>Paths — your day as a route</h2>
+  <p id="paths-callout">Collecting stops…</p>
+  <div id="paths-route" role="img" aria-label="Route map of your day"
+       style="display:flex;align-items:flex-start;overflow-x:auto"></div>
+  <p id="paths-compare"></p>
+  <p>Leg length is time: 8 px per minute. A detour is a stop under
+  2 minutes that takes you back where you were — like driving out of
+  your way and rejoining the same road.</p>
 </section>
 <script>
 (function () {
   var log = document.getElementById('attention-log');
   var bar = document.getElementById('attention-timeline');
   var consent = document.getElementById('attention-consent');
+  var routeEl = document.getElementById('paths-route');
   var COLORS = {focus: '#2f9e44', meeting: '#1971c2', comms: '#e8590c',
     search: '#862e9c', wait: '#868e96', admin: '#fab005', other: '#adb5bd',
     idle: '#343a40'};
+  var stops = [];
   function txt(id, v) { document.getElementById(id).textContent = v; }
+  function mins(s) { return Math.round(s / 60) + ' min'; }
+  function drawRoute() {
+    while (routeEl.firstChild) routeEl.removeChild(routeEl.firstChild);
+    var total = 0, lost = 0;
+    stops.forEach(function (st, i) {
+      total += st.seconds;
+      var detour = st.seconds < 120 && i > 0 && i < stops.length - 1 &&
+        stops[i - 1].app === stops[i + 1].app;
+      if (detour) lost += st.seconds;
+      var leg = document.createElement('div');
+      leg.style.cssText = 'flex:none;text-align:center;width:' +
+        Math.max(48, st.seconds / 60 * 8) + 'px';
+      var dot = document.createElement('div');
+      dot.style.cssText = 'height:14px;border-radius:7px;background:' +
+        (COLORS[st.category] || COLORS.other) + (detour ? ';opacity:.45' : '');
+      dot.title = st.app + ' ' + st.category;
+      var lab = document.createElement('div');
+      lab.textContent = st.app + ' ' + mins(st.seconds) +
+        (detour ? ' (detour)' : '');
+      leg.appendChild(dot); leg.appendChild(lab); routeEl.appendChild(leg);
+    });
+    if (!stops.length) return;
+    txt('paths-compare', 'Route taken: ' + mins(total) +
+      '. Faster route: ' + mins(total - lost) + '.');
+    txt('paths-callout', lost >= 60 ?
+      'Detours cost you ' + mins(lost) +
+      ' — the scenic route. Nobody picks the slow road on purpose; ' +
+      'each detour felt urgent in the moment, and the cost was invisible until now.' :
+      'No scenic route yet. Every stop so far is on the way.');
+  }
   function onEvent(ev) {
     var d = ev.data || {};
     if (ev.type === 'attention.metrics' && d.window_s === 600) {
@@ -41,6 +87,11 @@
       seg.title = d.app + ' ' + d.category;
       bar.appendChild(seg);
       while (bar.children.length > 60) bar.removeChild(bar.firstChild);
+      stops.push({app: String(d.app || '?'),
+        category: String(d.category || 'other'),
+        seconds: Number(d.seconds || 0)});
+      if (stops.length > 40) stops = stops.slice(-40);
+      drawRoute();
     } else if (ev.type === 'narration.log') {
       var li = document.createElement('li');
       li.textContent = d.text || '';
@@ -57,9 +108,18 @@
       consent.replaceChildren(s);
     }
   }
-  var src = new EventSource('/v1/events');
-  src.onmessage = function (m) {
-    try { onEvent(JSON.parse(m.data)); } catch (e) { /* keep panel */ }
-  };
+  function connect() {
+    var src = new EventSource('/v1/events');
+    src.onopen = function () { txt('att-conn', 'live'); };
+    src.onmessage = function (m) {
+      try { onEvent(JSON.parse(m.data)); } catch (e) { /* keep panel */ }
+    };
+    src.onerror = function () {
+      txt('att-conn', 'reconnecting…');
+      try { src.close(); } catch (e) { /* already closed */ }
+      window.setTimeout(connect, 3000);
+    };
+  }
+  connect();
 })();
 </script>

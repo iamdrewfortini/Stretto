@@ -128,6 +128,9 @@ form.turn button {
   border: 1px solid var(--accent); border-radius: 0.4rem; padding: 0.45rem 0.8rem;
 }
 #attention-timeline { display: flex; height: 14px; overflow: hidden; margin: 0.4rem 0; }
+#paths-route { display: flex; align-items: flex-start; overflow-x: auto; }
+.path-leg { flex: none; text-align: center; }
+.path-dot { height: 14px; border-radius: 7px; }
 .att-seg { height: 14px; flex: none; }
 .att-focus { background: #2f9e44; } .att-meeting { background: #1971c2; }
 .att-comms { background: #e8590c; } .att-search { background: #862e9c; }
@@ -207,6 +210,16 @@ ol.plan li { margin: 0.15rem 0; overflow-wrap: anywhere; }
       A summary of measured things, not a medical measure.</p>
     </details>
   </section>
+  <section class="card" id="paths-panel" aria-label="Paths">
+    <h2>Paths — your day as a route</h2>
+    <p id="paths-callout">Collecting stops…</p>
+    <div id="paths-route" role="img" aria-label="Route map of your day"></div>
+    <p id="paths-compare"></p>
+    <p class="hint">Leg length is time: 8 px per minute. A detour is a
+    stop under 2 minutes that takes you back where you were — like
+    driving out of your way and rejoining the same road.</p>
+  </section>
+  </section>
 </main>
 <script>
 "use strict";
@@ -215,7 +228,7 @@ var STATUSES = ["todo", "doing", "blocked", "done"];
 var state = {
   ledger: [], timer: null, tasks: {},
   convo: [], calls: [], spent: 0,
-  insights: [], plans: [], timeline: []
+  insights: [], plans: [], timeline: [], paths: []
 };
 
 function el(tag, cls, text) {
@@ -440,6 +453,27 @@ function summarize(ev) {
   if (t === "tool.called" || t === "tool.result") return (d.name || "?") + (d.ok === false ? " failed" : "");
   try { return JSON.stringify(d).slice(0, 80); } catch (e) { return ""; }
 }
+function renderPaths() {
+  var routeEl = document.getElementById("paths-route");
+  while (routeEl.firstChild) routeEl.removeChild(routeEl.firstChild);
+  var stops = state.paths, total = 0, lost = 0;
+  stops.forEach(function (st, i) {
+    total += st.seconds;
+    var detour = st.seconds < 120 && i > 0 && i < stops.length - 1 && stops[i - 1].app === stops[i + 1].app;
+    if (detour) lost += st.seconds;
+    var leg = el("div", "path-leg"); leg.style.width = Math.max(48, st.seconds / 60 * 8) + "px";
+    var dot = el("div", "path-dot att-" + st.category); if (detour) dot.style.opacity = "0.45";
+    dot.title = st.app + " " + st.category;
+    leg.append(dot, el("div", null, st.app + " " + Math.round(st.seconds / 60) + " min" + (detour ? " (detour)" : "")));
+    routeEl.appendChild(leg);
+  });
+  if (!stops.length) return;
+  document.getElementById("paths-compare").textContent = "Route taken: " + Math.round(total / 60) + " min. Faster route: " + Math.round((total - lost) / 60) + " min.";
+  document.getElementById("paths-callout").textContent = lost >= 60 ?
+    "Detours cost you " + Math.round(lost / 60) + " min — the scenic route. Nobody picks the slow road on purpose; each detour felt urgent in the moment, and the cost was invisible until now." :
+    "No scenic route yet. Every stop so far is on the way.";
+}
+
 function renderTimeline() {
   var box = document.getElementById("timeline");
   while (box.firstChild) box.removeChild(box.firstChild);
@@ -515,6 +549,9 @@ function handleEvent(ev) {
       }
       break;
     case "activity.episode": {
+      state.paths.push({ app: String(d.app || "?"), category: String(d.category || "other"), seconds: Number(d.seconds || 0) });
+      if (state.paths.length > 40) state.paths = state.paths.slice(-40);
+      renderPaths();
       var bar = document.getElementById("attention-timeline");
       var seg = document.createElement("div");
       seg.className = "att-seg att-" + String(d.category || "other");
