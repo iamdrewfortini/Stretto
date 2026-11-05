@@ -2,7 +2,7 @@
 // or live from the raw runtime stream (/v1/events); the latest of each event wins.
 import { h, s, clear } from '../lib/dom.js';
 import { api } from '../lib/api.js';
-import { pill, emptyState } from '../lib/kit.js';
+import { pill, emptyState } from '../ui/kit.js';
 import { hbars, ring } from '../charts/svg.js';
 
 const COMPS = [['switching', 'Switching'], ['waiting', 'Waiting'], ['re-finding', 'Re-finding'], ['admin', 'Admin']];

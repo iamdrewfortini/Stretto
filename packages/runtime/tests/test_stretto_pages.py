@@ -97,3 +97,35 @@ class StrettoPagesT(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImportsResolve(unittest.TestCase):
+    """A relative import that points at a missing file or a missing export stops the whole app in the browser."""
+    def test_every_relative_import_resolves(self):
+        import re
+        root = os.path.join(STRETTO, "js")
+
+        def exports(path):
+            s = open(path, encoding="utf-8").read()
+            names = set(re.findall(r"export\s+(?:async\s+)?(?:function|const|let|class)\s+(\w+)", s))
+            for grp in re.findall(r"export\s*\{([^}]*)\}", s):
+                names |= {x.split(" as ")[-1].strip() for x in grp.split(",") if x.strip()}
+            if re.search(r"export\s+default", s):
+                names.add("default")
+            return names
+        problems = []
+        for dp, _, fs in os.walk(root):
+            for f in fs:
+                if not f.endswith(".js"):
+                    continue
+                p = os.path.join(dp, f); s = open(p, encoding="utf-8").read()
+                for names, mod in re.findall(r"import\s+(.+?)\s+from\s+[\x27\"](\.[^\x27\"]+)[\x27\"]", s):
+                    t = os.path.normpath(os.path.join(dp, mod))
+                    if not os.path.exists(t):
+                        problems.append(f"{os.path.relpath(p, root)}: missing module {mod}"); continue
+                    m = re.search(r"\{([^}]*)\}", names)
+                    want = [x.split(" as ")[0].strip() for x in m.group(1).split(",") if x.strip()] if m else []
+                    if re.match(r"^\s*\w+\s*(,|$)", names):
+                        want.append("default")
+                    problems += [f"{os.path.relpath(p, root)}: {mod} has no export {w}" for w in want if w not in exports(t)]
+        self.assertEqual(problems, [])
