@@ -1,4 +1,5 @@
 import { h, clear } from './lib/dom.js';
+import { api } from './lib/api.js';
 import { state } from './lib/state.js';
 import { iso, shiftDay, nice } from './lib/fmt.js';
 import { route, start, page, query, go, patch, render } from './lib/router.js';

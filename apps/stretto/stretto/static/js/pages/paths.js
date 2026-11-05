@@ -4,7 +4,8 @@ import { h, s } from '../lib/dom.js';
 import { api } from '../lib/api.js';
 import { dur, nice } from '../lib/fmt.js';
 import { query, patch } from '../lib/router.js';
-import { pill, emptyState, findingCard, route, KIND } from '../ui/kit.js';
+import { pill, emptyState, findingCard, route } from '../ui/kit.js';
+const KINDL = { detour: 'Detour', ping_pong: 'Ping-pong', repeated_path: 'Repeated route', fragmented_focus: 'Fragmented focus' };
 import { toast } from '../ui/toast.js';
 import { field } from '../charts/wave.js';
 
@@ -17,6 +18,7 @@ function cumulative(days) {
     s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', class: 'rp-trend', role: 'img', 'aria-label': `Cumulative lost time rising to ${dur(acc * 60)}` },
       s('path', { d: `${line} L${X(n - 1)} ${H} L${X(0)} ${H} Z`, fill: 'var(--signal-soft, rgba(182,48,62,.14))' }),
       s('path', { d: line, class: 'rp-line', 'vector-effect': 'non-scaling-stroke' })),
+    days.length < 2 ? h('p', { class: 'muted' }, 'One measured day so far — the compounded line draws from the second day on. The total below is already exact.') : null,
     h('p', { class: 'faint' }, 'Every day the pattern repeats, this line climbs. A challenge is priced by how much of the climb it stops.'));
 }
 
@@ -29,7 +31,7 @@ function challengeCard(c, pins = []) {
   const unpin = async (e) => { const b = e.currentTarget; b.disabled = true;
     try { await api.post('/api/challenges/unpin', { id: pin.id }); toast('Unpinned'); b.textContent = 'Unpinned'; } catch (err) { b.disabled = false; toast(err.message, 'bad'); } };
   return h('section', { class: 'card', 'aria-labelledby': `ch-${c.kind}` },
-    h('header', {}, h('h3', { id: `ch-${c.kind}` }, `${KIND[c.kind] || c.kind}: ${c.places.slice(0, 3).join(' ↔ ')}`), pill(c.tier, c.tier === 'Stretch' ? 'bad' : 'info')),
+    h('header', {}, h('h3', { id: `ch-${c.kind}` }, `${KINDL[c.kind] || c.kind}: ${c.places.slice(0, 3).join(' ↔ ')}`), pill(c.tier, c.tier === 'Stretch' ? 'bad' : 'info')),
     h('p', { class: 'num' }, `${dur(c.minutes_per_day * 60)} lost a day · ${dur(c.compounded.days30 * 60)} in 30 days if nothing changes`),
     h('p', {}, h('b', {}, 'Simplest fix: '), c.fix),
     h('p', { class: 'muted' }, c.ask),

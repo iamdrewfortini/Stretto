@@ -428,6 +428,24 @@ class Handler(BaseHTTPRequestHandler):
             for b in day.get("blocks", []):
                 cat_of.setdefault(b.get("domain") or (b.get("app") or "").lower().removesuffix(".exe"), b["category"])
             return self._send(200, ants.simulate(day["transitions"], cat_of))
+        if (method, path) == ("POST", "/api/model/chat"):
+            # THE single hosted runtime for Meta models: every component (UI, agent, voice, subagents) calls models only through here.
+            # Consent (meta-insights), tiering (wonder reasons / spark executes), ledger, budget and refusal rules all live in meta.py.
+            if not consent.active(s, str(body.get("device", "local")), "meta-insights"):
+                return self._send(403, dict(error="meta-insights consent is not active for this device", reason="consent"))
+            msgs = body.get("messages")
+            if not isinstance(msgs, list) or not msgs or len(json.dumps(msgs)) > 60000:
+                raise ValueError("messages must be a non-empty list (<= 60k chars)")
+            tier = body.get("tier", "sub")
+            try:
+                call = meta.chat(s, str(body.get("purpose", "chat"))[:40], msgs, a.budget_usd(),
+                                 model=meta.model_for(tier, s), max_tokens=int(body.get("max_tokens", 1200)))
+            except meta.BudgetExceeded:
+                return self._send(429, dict(error="daily Meta budget reached", reason="budget"))
+            except meta.ModelUnavailable:
+                return self._send(503, dict(error="no Meta model access: set MODEL_API_KEY in .env, or run with STRETTO_REPLAY=<folder>", reason="no_model_access"))
+            return self._send(200, dict(text=call["text"], call_id=call["call_id"], cost_usd=call["cost_usd"],
+                                        model=call["model"], tier=tier, mode=call["mode"]))
         if (method, path) == ("GET", "/api/bond"):
             return self._send(200, bond.verify(s, self.token, remote=self.remote))
         if (method, path) == ("GET", "/api/atoms"):

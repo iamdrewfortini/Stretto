@@ -70,8 +70,8 @@ export default {
       const box = h('div', { class: 'stack' });
       let cur = d.vt.tree.root;
       const walk = () => { const n = d.vt.tree.nodes[cur]; clear(box);
-        box.append(h('p', {}, n.say), n.minutes ? pill(`${n.minutes} min · measured`, 'info') : null,
-          h('div', { class: 'row wrap' }, n.options.map((o) => h('button', { class: 'btn sm', onclick: () => { if (o.action && o.action.startsWith('act:')) toast(`Act on it: ${o.action.slice(4)} — confirm in Today or Paths`); cur = o.next; walk(); } }, o.label))));
+        box.append(h('p', {}, n.say), ...(n.minutes ? [pill(`${n.minutes} min · measured`, 'info')] : []),
+          h('div', { class: 'row wrap' }, n.options.map((o) => h('button', { class: 'btn sm', onclick: () => { if (o.action && o.action.startsWith('act:')) toast(`Act on it: ${o.action.slice(4)} — confirm in Today or Challenges`); cur = o.next; walk(); } }, o.label))));
         if (d.vt.preload && d.vt.preload.grounded_cached) box.append(h('small', { class: 'faint' }, 'Grounded cached reply ready — no model call needed.')); };
       walk();
       treeCard = h('section', { class: 'card', 'aria-labelledby': 'vt-h' }, h('header', {}, h('h3', { id: 'vt-h' }, 'Today, as questions'), pill('derived from measured findings', 'info')), box);
