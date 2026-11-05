@@ -1,0 +1,16 @@
+{
+  "id": "humanflow-live-2026-11-04",
+  "note": "One-time live measurements from the dev VM on 2026-11-04 (America/Chicago evening). Not re-run by CI: they need a Meta Model API key, network and a microphone path. CI re-checks the local fast-path budget and the gateway boundary as claims.",
+  "host": "Linux dev VM, 16 vCPU, no GPU; speech synthesized with macOS `say`, 16 kHz mono PCM, streamed at real time through the runtime voice bridge",
+  "network_rtt_ms_api_meta_ai_models_list": 553,
+  "first_token_ms_p50": {"muse-spark-1.3": 1087, "muse-spark-1.3-contributor": 1024, "effort": "minimal", "samples_each": 4},
+  "voice_end_to_end": [
+    {"spoken": "Hello.", "heard": "Hello.", "path": "fast", "final_transcript_to_reply_ms": 43.0, "reply": "Hi, I'm listening."},
+    {"spoken": "Log twenty five minutes of focus time on the demo script.", "heard": "log 25 minutes of focus time on the demo script.", "path": "fast", "final_transcript_to_reply_ms": 45.3, "tools": ["log_time"]},
+    {"spoken": "Should I take a short break before recording the demo?", "path": "model", "model": "muse-spark-1.3", "final_transcript_to_reply_ms": 3807.1, "tools": []}
+  ],
+  "asr_streaming": {"model": "muse-voice-transcribe-1.0", "mode": "ENDPOINTING", "first_partial_s_after_start": 1.17, "final_s_after_start": 3.99},
+  "planner": {"model": "muse-wonder-1.0", "latency_ms": 3507, "cost_usd": 0.013128},
+  "tool_call_check_v1": {"model": "muse-spark-1.3", "result": "pass", "shape": "OpenAI-compatible tool_calls with JSON string arguments; tool_call_id pairing required"},
+  "fast_path_unit_benchmark": {"turns": 440, "p50_ms": 0.093, "p95_ms": 0.214, "model_calls": 0}
+}

@@ -16,3 +16,6 @@ dependencies = ["metacoh-wf13d", "metacoh-coherence", "metacoh-metarouter", "met
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+cells = ["data/*.json"]

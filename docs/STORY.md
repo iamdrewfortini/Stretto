@@ -59,7 +59,7 @@ He also changed his mind in the open, and the record treats that as information,
 
 ## 6. One track, one theme: what we actually submit
 
-The Official Rules allow one track and one problem statement per submission. We submit **Indie Developer** and **Push the Frontier**, as in the application. The *Build for Your World* half of the story lives in the design (the person-owned, consent-first side of the mirror); it is not a second entry.
+The Official Rules allow one track and one problem statement per submission. We first planned to submit **Indie Developer** and **Push the Frontier**, as in the application, with the *Build for Your World* half living in the design. On the final day we switched the entry to **Build for Your World**; section 8 explains why. It is still one track and one problem statement.
 
 ## 7. The original goal, Handoff, and where it stands
 
@@ -74,3 +74,7 @@ The Official Rules allow one track and one problem statement per submission. We 
 How the step scores themselves can mislead, and what we still do not measure, is in [SCORING.md](SCORING.md): a hidden matcher threshold alone moves recall by more than 0.3 on identical extractions [C:step-score-threshold-swing].
 
 ![a missing step found by the checker](figures/handoff-graph.svg)
+
+## 8. The final pivot: Humanflow, Build for Your World
+
+Everything above measures distance from coherence. On the last day the question became simpler and more personal: where did my time go, and what would give it back? The consent-first, person-owned half of the mirror already had the parts: a private time ledger (`humanflow`), consent and redaction (`perception`), and a Meta-only router. What it lacked was a way in that costs no attention. Humanflow is that way in: you say what you are doing, a voice core on Muse Spark turns it into ledger entries, a Muse Wonder planner orders the work, and the common commands are answered locally so the assistant never makes you wait. That is *Build for Your World*: a problem known firsthand, time and mental space freed, and an owner-only record of attention that was not possible before. The design is in [spec/VOICE-RUNTIME-SPEC.md](spec/VOICE-RUNTIME-SPEC.md).

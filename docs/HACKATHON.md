@@ -1,22 +1,25 @@
 # Hackathon notes (Meta Global AI Developer Hackathon)
 
-**Submission:** Indie Developer track · Push the Frontier. One track, one problem statement, as the Official Rules require. The reasoning behind the project is in [STORY.md](STORY.md); licensing and rules are in [LICENSE-AND-TERMS.md](LICENSE-AND-TERMS.md).
+**Submission:** **Humanflow**, Indie Developer track · **Build for Your World**. One track, one problem statement, as the Official Rules require. The entry pivoted on the final day from *Push the Frontier* to *Build for Your World*; [STORY.md](STORY.md) section 8 says why. The reasoning behind the project is in [STORY.md](STORY.md); licensing and rules are in [LICENSE-AND-TERMS.md](LICENSE-AND-TERMS.md).
 
 ## Meta models and how they are used
 
 | Role | Model | Route | State |
 |---|---|---|---|
-| Planner / coder / general | `muse-wonder-1.0`, `muse-spark-1.2`, `muse-spark-1.3` | production through the gateway; Muse subscription for interactive use and testing only | catalogued; **no live call is made by this repository's tests** |
+| Voice core (the one agent the person talks to) | `muse-spark-1.3`, fallback `muse-spark-1.2` | local runtime gateway, role `voice.core`, tool calling over the humanflow ledger | **live**: spoken turns call the ledger tools against the Meta Model API |
+| Planner / orchestrator agent | `muse-wonder-1.0` | gateway, role `agent.planner`; job pipelines on the event bus | **live**: proposes task order with a rationale |
+| Background agents (optimizer, summarizer) | `muse-spark-1.3-contributor` | gateway, role `agent.background`, spend-capped | live, throttled, never speak to the person |
+| Speech in | `muse-voice-transcribe-1.0` | realtime websocket bridge in the runtime (endpointing mode) | **live**: streaming partial and final transcripts |
+| Speech out | none | browser `speechSynthesis`, on device | Meta offers no text-to-speech; said openly |
 | Vision (screen, camera, stream, glasses frames) | `muse-spark-*`, `sam-3.1` | gateway | routing interface only |
-| Voice | `muse-voice-transcribe-1.0` | gateway | consent + redaction path verified with stubs |
 | Image | `muse-image-1.0` | gateway | catalogued only |
 | Open weights / fine-tuning | `muse-glimmer-30b` | on-cluster server | **not deployed**; fine-tuning is a validated job spec |
 
-The runtime refuses any model that is not an allowed Meta model [C:meta-only-policy]. Meta's Model API has no embeddings route that we could find, so the embedding router answers `NO_SIGNAL` until a Meta embedder is deployed and evaluated.
+The runtime refuses any model that is not an allowed Meta model [C:meta-only-policy]. All model traffic goes through our own local-only runtime gateway (`packages/runtime`), which replaced the Bifrost gateway: it listens on loopback only, calls only `api.meta.ai`, and logs every call with model, latency and cost. Model ids, endpoints, prices and role bindings live in `docs/spec/models.registry.json`. Meta's Model API has no embeddings route that we could find, so the embedding router answers `NO_SIGNAL` until a Meta embedder is deployed and evaluated.
 
 ## Development tooling disclosure
 
-Most of this code was written with an AI coding assistant (Claude Code), directed and reviewed by the author. It was **not** written with Meta's Muse Code. Meta models are the *runtime* of the system, not the authoring tool. Say so in the submission.
+Most of this code was written with an AI coding assistant (Claude Code), directed and reviewed by the author. On the final day, three parts of the runtime were written headless by **Meta Muse Code** (`muse exec`, one agent per git worktree, each with its own files and a failing-able test check), then reviewed and merged: the realtime voice bridge and mic page (`muse-spark-1.3`), the agent pipelines (`muse-wonder-1.0`), and the live dashboard (`muse-spark-1.3`). Their commits are marked `Co-Authored-By: Muse Code`. Meta models are also the *runtime* of the system. Say both in the submission.
 
 ## New-work disclosure (read before judging)
 
@@ -39,6 +42,13 @@ metacoh doctor                                  # after installing the bundle
 
 ## Demo plan (three minutes, only what was built during the event)
 
+1. The problem, firsthand: time tracking costs the attention it is meant to save, so it does not get done.
+2. Talk to Humanflow at `http://127.0.0.1:8787/`: "Hello", "I was in meetings for forty minutes", "Start a focus timer, I'm writing the demo script", "Add a task: record the demo video". Show the instant local replies and the live transcript.
+3. Ask an open question ("Should I take a break before recording?") and show it going to Muse Spark; show the Muse Wonder plan on `/dashboard` with its rationale, and the model calls panel with latency and cost.
+4. Trust: the gateway boundary (`python3 scripts/env_check.py`), consent default-deny, and `python3 scripts/verify_claims.py` passing live.
+
+Earlier Hive demo, if time allows:
+
 1. The problem: a person cannot see their own location. Show `figures/distance-from-coherence.svg` and the one number, with its unmeasured axes named.
 2. Handoff: delete a step from a procedure and watch the checker ask the one question that closes the graph.
 3. The mirror: two attention distributions, their coherence, and the tone whose beat vanishes when they agree.
@@ -48,4 +58,5 @@ Use only your own recordings or people who have given written consent: the Rules
 
 ## Not in this submission
 
+No embeddings: the Meta Model API has no embeddings route, so retrieval stays local and lexical until a Meta embedder is served. 
 No recorded people, no verified wearable SDK adapter, no deployed local model, no energy measurement, no change applied to a real cluster by the tests.

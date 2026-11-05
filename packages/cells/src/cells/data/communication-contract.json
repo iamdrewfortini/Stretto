@@ -1,0 +1,123 @@
+{
+  "contract": {
+    "id": "diatonic-13-v1",
+    "version": 1,
+    "channels": [
+      {
+        "track": 1,
+        "name": "standalone_terminal",
+        "codon": "SSS",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 2,
+        "name": "search",
+        "codon": "SST",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 3,
+        "name": "pattern_builders",
+        "codon": "SSA",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 4,
+        "name": "response_filters",
+        "codon": "SAM",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 5,
+        "name": "read_files",
+        "codon": "STM",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 6,
+        "name": "hooks",
+        "codon": "SMM",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 7,
+        "name": "cost_routes",
+        "codon": "ASS",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 8,
+        "name": "write_update",
+        "codon": "AST",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 9,
+        "name": "parallel_tmux",
+        "codon": "ASM",
+        "kind": "reference_partition",
+        "record_count": 900
+      },
+      {
+        "track": 10,
+        "name": "causal_sequence",
+        "codon": "TSS",
+        "kind": "control",
+        "record_count": null
+      },
+      {
+        "track": 11,
+        "name": "alternative_plans",
+        "codon": "TTM",
+        "kind": "control",
+        "record_count": null
+      },
+      {
+        "track": 12,
+        "name": "forecast",
+        "codon": "TAM",
+        "kind": "control",
+        "record_count": null
+      },
+      {
+        "track": 13,
+        "name": "coordination",
+        "codon": "MMM",
+        "kind": "control",
+        "record_count": null
+      }
+    ],
+    "records": 8100,
+    "control_tracks_are_recipe_partitions": false,
+    "opcode_bits": 78,
+    "opcode_storage_bytes": 10,
+    "frame_scope": "opcode symbols only; arguments, identity, policy, evidence and state are separate",
+    "encoding_is_proof": false,
+    "future_observations_available": false,
+    "authority": "coordinator-bound policy plus downstream native control plane",
+    "model_role": "bounded canonicalizer/proposer; never its own verifier",
+    "abstain_stages": [
+      "route",
+      "translation",
+      "validation",
+      "handler"
+    ],
+    "formal_verification": "not implemented; schema checks and finite tests are not Lean proofs"
+  },
+  "contract_sha256": "b42f4a5214f9c58b38e7d37fb4cd90268a580ab9d51c3afd651172ebee74e036",
+  "opcode_frame_hex": "000422c73e08634176ff",
+  "derived_from": {
+    "repository": "daclab/meta-agent-pipeline",
+    "commit": "8ef72a4fce86d3fcd06d25ad47a7b879d889e031",
+    "path": "src/meta_pipeline/protocol.py",
+    "generated": "Do not edit; re-export from authoritative source and review digest changes."
+  }
+}
