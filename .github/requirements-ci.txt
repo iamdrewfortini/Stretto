@@ -2,4 +2,4 @@
 # Exact CI dependency pins (Phase 2, #11). Bump deliberately; Dependabot watches this file.
 cryptography==50.0.2
 build==1.6.1
-websockets==15.0.1
+websockets==17.4
