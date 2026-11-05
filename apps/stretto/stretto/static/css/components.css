@@ -268,3 +268,4 @@ h1, h2, h3 { text-wrap: balance; } p { text-wrap: pretty; }
   .call-bar .call-orb, .call-bar .call-orb::before, .call-bar .call-orb::after { animation: none; }
   .call-orb { transition: none; }
 }
+.stack > .card, .sheet-list > * { content-visibility: auto; contain-intrinsic-size: auto 220px; }

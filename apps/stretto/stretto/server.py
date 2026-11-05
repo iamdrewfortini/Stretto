@@ -592,11 +592,31 @@ class Handler(BaseHTTPRequestHandler):
         full = os.path.realpath(os.path.join(STATIC, rel))
         if not full.startswith(os.path.realpath(STATIC) + os.sep) or not os.path.isfile(full):
             return self._send(404, dict(error="not found"))
+        if rel == "index.html":   # the shell carries the per-install token: never cached
+            with open(full, "rb") as fh:
+                data = fh.read()
+            return self._send(200, raw=data.replace(b"__TOKEN__", b"" if self.remote else self.token.encode()),
+                              ctype="text/html")
+        st = os.stat(full)   # assets are immutable per build: ETag + an hour of cache turns reloads into 304s
+        etag = f'"{st.st_mtime_ns}-{st.st_size}"'
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            return
         with open(full, "rb") as fh:
             data = fh.read()
-        if rel == "index.html":
-            data = data.replace(b"__TOKEN__", b"" if self.remote else self.token.encode())
-        return self._send(200, raw=data, ctype=mimetypes.guess_type(full)[0] or "application/octet-stream")
+        body = data
+        self.send_response(200)
+        self.send_header("Content-Type", mimetypes.guess_type(full)[0] or "application/octet-stream")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "public, max-age=3600")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+        self.end_headers()
+        self.wfile.write(body)
 
 
 def make_server(store, port=8760, token=None, host="127.0.0.1", allow_hosts=()):

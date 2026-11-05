@@ -94,5 +94,32 @@ class HoneycombGraphVoice(unittest.TestCase):
         self.assertEqual(voicetree.derive(dict(fake_day(), findings=[]))["nodes"]["root"]["kind"], "affirm")
 
 
+class StaticCaching(unittest.TestCase):
+    def test_asset_etag_roundtrip(self):
+        import urllib.request, urllib.error
+        from stretto.server import make_server
+        from stretto.store import Store
+        srv, tok = make_server(Store(":memory:"), port=0, token="t")
+        import threading
+        th = threading.Thread(target=srv.serve_forever, daemon=True); th.start()
+        try:
+            base = f"http://127.0.0.1:{srv.server_address[1]}"
+            host = {"Host": f"127.0.0.1:{srv.server_address[1]}"}
+            r = urllib.request.urlopen(urllib.request.Request(base + "/js/app.js", headers=host), timeout=5)
+            self.assertEqual(r.status, 200)
+            etag = r.headers.get("ETag")
+            self.assertTrue(etag)
+            self.assertIn("max-age=3600", r.headers.get("Cache-Control", ""))
+            try:
+                urllib.request.urlopen(urllib.request.Request(base + "/js/app.js", headers={**host, "If-None-Match": etag}), timeout=5)
+                self.fail("expected 304")
+            except urllib.error.HTTPError as e:
+                self.assertEqual(e.code, 304)
+            shell = urllib.request.urlopen(urllib.request.Request(base + "/", headers=host), timeout=5)
+            self.assertIn("no-store", shell.headers.get("Cache-Control", ""))
+        finally:
+            srv.shutdown()
+
+
 if __name__ == "__main__":
     unittest.main()
