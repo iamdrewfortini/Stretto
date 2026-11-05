@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Period deltas, previous attention score, range trend value, cross-device overlap, and the live event stream."""
 import datetime as dt, http.client, json, threading, time, unittest
 

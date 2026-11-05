@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Agent: history importers on fabricated databases, privacy filtering, consent flow against a real server. No real user data."""
 import os, sqlite3, sys, tempfile, threading, unittest
 from unittest import mock

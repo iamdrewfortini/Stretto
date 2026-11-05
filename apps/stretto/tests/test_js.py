@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Every UI module must at least parse. Catches a broken module before the app silently stays on its loading mark."""
 import glob, os, shutil, subprocess, tempfile, unittest
 

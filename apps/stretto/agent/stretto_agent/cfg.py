@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Agent configuration and paths. Stdlib only, Python 3.8+."""
 import json
 import os

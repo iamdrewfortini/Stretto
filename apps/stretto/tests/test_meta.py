@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Meta client and insights: ledger, Meta-only guard, budget, replay, validation of model output, consent gate. No network."""
 import datetime as dt, json, os, tempfile, threading, unittest, urllib.error, urllib.request
 from unittest import mock

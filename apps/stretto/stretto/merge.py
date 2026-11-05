@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Resolve overlapping sources. Pure functions.
 
 The same minute can be described by several sources: the live collector, the OS's own usage log, and browser history.

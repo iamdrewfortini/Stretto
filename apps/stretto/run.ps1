@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Start Stretto and open it in your browser. Stop with Ctrl-C.
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $data = if ($env:STRETTO_DATA) { $env:STRETTO_DATA } else { Join-Path $env:USERPROFILE '.stretto' }

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Multi-device ingest, source priority, patterns, consent and remote mode."""
 import datetime as dt, json, threading, unittest, urllib.error, urllib.request
 

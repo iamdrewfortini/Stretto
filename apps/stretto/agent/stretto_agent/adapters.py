@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Foreground-window capture per operating system, plus privacy filtering. Stdlib only.
 
 Captured: front application, its window title, idle time, pointer position. NOT captured: keystrokes, screen contents, clipboard,

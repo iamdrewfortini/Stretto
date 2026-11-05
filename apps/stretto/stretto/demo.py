@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """A SIMULATED workday for demos and tests. Everything it creates is stored with src='simulated' and shown as such."""
 import random
 

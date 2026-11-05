@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Server-sent events: a bounded in-memory broadcaster and a watcher that turns database changes into events.
 
 Events (all JSON, each with a monotonic integer id so a client can resume with Last-Event-ID):

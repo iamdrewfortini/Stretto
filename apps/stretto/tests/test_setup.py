@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Setup path: .env loading, doctor, person-run accept, install/run scripts."""
 import contextlib, io, os, shutil, subprocess, sys, tempfile, unittest
 from unittest import mock

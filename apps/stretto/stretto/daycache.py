@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Per-day summary cache. A day is summarised once; later reads reuse it until that day's data (or the classification rules) change.
 
 A cached summary is valid only while its FINGERPRINT matches: (cache version, rules signature, number of events that day, newest event id,

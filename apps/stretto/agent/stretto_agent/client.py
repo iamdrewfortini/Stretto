@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """HTTP client for the Stretto server, and the offline spool. A batch is deleted from disk only after the server confirms it."""
 import json
 import os

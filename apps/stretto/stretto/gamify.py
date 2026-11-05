@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """XP, levels, streaks, badges. Deterministic arithmetic over measured focus time. No model involved."""
 import datetime as dt
 import math

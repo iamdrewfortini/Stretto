@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Exact focus tracking, input-tick gating, attention measures, app metadata, and the agent loop end to end. Fakes only."""
 import json, os, sys, tempfile, threading, unittest, urllib.error, urllib.request
 from unittest import mock

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Consent for reading real browser and system data. The server is the single authority: it refuses ingest from a source whose
 family has no active grant for that device, whatever an agent's own config says.
 

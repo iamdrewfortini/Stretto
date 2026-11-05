@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Builds the agent download for the UI's 'Install agent' button. Pure standard library.
 
 The zip holds the agent's source (so you can read it), an installer for the chosen OS, and agent.json with the server address and a

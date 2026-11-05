@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """SQLite store (WAL). One file, local only. Every write goes through here.
 
 Rows from any device or source are idempotent: each carries a uid (hash of device, source, time, app), so an agent that

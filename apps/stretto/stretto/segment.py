@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Raw samples to blocks. Pure functions, no I/O. A block is one stretch in one app (or one site in a browser)."""
 import hashlib
 import re

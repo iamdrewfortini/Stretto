@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Per-day cache: identical answers to a from-scratch reference, warm reads touch no events, every change invalidates exactly what it should."""
 import datetime as dt, os, tempfile, unittest
 from unittest import mock

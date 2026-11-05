@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Meta-model coaching over MEASURED findings. The model may phrase and prioritise; it may not create facts.
 
 What goes to Meta: app names, site domains, durations and Stretto's own findings for ONE day. Never titles, URLs or screenshots.

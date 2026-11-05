@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
 # Start Stretto and open it in your browser. Stop with Ctrl-C.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)

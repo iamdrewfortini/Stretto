@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Local JSON API and static UI. Loopback only. Reads check the Host header (DNS rebinding); writes also need the per-install token."""
 import datetime as dt
 import hashlib

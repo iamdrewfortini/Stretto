@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import datetime as dt, json, threading, unittest, urllib.error, urllib.request
 from stretto import analyze, demo, gamify, segment
 from stretto.server import make_server

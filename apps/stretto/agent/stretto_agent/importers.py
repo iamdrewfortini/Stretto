@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Read-only historical importers. Each one:
   * is incremental: it returns only what is newer than the saved cursor, so it can run every few minutes at no cost;
   * copies the source database to a temporary file and reads the copy (the browser keeps its own file locked);

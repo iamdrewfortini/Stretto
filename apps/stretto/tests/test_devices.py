@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Several computers, one person: time must be counted once. Independent of how the merge is implemented, the invariants are tested."""
 import datetime as dt, random, unittest
 

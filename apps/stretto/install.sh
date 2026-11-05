@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
 # Stretto: install and start on macOS or Linux. Plain Python 3.8+, no packages to download, no root needed.
 #   sh install.sh            set up and start
 #   sh install.sh --no-start set up only

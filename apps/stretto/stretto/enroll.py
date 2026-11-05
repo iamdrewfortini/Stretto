@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Device enrolment. The master token never leaves the server's machine; an agent gets its own key.
 
   1. A signed-in person (admin token) asks for an enrolment code: single use, expires in 15 minutes.

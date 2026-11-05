@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Meta Model API client. Three routes, one code path:
   DIRECT  MODEL_API_KEY in the environment or a .env file: calls https://api.meta.ai/v1 with the operator's own key.
   RECORD  STRETTO_RECORD=<dir>: also saves each reply so others can replay it.

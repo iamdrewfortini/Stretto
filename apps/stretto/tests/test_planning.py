@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Calendar and Goals backend: sessions, task scheduling fields, weekly goal and category budgets, the goals aggregate."""
 import datetime as dt, http.client, json, os, shutil, sqlite3, tempfile, threading, unittest, urllib.parse
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Attention and focus measures derived from blocks. Pure, deterministic, and every number can be traced to the blocks it came from.
 
 Definitions (stated so they can be argued with):

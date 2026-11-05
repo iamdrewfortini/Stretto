@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Native permission model. What does THIS computer require before each capability works, is it granted, which operating-system
 panel grants it, and what is the exact elevated command when one is needed?
 

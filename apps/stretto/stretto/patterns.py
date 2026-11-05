@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Historical patterns over many days. Pure, deterministic, measured: hour-of-day and weekday profiles of focus and distraction,
 the best focus window, and the trend. A pattern needs enough days to mean anything, so each result says how many days stand behind it.
 

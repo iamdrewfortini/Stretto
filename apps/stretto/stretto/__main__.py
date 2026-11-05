@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """stretto: the local server and its setup commands.
 
   python3 -m stretto                    start the server (same as: serve)

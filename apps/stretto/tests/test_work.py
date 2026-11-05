@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Work-history importers (git, shell, logins), emit, and the SSH relay. Fixtures only: no real repositories, history files or servers."""
 import contextlib, io, json, os, shutil, subprocess, sys, tempfile, threading, time, unittest
 from unittest import mock

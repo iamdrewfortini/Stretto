@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """stretto-agent: capture this computer's activity and import its history into a Stretto server, with consent.
 
   status                 server reachable? consent per notice? enabled sources? spooled batches?

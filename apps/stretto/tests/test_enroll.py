@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Device enrolment and scope, the agent bundle, the environment report, and the native permission plan."""
 import io, json, os, sys, tempfile, threading, time, unittest, urllib.error, urllib.request, zipfile
 from unittest import mock

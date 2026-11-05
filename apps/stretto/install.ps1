@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Stretto: install and start on Windows. Plain Python 3.8+, no packages to download, no administrator rights.
 #   .\install.ps1              set up and start
 #   .\install.ps1 -NoStart     set up only

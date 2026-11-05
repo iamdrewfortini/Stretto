@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Loss and path analysis over blocks. Everything here is MEASURED from the recorded blocks; nothing is estimated by a model.
 A finding names the blocks it comes from, so a person can check it. A model may later phrase or rank findings, never create them."""
 from collections import Counter

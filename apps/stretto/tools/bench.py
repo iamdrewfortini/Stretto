@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Benchmark Stretto's read path on a large SYNTHETIC history. Usage: python3 tools/bench.py [days] [profile]
 Synthetic means generated here, never real data. Reports wall time per stage so optimisation is driven by measurement."""
 import cProfile

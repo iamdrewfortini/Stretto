@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Durability: what is proven and what is not.
 PROVEN here: committed data survives a killed process (SIGKILL); data is moved into the MAIN database file (not left only in the write-ahead log)
 after writes that matter; the settings that govern power-loss safety are on; shutdown is clean; backups are consistent.
