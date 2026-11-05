@@ -69,7 +69,7 @@ class Proxy(unittest.TestCase):
 
     def test_refuses_non_loopback_stretto(self):
         env = {"RUNTIME_MODE": "local", "GATEWAY_BIND": "127.0.0.1:0", "MODEL_API_KEY": "k", "EGRESS_ALLOWLIST": "api.meta.ai",
-               "REGISTRY_PATH": REG, "EVENT_LOG": "", "STRETTO_URL": "http://10.0.0.5:8760"}
+               "REGISTRY_PATH": REG, "EVENT_LOG": "", "STRETTO_URL": "http://192.0.2.5:8760"}
         with self.assertRaises(SystemExit):
             serve(env)
 

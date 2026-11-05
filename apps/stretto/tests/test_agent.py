@@ -40,7 +40,7 @@ class Chromium(unittest.TestCase):
             ("https://www.Example.com/a/secret/path?token=abc123&q=private", "Example page", T0, 45),    # recorded stay
             ("https://docs.google.com/document/d/XYZ/edit", "My doc", T0 + 60, 0),                        # no stay: gap to next (40 s)
             ("chrome://settings/", "Settings", T0 + 90, 5),                                               # not a site
-            ("file:///C:/Users/me/private.pdf", "private.pdf", T0 + 95, 5),                               # not a site
+            ("file:///C:/Data/me/private.pdf", "private.pdf", T0 + 95, 5),                               # not a site
             ("https://news.site/x", "News", T0 + 100, 0),                                                 # last, no stay: 30 s
         ])
         self.imp = importers.ChromiumHistory("chrome-history:Default", self.db)

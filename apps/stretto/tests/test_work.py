@@ -31,8 +31,8 @@ def make_repo(root, name, commits):
 class Git(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
-        self.repo = make_repo(self.root, "proj-a", [("me@x.com", T1, "SECRET client payroll fix"), ("other@y.com", T2, "SECRET other person"), ("me@x.com", T3, "second")])
-        self.imp = importers.GitHistory("git-history:proj-a", self.repo, "me@x.com")
+        self.repo = make_repo(self.root, "proj-a", [("me@example.com", T1, "SECRET client payroll fix"), ("other@example.org", T2, "SECRET other person"), ("me@example.com", T3, "second")])
+        self.imp = importers.GitHistory("git-history:proj-a", self.repo, "me@example.com")
 
     def test_only_my_commit_times_and_the_repo_name_never_messages(self):
         out, cur, power = self.imp.read("")
@@ -44,7 +44,7 @@ class Git(unittest.TestCase):
 
     def test_incremental_picks_up_only_newer_work(self):
         _, cur, _ = self.imp.read("")
-        git(self.repo, "-c", "user.email=me@x.com", "-c", "user.name=X", "commit", "-q", "--allow-empty", "-m", "later", GIT_AUTHOR_DATE=f"{T3 + 5000} +0000", GIT_COMMITTER_DATE=f"{T3 + 5000} +0000")
+        git(self.repo, "-c", "user.email=me@example.com", "-c", "user.name=X", "commit", "-q", "--allow-empty", "-m", "later", GIT_AUTHOR_DATE=f"{T3 + 5000} +0000", GIT_COMMITTER_DATE=f"{T3 + 5000} +0000")
         out, cur2, _ = self.imp.read(cur)
         self.assertIn(T3 + 5000, [int(s["ts"]) for s in out])
         self.assertEqual(cur2, str(T3 + 5000))
@@ -54,7 +54,7 @@ class Git(unittest.TestCase):
         junk = os.path.join(self.root, "node_modules", "dep")
         os.makedirs(junk)
         subprocess.run(["git", "init", "-q", junk], check=True)
-        with mock.patch.dict(os.environ, {"STRETTO_GIT_ROOTS": self.root}), mock.patch.object(importers, "_git", return_value=(0, "me@x.com\n")):
+        with mock.patch.dict(os.environ, {"STRETTO_GIT_ROOTS": self.root}), mock.patch.object(importers, "_git", return_value=(0, "me@example.com\n")):
             names = sorted(i.name for i in importers.discover_work() if i.name.startswith("git-history"))
         self.assertEqual(names, ["git-history:proj-a", "git-history:proj-b"])
         with mock.patch.dict(os.environ, {"STRETTO_GIT_ROOTS": self.root}), mock.patch.object(importers, "_git", return_value=(0, "\n")):
@@ -89,9 +89,9 @@ class Shell(unittest.TestCase):
 
 
 class Logins(unittest.TestCase):
-    TEXT = ("me  pts/0  192.168.1.5  Tue Nov  3 10:00:01 2026 - Tue Nov  3 11:02:03 2026  (01:02)\n"
+    TEXT = ("me  pts/0  192.0.2.5    Tue Nov  3 10:00:01 2026 - Tue Nov  3 11:02:03 2026  (01:02)\n"
             "me  tty1                Mon Nov  2 08:00:00 2026 - Mon Nov  2 20:00:00 2026  (12:00)\n"
-            "me  pts/1  10.0.0.9      Wed Nov  4 01:00:00 2026   still logged in\n"
+            "me  pts/1  198.51.100.9     Wed Nov  4 01:00:00 2026   still logged in\n"
             "reboot  system boot  5.15.0  Mon Nov  2 07:59:00 2026   still running\n")
 
     def test_parse_sessions_capped_and_without_addresses(self):
