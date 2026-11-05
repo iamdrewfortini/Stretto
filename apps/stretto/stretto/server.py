@@ -478,7 +478,10 @@ class Handler(BaseHTTPRequestHandler):
         if (method, path) == ("GET", "/api/challenges"):
             n = max(1, min(int(q.get("days", 7)), 30))
             rng = a.range(n)
-            days = [a.day(x["date"]) for x in rng["days"] if x["total_s"] > 0]
+            sums = daycache.ensure(s, a.rules(), *a.window(dt.date.today().isoformat(), n))
+            days = [dict(date=x["date"], loss_s=x["loss_s"], simulated=x["simulated"],
+                         summary=dict(total_s=x["total_s"]), findings=sums.get(x["date"], {}).get("findings_lite", []))
+                    for x in rng["days"] if x["total_s"] > 0]
             done = challenges.check_completion(s, days)
             out = challenges.group(days)
             out["pins"] = challenges.pins(s)

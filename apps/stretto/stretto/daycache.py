@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor
 from . import analyze, attention, merge, segment
 from .segment import FOCUS
 
-VERSION = 3                       # 3: several devices are merged onto one timeline (time counted once); 2: summaries carry attention_score
+VERSION = 4                       # 4: summaries carry findings_lite for challenge grouping; 3: merged devices; 2: attention_score
 PARALLEL_MIN = 12                 # fewer stale days than this: process start-up costs more than it saves (measured, see tools/bench.py)
 MAX_WORKERS = 8
 
@@ -51,9 +51,14 @@ def summarize(blocks, loss=None):
         elif b["category"] == "Distraction":
             hd[h] += b["seconds"]
     att = attention.measure(blocks)
+    if loss is None:
+        found, loss = analyze.findings(blocks)
+        lite = [dict(kind=f["kind"], where=f["where"], seconds=f["seconds"]) for f in found]
+    else:
+        lite = []
     return dict(attention_score=att["score"] if att.get("enough") else None,
                 total_s=sm["total_s"], idle_s=sm["idle_s"], focus_s=sm["focus_s"], focus_f=round(focus_exact, 3), distraction_s=sm["distraction_s"],
-                by_category=sm["by_category"], loss_s=analyze.findings(blocks)[1] if loss is None else loss, longest_focus_s=round(longest),
+                by_category=sm["by_category"], loss_s=loss, longest_focus_s=round(longest), findings_lite=lite,
                 hours_focus=[round(x) for x in hf], hours_distraction=[round(x) for x in hd], hours_total=[round(x) for x in ht])
 
 
