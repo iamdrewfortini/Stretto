@@ -5,7 +5,15 @@ import json, threading, time, uuid
 from datetime import datetime
 
 from runtime import fastpath
-from runtime.tools import SCHEMAS, run_tool
+from runtime.tools import MUTATING, SCHEMAS, run_tool
+
+
+def actions_for(calls):
+    """UI actions the browser should take after a turn: go to a page the agent opened, refresh after any change."""
+    acts = [{"action": "navigate", "page": c["result"]["navigate"]} for c in calls if c["ok"] and isinstance(c.get("result"), dict) and c["result"].get("navigate")]
+    if any(c["ok"] and c["name"] in MUTATING for c in calls):
+        acts.append({"action": "refresh"})
+    return acts
 
 MAX_ROUNDS = 4
 SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant for one person. Your reply is spoken aloud: "
@@ -45,7 +53,7 @@ class VoiceCore:
         reply = fastpath.reply(name, args, result)
         calls = [] if name == "greet" else [{"name": name, "args": json.dumps(args), "ok": ok, "result": result}]
         self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
-        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": None, "path": "fast",
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "actions": actions_for(calls), "model": None, "path": "fast",
                "ms": round((time.perf_counter() - t0) * 1000, 2)}
         self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
         return out
@@ -75,6 +83,6 @@ class VoiceCore:
         if not reply:
             reply = "Done." if calls and all(c["ok"] for c in calls) else "Sorry, I could not finish that."
         self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
-        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": model, "path": "model", "ms": round((time.perf_counter() - t0) * 1000)}
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "actions": actions_for(calls), "model": model, "path": "model", "ms": round((time.perf_counter() - t0) * 1000)}
         self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
         return out

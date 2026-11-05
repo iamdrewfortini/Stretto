@@ -51,6 +51,9 @@ def match(text):
         return None
     if re.fullmatch(r"(hi|hello|hey|hey there|good (morning|afternoon|evening))( humanflow)?", t):
         return ("greet", {})
+    m = re.search(r"\b(?:open|go to|take me to|switch to)\s+(?:the\s+|my\s+)?(today|focus|tasks|calendar|paths|reports|goals|habits|insights|leaks|privacy|devices|settings)(?:\s+page)?\b", t)
+    if m:
+        return ("open_page", {"page": m.group(1)})
     if re.search(r"\bleak(s|ing|ed)?\b|leak score|how much time (am i|do i|have i) (los|wast)|what should i (change|fix|improve)", t):
         return ("get_leaks", {})
     if re.search(r"how('s| is| was)? (my )?day|\bsummary\b|how am i doing|where did my time go", t):
@@ -93,6 +96,8 @@ def reply(tool, args, result):
     if tool == "list_tasks":
         open_ = [x["title"] for x in result if x["status"] != "done"]
         return "No open tasks." if not open_ else f"{len(open_)} open: " + "; ".join(open_[:3]) + "."
+    if tool == "open_page":
+        return f"Opening {result['navigate']}." if "navigate" in result else "I couldn't open that page."
     if tool == "get_leaks":
         per_day = result["per_day_min"]["total"]
         if not per_day:

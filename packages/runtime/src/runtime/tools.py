@@ -7,6 +7,8 @@ from datetime import datetime
 from humanflow.personal import CATEGORIES, PersonalLedger
 
 STATUSES = ("todo", "doing", "blocked", "done")
+PAGES = ("today", "focus", "tasks", "calendar", "paths", "reports", "goals", "habits", "insights", "leaks", "privacy", "devices", "settings", "talk")
+MUTATING = {"log_time", "start_timer", "stop_timer", "create_task", "update_task"}
 
 
 class ToolError(Exception):
@@ -34,14 +36,16 @@ SCHEMAS = [
         {"task_id": {"type": "string"}, "status": {"type": "string", "enum": list(STATUSES)}, "note": {"type": "string", "maxLength": 280}},
         ["task_id", "status"]),
     _fn("list_tasks", "List the owner's tasks, optionally by status.", {"status": {"type": "string", "enum": list(STATUSES)}}),
+    _fn("open_page", "Show the person a page of the Stretto app.",
+        {"page": {"type": "string", "enum": list(PAGES)}}, ["page"]),
     _fn("get_leaks", "The owner's time leaks: leak score (lower is better), minutes leaked per day, what that compounds to over a "
         "week, month, year and decade in hours and dollars, and the top changes ranked by time won back per cost to adopt.", {}),
 ]
 
 
 class Tools:
-    def __init__(self, bus, owner="owner", clock=time.time):
-        self.bus, self.owner, self.clock, self.lock = bus, owner, clock, threading.Lock()
+    def __init__(self, bus, owner="owner", clock=time.time, stretto=None):
+        self.bus, self.owner, self.clock, self.lock, self.stretto = bus, owner, clock, threading.Lock(), stretto
         self.events, self.tasks, self.timer = [], {}, None
         for ev in bus.replay():
             self.apply(ev)
@@ -72,6 +76,16 @@ class Tools:
         self._cid = correlation_id
         return fn(**args)
 
+    def _mirror(self, method, path, body=None):
+        """Apply the same change to the Stretto app, so what the agent says it did is what the person sees."""
+        if not self.stretto:
+            return None
+        try:
+            self.stretto.call(method, path, body)
+            return "ok"
+        except Exception as e:  # the ledger change stands; report why Stretto did not follow
+            return f"stretto: {str(e)[:120]}"
+
     def _emit(self, type_, data):
         return self.bus.emit(type_, data, "runtime.tools", subject=self.owner, correlation_id=self._cid)
 
@@ -94,16 +108,26 @@ class Tools:
         stopped = self.t_stop_timer() if self.timer else None
         d = dict(timer_id="tmr_" + uuid.uuid4().hex[:10], activity=self._act(activity), t=self.clock(), task_id=task_id, note=note[:280])
         self._emit("timer.started", d)
-        return {"timer_id": d["timer_id"], "activity": activity, "stopped_previous": stopped}
+        out = {"timer_id": d["timer_id"], "activity": activity, "stopped_previous": stopped}
+        s = self._mirror("POST", "/api/timer/start", {"kind": "focus", "label": (note or activity)[:120]})
+        if s:
+            out["stretto"] = s
+        return out
 
     def t_stop_timer(self):
         tm = self.timer
         if not tm:
+            if self.stretto and self._mirror("POST", "/api/timer/stop") == "ok":
+                return {"activity": "focus", "minutes": 0.0, "stretto": "ok", "note": "stopped the timer running in Stretto"}
             raise ToolError("no timer is running")
         secs = max(1.0, self.clock() - tm["t"])
         self._emit("timer.stopped", dict(timer_id=tm["timer_id"], seconds=secs))
         self._emit("ledger.event.added", dict(t=tm["t"], activity=tm["activity"], duration_s=secs, text=tm.get("note", ""), task_id=tm.get("task_id")))
-        return {"timer_id": tm["timer_id"], "activity": tm["activity"], "minutes": round(secs / 60, 1)}
+        out = {"timer_id": tm["timer_id"], "activity": tm["activity"], "minutes": round(secs / 60, 1)}
+        s = self._mirror("POST", "/api/timer/stop")
+        if s:
+            out["stretto"] = s
+        return out
 
     def t_get_summary(self, range="today"):
         start = datetime.fromtimestamp(self.clock()).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() if range == "today" else 0
@@ -125,7 +149,11 @@ class Tools:
     def t_create_task(self, title, estimate_min=None):
         d = dict(task_id="tsk_" + uuid.uuid4().hex[:8], title=title[:200], status="todo", estimate_min=estimate_min, t=self.clock())
         self._emit("task.created", d)
-        return {"task_id": d["task_id"], "title": d["title"], "status": "todo"}
+        out = {"task_id": d["task_id"], "title": d["title"], "status": "todo"}
+        s = self._mirror("POST", "/api/tasks", {"title": d["title"], "est_min": estimate_min})
+        if s:
+            out["stretto"] = s
+        return out
 
     def t_update_task(self, task_id, status, note=""):
         if task_id not in self.tasks:
@@ -134,6 +162,11 @@ class Tools:
             raise ToolError(f"status must be one of {STATUSES}")
         self._emit("task.updated", dict(task_id=task_id, status=status, note=note[:280]))
         return {"task_id": task_id, "status": status}
+
+    def t_open_page(self, page):
+        if page not in PAGES:
+            raise ToolError(f"page must be one of {PAGES}")
+        return {"navigate": page}
 
     def t_get_leaks(self):
         from runtime import leaks, suggest  # arithmetic only; imported here so the ledger works without them

@@ -137,6 +137,8 @@ async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000)
                 names = [c.get("name", "") for c in res.get("tool_calls", [])]
                 await _send(browser_ws, lock, {"type": "reply", "text": res.get("reply", ""),
                                                "tools": names, "ms": res.get("ms", 0)})
+                for act in res.get("actions", []):  # the agent acts on the app: open a page, refresh after a change
+                    await _send(browser_ws, lock, dict(act, type="action"))
             except Exception as e:
                 await _send(browser_ws, lock, {"type": "error", "message": f"turn failed: {type(e).__name__}"})
             finally:

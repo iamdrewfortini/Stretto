@@ -390,7 +390,12 @@ def serve(env=os.environ):
     from runtime.core import VoiceCore
     from runtime.tools import Tools
     bus.seed_recent()
-    tools = Tools(bus, owner=env.get("OWNER_ID", "owner"))
+    sclient = None
+    tf = env.get("STRETTO_TOKEN_FILE", "")
+    if tf and os.path.isfile(tf):
+        from runtime.stretto_client import StrettoClient
+        sclient = StrettoClient(env.get("STRETTO_URL", "http://127.0.0.1:8760"), tf)
+    tools = Tools(bus, owner=env.get("OWNER_ID", "owner"), stretto=sclient)
     core = VoiceCore(gw, tools, bus)
     su = urlsplit(env.get("STRETTO_URL", "http://127.0.0.1:8760"))
     if su.scheme != "http" or not _loopback(su.hostname or ""):
