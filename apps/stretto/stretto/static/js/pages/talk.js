@@ -1,7 +1,7 @@
 // Talk: realtime voice and a text fallback. The mic streams 16 kHz Int16 PCM frames
 // over the voice socket; replies are spoken aloud and every tool call is shown with its cost in time.
 import { h, s, clear } from '../lib/dom.js';
-import { pill } from '../lib/kit.js';
+import { pill } from '../ui/kit.js';
 import { toast } from '../ui/toast.js';
 
 const WS_URL = 'ws://127.0.0.1:8788/';
