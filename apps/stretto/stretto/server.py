@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, attention, bundle, challenges, coach, consent, daycache, demo, enroll, events, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, voicetree
+from . import analyze, attention, bundle, calendars, challenges, coach, coherence, consent, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -411,6 +411,44 @@ class Handler(BaseHTTPRequestHandler):
             code, _ = enroll.new_code(s)
             data, name = bundle.build(osn, f"http://{self.headers.get('Host')}", code)
             return self._send(200, raw=data, ctype="application/zip", filename=name)
+        if (method, path) == ("POST", "/api/turns"):
+            s.x("CREATE TABLE IF NOT EXISTS turns(id INTEGER PRIMARY KEY, you TEXT, reply TEXT, tools TEXT, ts REAL)")
+            you, reply = str(body.get("you", ""))[:2000], str(body.get("reply", ""))[:4000]
+            if not (you.strip() or reply.strip()):
+                raise ValueError("a turn needs you and/or reply text")
+            tid = s.ux("INSERT INTO turns(you,reply,tools,ts) VALUES(?,?,?,?)", (you, reply, json.dumps(body.get("tools") or [])[:500], time.time()))
+            return self._send(200, dict(id=tid))
+        if (method, path) == ("GET", "/api/coherence"):
+            return self._send(200, coherence.audit(s, a))
+        if (method, path) == ("POST", "/api/coherence/run"):
+            return self._send(200, coherence.run(s, a))
+        if (method, path) == ("GET", "/api/embeddings/stats"):
+            folding.bind(s)
+            rows = s.q("SELECT kind, COUNT(*) AS n FROM embeddings GROUP BY kind")
+            return self._send(200, dict(total=sum(r["n"] for r in rows), by_kind={r["kind"]: r["n"] for r in rows}, honeycomb=honeycomb.stats(s)))
+        if (method, path) == ("GET", "/api/topics"):
+            items = topics.collect(s, a)
+            return self._send(200, dict(buckets=folding.fold(items), counts=dict(items=len(items))))
+        if (method, path) == ("GET", "/api/recall"):
+            items = topics.collect(s, a)
+            return self._send(200, dict(query=q.get("q", ""), results=topics.recall(items, q.get("q", ""))))
+        if (method, path) == ("GET", "/api/calendar/providers"):
+            return self._send(200, dict(providers=calendars.providers()))
+        if (method, path) == ("GET", "/api/calendar/export.ics"):
+            tasks = [dict(r) for r in s.q("SELECT id, title, est_min, planned_start FROM tasks WHERE planned_start IS NOT NULL")]
+            lo = time.time() - 30 * 86400; hi = time.time() + 30 * 86400
+            sessions = [dict(r) for r in s.q("SELECT m.id, m.label, m.start, m.end, t.title AS task_title FROM timers m LEFT JOIN tasks t ON t.id=m.task_id WHERE m.start>=? AND m.start<=?", (lo, hi))]
+            return self._send(200, raw=calendars.export_ics(tasks, sessions).encode(), ctype="text/calendar", filename="stretto.ics")
+        if (method, path) == ("POST", "/api/calendar/import"):
+            events_in = calendars.parse_ics(body.get("ics", ""))
+            created = skipped = 0
+            for ev in events_in:
+                if ev["uid"].startswith("stretto-"):
+                    skipped += 1; continue
+                if s.q("SELECT id FROM tasks WHERE title=? AND planned_start=?", (ev["title"], ev["start_ts"])):
+                    skipped += 1; continue
+                s.ux("INSERT INTO tasks(title,planned_start,created) VALUES(?,?,?)", (ev["title"], ev["start_ts"], time.time())); created += 1
+            return self._send(200, dict(created=created, skipped=skipped, seen=len(events_in)))
         if (method, path) == ("GET", "/api/challenges"):
             n = max(1, min(int(q.get("days", 7)), 30))
             rng = a.range(n)

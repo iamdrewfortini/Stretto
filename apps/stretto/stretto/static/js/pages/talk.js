@@ -29,8 +29,11 @@ export default {
     const input = h('input', { class: 'input grow', type: 'text', placeholder: 'Type instead of speaking', 'aria-label': 'Type instead of speaking' });
     const sendBtn = h('button', { class: 'btn primary' }, 'Send');
 
+    let postedTurns = 0;   // persist finished turns server-side so conversations bucket, embed and recall like everything else
+    const persist = (turns) => { for (let i = postedTurns; i < turns.length; i++) { const t = turns[i]; if (t.reply) { postedTurns = i + 1; api.post('/api/turns', { you: t.you || '', reply: t.reply, tools: t.tools || [] }).catch(() => {}); } } };
     const metaLine = (t) => [t.path ? String(t.path) : '', t.ms != null ? `${t.ms} ms` : ''].filter(Boolean).join(' · ');
     const paint = (s) => {
+      persist(s.turns || []);
       const live = s.status === 'live' || s.status === 'connecting';
       const label = s.status === 'live' ? (s.muted ? 'Live · muted' : 'Listening') : s.status === 'connecting' ? 'Connecting…' : s.status === 'error' ? 'Error — press the mic to retry' : 'Idle';
       status.textContent = label;

@@ -13,7 +13,7 @@ const COLS = [['todo', 'To do'], ['next', 'Next'], ['doing', 'Doing'], ['done', 
 
 export default {
   id: 'tasks', key: 'k', dated: false, title: 'Tasks', icon: 'board',
-  load: async () => { const [tasks, projects] = await Promise.all([api.get('/api/tasks'), api.get('/api/projects')]); return { tasks, projects }; },
+  load: async () => { const [tasks, projects, topicsR] = await Promise.all([api.get('/api/tasks'), api.get('/api/projects'), api.get('/api/topics').catch(() => null)]); return { tasks, projects, topicsR }; },
   view(d) {
     const view = query('v', 'list'), proj = Object.fromEntries(d.projects.map((p) => [p.id, p]));
     const body = h('div', { class: 'tk-body' });
@@ -85,7 +85,14 @@ export default {
     function draw() { body.replaceChildren(d.tasks.length ? (view === 'board' ? board() : list()) : emptyState('No tasks yet', 'Type a task above and press Enter. Press play on any task to start a focus session on it.')); }
     draw();
     const open = d.tasks.filter((t) => t.status !== 'done').length;
-    return h('div', { class: 'page' },
+    const recallBox = h('div', { class: 'stack' });
+    const qIn = h('input', { class: 'input grow', placeholder: 'Recall anything: try “focus leak” or “slack”…', 'aria-label': 'Recall across tasks, challenges, insights and conversations', autocomplete: 'off' });
+    const doRecall = async () => { const q = qIn.value.trim(); if (!q) return; try { const r = await api.get('/api/recall?q=' + encodeURIComponent(q)); recallBox.replaceChildren(...(r.results.length ? r.results.map((x) => h('p', {}, h('b', {}, `${x.kind} · `), x.text, h('small', { class: 'faint num' }, ` ${Math.round(x.score * 100)}%`))) : [h('p', { class: 'muted' }, 'Nothing recalled for that yet.')])); } catch (e) { toast(e.message, 'bad'); } };
+    qIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRecall(); });
+    const topicsCard = h('section', { class: 'card', 'aria-labelledby': 'tp-h' }, h('header', {}, h('h3', { id: 'tp-h' }, 'Topics & recall'), h('small', {}, 'local vectors · honeycomb stored')),
+      d.topicsR ? h('div', { class: 'row wrap' }, d.topicsR.buckets.map((b) => h('span', { class: 'pill' }, `${b.label} (${b.items.length})${b.folded ? ' folded' : ''}`))) : h('p', { class: 'faint' }, 'Buckets form as tasks, challenges and conversations arrive.'),
+      h('div', { class: 'row wrap' }, qIn, h('button', { class: 'btn', onclick: doRecall }, 'Recall')), recallBox);
+    return h('div', { class: 'page' }, topicsCard,
       h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, 'Tasks'), h('p', {}, `${open} open · ${d.tasks.length - open} done`)),
         h('div', { class: 'seg', role: 'group', 'aria-label': 'View' }, [['list', 'List'], ['board', 'Board']].map(([v, l]) => h('button', { 'aria-pressed': String(view === v), onclick: () => patch({ v: v === 'list' ? '' : v }) }, l)))),
       h('div', { class: 'card tk-add row' }, title, pSel, est), body);

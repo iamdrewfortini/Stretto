@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import challenges, coach, consent, gamify, graphmap, honeycomb, meta, voicetree
+from stretto import calendars, challenges, coach, coherence, consent, folding, gamify, graphmap, honeycomb, meta, topics, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -134,6 +134,40 @@ class Pins(unittest.TestCase):
         self.assertEqual(challenges.check_completion(s, [clean]), [])
         self.assertEqual(challenges.bonus_xp(s), 14)
         self.assertEqual(challenges.pins(s)[0]["status"], "completed")
+
+
+class FakeApi:
+    def day(self, date=None):
+        return fake_day()
+
+
+class TopicsFoldingCoherence(unittest.TestCase):
+    def test_conversations_bucket_embed_fold_compact_cohere(self):
+        s = Store(":memory:")
+        s.ux("INSERT INTO tasks(title,created) VALUES(?,?)", ("Fix focus detour in slack", 1.0))
+        s.x("CREATE TABLE IF NOT EXISTS turns(id INTEGER PRIMARY KEY, you TEXT, reply TEXT, tools TEXT, ts REAL)")
+        s.x("INSERT INTO turns(you,reply,tools,ts) VALUES(?,?,?,?)", ("my focus leaks to slack", "Batch the slack checks", "[]", 1.0))
+        items = topics.collect(s, FakeApi())
+        kinds = {x["kind"] for x in items}
+        self.assertIn("conversation", kinds)
+        self.assertIn("task", kinds)
+        hits = topics.recall(items, "deep work leak")
+        self.assertTrue(hits)
+        rep = coherence.run(s, FakeApi())
+        self.assertTrue(rep["coherent"], rep["orphans"])
+        self.assertGreaterEqual(rep["by_kind"].get("conversation", 0), 1)
+        self.assertGreaterEqual(rep["honeycomb_artifacts"], 1)
+        st = folding.compact(s, max_embeddings=500)
+        self.assertIn("kept", st)
+
+    def test_ics_roundtrip_and_providers_honest(self):
+        ics = calendars.export_ics([dict(id=3, title="Ship it, now", est_min=30, planned_start=1700000000)], [])
+        self.assertIn("BEGIN:VCALENDAR", ics)
+        ev = calendars.parse_ics(ics)
+        self.assertEqual(ev[0]["title"], "Ship it, now")
+        prov = calendars.providers()
+        self.assertEqual([p["id"] for p in prov], ["google", "icloud", "microsoft"])
+        self.assertTrue(all(p["mode"] == "ics" or p["configured"] for p in prov))
 
 
 class StaticCaching(unittest.TestCase):

@@ -53,9 +53,9 @@ export default {
   load: async (ctx) => {
     const ym = monthOf(ctx.date), tod = today();
     const span = Math.min(62, Math.max(7, Math.round((new Date(tod + 'T12:00:00') - new Date(ym + '-01T12:00:00')) / 86400000) + 2));
-    const [range, day, tasks, ses] = await Promise.all([api.get(`/api/range?days=${span}`), api.get(`/api/day?date=${ctx.date}`), api.get('/api/tasks').catch(() => []),
-      api.get(`/api/sessions?from=${ctx.date}&to=${ctx.date}`).catch(() => null)]);
-    return { ym, range, day, tasks: Array.isArray(tasks) ? tasks : tasks.tasks || [], sessions: ses ? ses.sessions || [] : null };
+    const [range, day, tasks, ses, prov] = await Promise.all([api.get(`/api/range?days=${span}`), api.get(`/api/day?date=${ctx.date}`), api.get('/api/tasks').catch(() => []),
+      api.get(`/api/sessions?from=${ctx.date}&to=${ctx.date}`).catch(() => null), api.get('/api/calendar/providers').catch(() => null)]);
+    return { ym, range, day, tasks: Array.isArray(tasks) ? tasks : tasks.tasks || [], sessions: ses ? ses.sessions || [] : null, prov };
   },
   view(d, ctx) {
     const goal = d.range.goal_s || 14400, byDay = new Map(d.range.days.map((x) => [x.date, x]));
@@ -80,6 +80,12 @@ export default {
         groups.get(k).map((t) => h('div', { class: 'tk-row cal-up' }, h('span', { class: `tk-dot ${t.status}` }), h('span', { class: 'trunc grow' }, t.title), t.est_min ? h('small', { class: 'faint num' }, `${t.est_min} min`) : null,
           t.planned_start ? pill(clock(t.planned_start), 'info') : h('button', { class: 'btn sm', onclick: (e) => plan(t, e.currentTarget) }, 'Plan here'))))))
         : emptyState('Nothing due this week', 'Give tasks a due date or plan them onto a day and they show up here.', h('a', { class: 'btn', href: '#/tasks' }, 'Open tasks')));
-    return h('div', { class: 'page' }, head, h('div', { class: 'grid g-main cal-grid' }, dayCard, h('div', { class: 'stack' }, month, upcoming)));
+    const fileIn = h('input', { type: 'file', accept: '.ics,text/calendar', 'aria-label': 'Import an .ics calendar file', hidden: true });
+    fileIn.addEventListener('change', async () => { const f = fileIn.files[0]; if (!f) return; try { const r = await api.post('/api/calendar/import', { ics: await f.text() }); toast(`Imported ${r.created} planned task${r.created === 1 ? '' : 's'} (${r.skipped} skipped)`, 'good'); } catch (e) { toast(e.message, 'bad'); } });
+    const connect = h('section', { class: 'card', 'aria-labelledby': 'cc-h' }, h('header', {}, h('h3', { id: 'cc-h' }, 'Calendar connections'), h('small', {}, 'Google · iCloud · Microsoft')),
+      (d.prov ? d.prov.providers : []).map((p) => h('div', { class: 'row wrap' }, h('b', { class: 'grow' }, p.name), pill(p.configured ? 'Live sync configured' : 'ICS ready', p.configured ? 'good' : ''), h('small', { class: 'faint' }, p.how))),
+      h('div', { class: 'row wrap' }, h('a', { class: 'btn', href: '/api/calendar/export.ics' }, 'Export .ics (planned + sessions)'), h('button', { class: 'btn', onclick: () => fileIn.click() }, 'Import .ics → planned tasks'), fileIn),
+      h('p', { class: 'faint' }, 'Export a calendar from Google, iCloud or Outlook as .ics and import it here; export Stretto the same way back. Live OAuth/CalDAV lights up only when its credentials exist in the server environment.'));
+    return h('div', { class: 'page' }, head, h('div', { class: 'grid g-main cal-grid' }, dayCard, h('div', { class: 'stack' }, month, upcoming)), connect);
   },
 };

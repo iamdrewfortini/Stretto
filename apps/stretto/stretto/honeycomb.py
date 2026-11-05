@@ -66,11 +66,15 @@ def bind(store):
 
 
 def put(store, facts_sha, facts, artifact):
+    put_raw(store, facts_sha, vector(facts), signature(facts), artifact)
+
+
+def put_raw(store, key, vec, sig, artifact):
+    """Store any artifact under a hex cell derived from its embedding vector. Used for coaching replies and folded topic buckets."""
     bind(store)
-    v, c = vector(facts), None
-    c = ",".join(str(x) for x in cell(v))
+    c = ",".join(str(x) for x in cell(vec))
     store.x("INSERT OR REPLACE INTO honeycomb(cell,facts_sha,vec,sig,artifact,ts) VALUES(?,?,?,?,?,?)",
-            (c, facts_sha, json.dumps(v), signature(facts), json.dumps(artifact), time.time()))
+            (c, str(key), json.dumps(vec), str(sig), json.dumps(artifact), time.time()))
 
 
 def get(store, facts_sha, facts):
