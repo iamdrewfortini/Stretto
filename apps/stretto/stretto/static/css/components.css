@@ -195,3 +195,53 @@ h1, h2, h3 { text-wrap: balance; } p { text-wrap: pretty; }
 ::view-transition-new(root) { animation: 280ms var(--spring-soft) both vt-in; }
 @keyframes vt-out { to { opacity: 0; } }
 @keyframes vt-in { from { opacity: 0; filter: blur(3px); } }
+/* Floating call: one 56 px orb, fixed bottom-right above content, never over the nav */
+.call-bar { position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60;
+  width: 56px; height: 56px; }
+.call-orb { position: relative; width: 56px; height: 56px; border-radius: 50%; border: 0.5px solid var(--line-2); cursor: pointer;
+  display: grid; place-items: center; color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--tonic)));
+  box-shadow: var(--elev-3), var(--hi);
+  transform: scale(calc(1 + var(--lvl, 0) * 0.1));
+  transition: transform 120ms linear, opacity var(--fast) linear, box-shadow var(--fast) linear; }
+.call-orb:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.call-glyph { display: grid; place-items: center; }
+.call-pause { display: none; align-items: center; gap: 5px; }
+.call-pause i { width: 5px; height: 18px; border-radius: 3px; background: currentColor; }
+/* listening: scale and glow follow the smoothed mic RMS in --lvl */
+.call-bar[data-state="listening"] .call-orb {
+  box-shadow: var(--elev-3), 0 0 calc(10px + var(--lvl, 0) * 26px) color-mix(in srgb, var(--tonic) 55%, transparent); }
+/* connecting: slow spin ring */
+.call-bar[data-state="connecting"] .call-orb::after { content: ""; position: absolute; inset: -5px; border-radius: 50%;
+  border: 2px solid transparent; border-top-color: var(--tonic); animation: call-spin 1.6s linear infinite; }
+/* thinking: gentle breathing pulse */
+.call-bar[data-state="thinking"] .call-orb { animation: call-breathe 2.6s var(--ease) infinite; }
+@keyframes call-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+/* speaking: expanding ripple rings */
+.call-bar[data-state="speaking"] .call-orb::before, .call-bar[data-state="speaking"] .call-orb::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--tonic); animation: call-ripple 1.8s var(--ease-out) infinite; }
+.call-bar[data-state="speaking"] .call-orb::after { animation-delay: .9s; }
+@keyframes call-ripple { from { transform: scale(1); opacity: .8; } to { transform: scale(1.8); opacity: 0; } }
+/* paused: dimmed with a pause glyph */
+.call-bar[data-state="paused"] .call-orb { opacity: .6; }
+.call-bar[data-state="paused"] .call-glyph { display: none; }
+.call-bar[data-state="paused"] .call-pause { display: flex; }
+/* error: red ring */
+.call-bar[data-state="error"] .call-orb { box-shadow: var(--elev-3), 0 0 0 2px var(--bad); }
+/* last reply tooltip bubble above the orb */
+.call-tip { position: absolute; right: 0; bottom: calc(100% + 10px); width: max-content; max-width: min(250px, calc(100vw - 64px));
+  background: var(--material-strong); -webkit-backdrop-filter: blur(28px) saturate(180%); backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid var(--line-2); border-radius: var(--r1); padding: 8px 10px; font-size: var(--fs-cap); color: var(--text);
+  box-shadow: var(--elev-2); white-space: normal; }
+.call-tip[hidden] { display: none; }
+/* expand chip: only on hover or keyboard focus */
+.call-expand { position: absolute; right: calc(100% + 8px); bottom: 12px; display: inline-flex; align-items: center; gap: 4px;
+  border: 0.5px solid var(--line-2); border-radius: 999px; background: var(--material-strong); color: var(--muted);
+  font-size: var(--fs-cap); font-weight: 600; padding: 6px 10px; cursor: pointer; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity var(--fast) linear; }
+.call-bar:hover .call-expand, .call-bar:focus-within .call-expand { opacity: 1; pointer-events: auto; }
+@keyframes call-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .call-bar .call-orb, .call-bar .call-orb::before, .call-bar .call-orb::after { animation: none; }
+  .call-orb { transition: none; }
+}

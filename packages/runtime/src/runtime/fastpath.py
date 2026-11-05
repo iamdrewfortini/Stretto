@@ -44,13 +44,30 @@ def _plural(n, word):
     return f"{n:g} {word}" + ("" if n == 1 else "s")
 
 
+QUESTION = re.compile(r"^(why|what|when|who|how come|did|does|do|is|are|was|were|should|could|can|would)\b")
+MUTATING_FAST = {"log_time", "start_timer", "stop_timer", "create_task"}
+
+
 def match(text):
+    """Questions never trigger actions: "why did the timer start?" must not start one (owner feedback, 2026-11-04)."""
+    hit = _match(text)
+    if hit and hit[0] in MUTATING_FAST and ("?" in text or QUESTION.match(_norm(text))):
+        return None
+    return hit
+
+
+def _match(text):
     """Return (tool_name, args) or None. Pure function: no side effects, so it can be tested and timed in isolation."""
     t = _norm(text)
     if not t or len(t) > 160:
         return None
+    if re.search(r"\b(hang up|end (the )?call|goodbye|bye( bye)?|talk (to you )?later)\b", t):
+        return ("hang_up", {})
     if re.fullmatch(r"(hi|hello|hey|hey there|good (morning|afternoon|evening))( humanflow)?", t):
         return ("greet", {})
+    m = re.search(r"\b(?:open|go to|take me to|switch to)\s+(?:the\s+|my\s+)?(today|focus|tasks|calendar|paths|reports|goals|habits|insights|leaks|privacy|devices|settings)(?:\s+page)?\b", t)
+    if m:
+        return ("open_page", {"page": m.group(1)})
     if re.search(r"\bleak(s|ing|ed)?\b|leak score|how much time (am i|do i|have i) (los|wast)|what should i (change|fix|improve)", t):
         return ("get_leaks", {})
     if re.search(r"how('s| is| was)? (my )?day|\bsummary\b|how am i doing|where did my time go", t):
@@ -93,6 +110,10 @@ def reply(tool, args, result):
     if tool == "list_tasks":
         open_ = [x["title"] for x in result if x["status"] != "done"]
         return "No open tasks." if not open_ else f"{len(open_)} open: " + "; ".join(open_[:3]) + "."
+    if tool == "hang_up":
+        return "Okay, talk soon."
+    if tool == "open_page":
+        return f"Opening {result['navigate']}." if "navigate" in result else "I couldn't open that page."
     if tool == "get_leaks":
         per_day = result["per_day_min"]["total"]
         if not per_day:

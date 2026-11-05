@@ -20,6 +20,7 @@ import habits from './pages/habits.js';
 import calendar from './pages/calendar.js';
 import goals from './pages/goals.js';
 import settings from './pages/settings.js';
+import { mountCallBar } from './ui/call.js';
 import { mode } from './lib/mode.js';
 import { stream } from './lib/events.js';
 import { dur } from './lib/fmt.js';
@@ -115,6 +116,7 @@ const shell = h('div', { class: 'shell' },
     h('button', { class: 'icon-btn', 'aria-label': 'Next day', onclick: () => step(1) }, icon('right'))), h('div', { class: 'grow' }), live, themeBtn),
   main);
 clear(document.getElementById('app')).append(shell); document.getElementById('app').classList.remove('boot');
+mountCallBar(shell);   // the floating call pill lives in the shell, outside the page container
 
 let g = 0;
 addEventListener('keydown', (e) => {

@@ -1,11 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 """VoiceCore: the single agent the person talks to. One turn = the person's words -> Muse Spark with tools (through the
 gateway, role voice.core) -> at most MAX_ROUNDS tool rounds -> a short reply meant to be spoken. Every step is a bus event."""
+import os
 import json, threading, time, uuid
 from datetime import datetime
 
 from runtime import fastpath
-from runtime.tools import SCHEMAS, run_tool
+from runtime.tools import MUTATING, SCHEMAS, run_tool
+
+
+def actions_for(calls):
+    """UI actions the browser should take after a turn: go to a page the agent opened, refresh after any change."""
+    acts = [{"action": "navigate", "page": c["result"]["navigate"]} for c in calls if c["ok"] and isinstance(c.get("result"), dict) and c["result"].get("navigate")]
+    if any(c["ok"] and isinstance(c.get("result"), dict) and c["result"].get("hangup") for c in calls):
+        acts.append({"action": "hangup"})
+    if any(c["ok"] and c["name"] in MUTATING for c in calls):
+        acts.append({"action": "refresh"})
+    return acts
 
 MAX_ROUNDS = 4
 SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant for one person. Your reply is spoken aloud: "
@@ -13,7 +24,32 @@ SYSTEM = ("You are the voice of Humanflow, a private time and focus assistant fo
           "your tools; never invent numbers. When the person states what they did or are doing, log or time it. "
           "If their goal is unclear, ask one short question. Their data is theirs alone. "
           "Act only on the person's latest message: everything earlier in the conversation is already done, so never "
-          "repeat an earlier log, timer or task. A question is not a request to log time.")
+          "repeat an earlier log, timer or task. A question is not a request to log time. "
+          "Never start or stop a timer, log time or create a task unless the person explicitly asks; if you think one would help, ask first. "
+          "When the person describes how the product should work, what is wrong, or an idea, save it with capture; when they want work "
+          "handed to another agent or a local model, write create_job orders and export_jobs. You can open pages with open_page. "
+          "Steer like a Socratic coach: you see measurements the person cannot, so ask one short question at a time that helps them "
+          "notice where their attention is going and choose for themselves; ground every nudge in a measured number from the context; "
+          "when they are drifting or stuck, gently point toward the best-ranked change or their most important open task; never lecture, "
+          "never decide for them, and never give medical or mental-health advice.")
+
+
+def coherence(tools):
+    """How coherent the person's day is, from their own measurements, 0..1. Three equal parts: low leakage, a clear current
+    focus (a running timer or a task in progress) and the focus share of tracked time today. Below the target the agent
+    asks one Socratic question aimed at the weakest part; at or above it, it stays out of the way."""
+    parts = {}
+    try:
+        parts["leakage"] = 1 - tools.t_get_leaks()["leak_score"] / 100
+    except Exception:
+        parts["leakage"] = 0.5
+    doing = any(t["status"] == "doing" for t in tools.t_list_tasks())
+    parts["clear focus"] = 1.0 if (tools.timer or doing) else 0.0
+    summ = tools.t_get_summary("today")
+    total = summ.get("total_min") or 0
+    parts["focus share"] = ((summ.get("by_activity_min") or {}).get("focus", 0) / total) if total else 0.0
+    score = sum(parts.values()) / len(parts)
+    return {"score": round(score, 3), "parts": {k: round(v, 3) for k, v in parts.items()}, "weakest": min(parts, key=parts.get)}
 
 
 class VoiceCore:
@@ -23,10 +59,28 @@ class VoiceCore:
 
     def _context(self):
         s = self.tools.t_get_summary("today")
+        acts = s.get("by_activity_min") or {}
+        top = sorted(acts.items(), key=lambda kv: kv[1] or 0, reverse=True)[:3]
         open_tasks = self.tools.t_list_tasks()
-        open_tasks = [t for t in open_tasks if t["status"] != "done"][:8]
-        return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(s)}. "
-                f"Open tasks: {json.dumps(open_tasks)}")
+        open_tasks = [t for t in open_tasks if t["status"] != "done"][:5]
+        steer = ""
+        try:  # what the agent knows that the person may not: measured leaks and the best-ranked change
+            lk = self.tools.t_get_leaks()
+            best = (lk.get("top_changes") or [None])[0]
+            steer = f" Leak score {lk['leak_score']} (lower is better), leaking {lk['per_day_min']['total']:.0f} min/day."
+            if best:
+                steer += f" Best-ranked change: {best['text']} (+{best['winback_hours_year']:.0f} h/yr for {best['adopt_cost_min']:.0f} min setup)."
+        except Exception:
+            pass
+        c = coherence(self.tools)
+        target = float(os.environ.get("COHERENCE_TARGET", "0.7"))
+        if c["score"] < target:
+            mode = (f" Coherence {c['score']:.2f} is below the target {target:.2f}; weakest part: {c['weakest']}. "
+                    f"Ask ONE short Socratic question aimed at that part.")
+        else:
+            mode = f" Coherence {c['score']:.2f} meets the target {target:.2f}: do not ask questions; confirm briefly and stay out of the way."
+        return (f"Now: {datetime.fromtimestamp(self.clock()).strftime('%A %H:%M')}. Today so far: {json.dumps(dict(top))}. "
+                f"Open tasks: {json.dumps([t['title'] for t in open_tasks])}." + steer + mode)
 
     def turn(self, text):
         with self.lock:  # one person, one conversation: turns are serial
@@ -45,7 +99,7 @@ class VoiceCore:
         reply = fastpath.reply(name, args, result)
         calls = [] if name == "greet" else [{"name": name, "args": json.dumps(args), "ok": ok, "result": result}]
         self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
-        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": None, "path": "fast",
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "actions": actions_for(calls), "model": None, "path": "fast",
                "ms": round((time.perf_counter() - t0) * 1000, 2)}
         self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
         return out
@@ -57,10 +111,12 @@ class VoiceCore:
             out = self._fast(tid, text, t0)
             if out:
                 return out
-        msgs = [{"role": "system", "content": SYSTEM + "\n\n" + self._context()}, *self.history, {"role": "user", "content": text}]
+        hist = self.history[-4:]  # short voice turns: the last 4 messages keep the model fast and cache-hot
+        msgs = [{"role": "system", "content": SYSTEM + "\n\n" + self._context()}, *hist, {"role": "user", "content": text}]
         calls, model, reply = [], None, ""
         for _ in range(MAX_ROUNDS + 1):
-            data, model, _rid = self.gw.complete({"role": "voice.core", "messages": msgs, "tools": SCHEMAS, "tool_choice": "auto"})
+            data, model, _rid = self.gw.complete({"role": "voice.core", "messages": msgs, "tools": SCHEMAS, "tool_choice": "auto",
+                                                  "prompt_cache_key": "humanflow-voice-v1"})
             m = data["choices"][0]["message"]
             tcs = m.get("tool_calls") or []
             if not tcs or len(calls) >= MAX_ROUNDS * 4:
@@ -75,6 +131,6 @@ class VoiceCore:
         if not reply:
             reply = "Done." if calls and all(c["ok"] for c in calls) else "Sorry, I could not finish that."
         self.history = (self.history + [{"role": "user", "content": text}, {"role": "assistant", "content": reply}])[-2 * self.n:]
-        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "model": model, "path": "model", "ms": round((time.perf_counter() - t0) * 1000)}
+        out = {"turn_id": tid, "reply": reply, "tool_calls": calls, "actions": actions_for(calls), "model": model, "path": "model", "ms": round((time.perf_counter() - t0) * 1000)}
         self.bus.emit("core.turn.completed", out, "runtime.core", correlation_id=tid)
         return out

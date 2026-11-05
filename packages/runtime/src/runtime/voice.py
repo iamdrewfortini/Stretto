@@ -9,11 +9,61 @@ asr_connect.
 import asyncio
 import ipaddress
 import json
+import os
 import threading
 from urllib.parse import urlsplit
 
 ASR_MODEL = "muse-voice-transcribe-1.0"
 ACK_TIMEOUT_S = 10.0
+HOLD_S_DEFAULT = 0.7
+FILLERS = {"um", "uh", "er", "like"}
+
+
+def _hold_seconds(hold_s=None):
+    """Stutter-debounce hold: env VOICE_HOLD_S, default 0.7 s. Explicit arg wins (tests)."""
+    if hold_s is not None:
+        return float(hold_s)
+    try:
+        return float(os.environ.get("VOICE_HOLD_S", HOLD_S_DEFAULT))
+    except (TypeError, ValueError):
+        return HOLD_S_DEFAULT
+
+
+def _clean_utterance(text):
+    """Strip leading/trailing fillers (um, uh, er, like, you know) and collapse
+    immediate word repeats ('I I want' -> 'I want'). Mid-sentence words are kept."""
+    toks = text.split()
+
+    def _word(tok):
+        return tok.strip(" ,.;:!?\"'()[]").lower()
+
+    def _is_filler(tok):
+        return _word(tok) in FILLERS
+
+    def _is_you_know(i):
+        return i + 1 < len(toks) and _word(toks[i]) == "you" and _word(toks[i + 1]) == "know"
+
+    while toks:
+        if _is_you_know(0):
+            del toks[0:2]
+        elif _is_filler(toks[0]):
+            del toks[0]
+        else:
+            break
+    while toks:
+        if len(toks) >= 2 and _is_you_know(len(toks) - 2):
+            del toks[-2:]
+        elif _is_filler(toks[-1]):
+            del toks[-1]
+        else:
+            break
+    out = []
+    for tok in toks:
+        norm = _word(tok)
+        if out and norm and norm == _word(out[-1]):
+            continue  # stuttered repeat: keep the first
+        out.append(tok)
+    return " ".join(out)
 
 
 def _is_loopback(host):
@@ -75,7 +125,7 @@ def _handshake(api_key):
             "emitAudioProgress": False}
 
 
-async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000):
+async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000, hold_s=None):
     """One browser voice session. browser_ws speaks {send,recv}; asr_connect()
     returns an awaitable of a connected upstream websocket with the same interface."""
     try:
@@ -96,6 +146,38 @@ async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000)
     lock = asyncio.Lock()  # one sender at a time on the browser socket
     holder = {}
     turns = asyncio.Queue()
+    hold = _hold_seconds(hold_s)
+    pending = []  # stutter debounce: finals joined here until HOLD_S of silence
+    holder["hold_task"] = None
+
+    def _cancel_hold():
+        t = holder.get("hold_task")
+        if t is not None and not t.done():
+            t.cancel()
+        holder["hold_task"] = None
+
+    async def _flush_pending():
+        """Run ONE turn on the joined pending utterance (cleaned), then clear it."""
+        _cancel_hold()
+        if not pending:
+            return
+        joined = _clean_utterance(" ".join(pending))
+        pending.clear()
+        if not joined.strip():
+            return
+        await _send(browser_ws, lock, {"type": "final", "text": joined})
+        bus.emit("voice.utterance.final", {"text": joined}, "runtime.voice")
+        turns.put_nowait(joined)  # worker serialises core.turn calls
+
+    def _schedule_hold():
+        _cancel_hold()
+
+        async def _fire():
+            await asyncio.sleep(hold)
+            holder["hold_task"] = None
+            await _flush_pending()
+
+        holder["hold_task"] = asyncio.create_task(_fire())
 
     async def _open():
         up = await asr_connect()
@@ -133,10 +215,13 @@ async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000)
                 turns.task_done()
                 return
             try:
+                await _send(browser_ws, lock, {"type": "thinking"})
                 res = await asyncio.to_thread(core.turn, text)
                 names = [c.get("name", "") for c in res.get("tool_calls", [])]
                 await _send(browser_ws, lock, {"type": "reply", "text": res.get("reply", ""),
                                                "tools": names, "ms": res.get("ms", 0)})
+                for act in res.get("actions", []):  # the agent acts on the app: open a page, refresh after a change
+                    await _send(browser_ws, lock, dict(act, type="action"))
             except Exception as e:
                 await _send(browser_ws, lock, {"type": "error", "message": f"turn failed: {type(e).__name__}"})
             finally:
@@ -191,19 +276,20 @@ async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000)
             elif kind == "speechStart":
                 bus.emit("voice.speech.start", {"turn_id": ev.get("turnId"),
                                                 "audio_ms": ev.get("audioProcessedMs")}, "runtime.voice")
+                _cancel_hold()  # person is still speaking: keep waiting
             elif kind == "transcript":
                 text = ev.get("transcript", "")
                 if text:
                     await _send(browser_ws, lock, {"type": "partial", "text": text})
+                    _cancel_hold()  # fresh speech: keep waiting
             elif kind == "speechEnd":
                 pass
             elif kind == "speechComplete":
                 text = ev.get("transcript", "") or ""
                 if not text.strip():
                     continue  # ignore empty/whitespace finals
-                await _send(browser_ws, lock, {"type": "final", "text": text})
-                bus.emit("voice.utterance.final", {"text": text}, "runtime.voice")
-                turns.put_nowait(text)  # worker serialises core.turn calls
+                pending.append(text.strip())
+                _schedule_hold()  # one turn when HOLD_S of silence follows
             elif kind == "audioProgress":
                 pass
             elif kind == "error":
@@ -229,6 +315,12 @@ async def bridge(browser_ws, core, bus, asr_connect, api_key, sample_rate=16000)
         to_up.cancel()
         from_up.cancel()
         await asyncio.gather(to_up, from_up, return_exceptions=True)
+        ht = holder.get("hold_task")
+        if ht is not None and not ht.done():
+            ht.cancel()
+            await asyncio.gather(ht, return_exceptions=True)
+            holder["hold_task"] = None
+        await _flush_pending()  # a stop during the hold still speaks what was heard
         try:
             await holder["up"].close()
         except Exception:

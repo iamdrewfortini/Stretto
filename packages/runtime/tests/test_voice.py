@@ -128,7 +128,7 @@ class BridgeT(unittest.IsolatedAsyncioTestCase):
         await wait_for_type(browser, "final")
         await browser.inbox.put(json.dumps({"type": "stop"}))
         await asyncio.wait_for(task, 15)
-        self.assertEqual(browser.types(), ["ready", "final", "reply"])
+        self.assertEqual(browser.types(), ["ready", "final", "thinking", "reply"])
         self.assertEqual(core.texts, ["hi"])
         finals = [e for e in bus.since(0)[0] if e["type"] == "voice.utterance.final"]
         self.assertEqual([e["data"]["text"] for e in finals], ["hi"])
@@ -150,7 +150,7 @@ class BridgeT(unittest.IsolatedAsyncioTestCase):
         await browser.inbox.put(json.dumps({"type": "stop"}))
         await asyncio.wait_for(task, 15)
         self.assertEqual(len(calls), 2)
-        self.assertEqual(browser.types(), ["ready", "error", "final", "reply"])
+        self.assertEqual(browser.types(), ["ready", "error", "final", "thinking", "reply"])
         self.assertEqual(core.texts, ["again"])
 
     async def test_full_loop_against_fake_asr_server(self):
@@ -210,7 +210,7 @@ class BridgeT(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(seen["audio"], 3200)
 
         # browser hears ready, partial, final, reply in order
-        self.assertEqual(browser.types(), ["ready", "partial", "final", "reply"])
+        self.assertEqual(browser.types(), ["ready", "partial", "final", "thinking", "reply"])
         self.assertEqual([m["text"] for m in browser.by_type("partial")], ["hello"])
         self.assertEqual([m["text"] for m in browser.by_type("final")], ["hello there"])
         replies = browser.by_type("reply")
