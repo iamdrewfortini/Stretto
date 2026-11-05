@@ -1,6 +1,6 @@
-# Contributing to Humanflow
+# Contributing to Stretto and Humanflow
 
-Thanks for helping. Humanflow is small on purpose: standard-library Python, one third-party dependency in the runtime (`websockets`), and Meta models reached through one local gateway.
+Thanks for helping. Stretto (apps/stretto) is the app; Humanflow (packages/runtime) is its backend. Both are small on purpose: standard-library Python, one third-party dependency in the runtime (`websockets`), and Meta models reached through one local gateway.
 
 ## Ground rules
 

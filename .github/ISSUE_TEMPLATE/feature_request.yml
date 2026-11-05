@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest a way Humanflow could save more time or attention
+description: Suggest a way Stretto could save more time or attention
 labels: [enhancement]
 body:
   - type: textarea
