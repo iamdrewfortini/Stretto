@@ -107,8 +107,11 @@ class Tools:
         start = datetime.fromtimestamp(self.clock()).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() if range == "today" else 0
         L = PersonalLedger(self.owner)
         for e in self.events:
+            end = e["t"] + e.get("duration_s", 0.0)
             if e["t"] >= start:
                 L.add(e)
+            elif end > start:  # a block that crosses midnight counts only its part inside the range
+                L.add(dict(e, t=start, duration_s=end - start))
         s = L.summary(self.owner)
         mins = lambda x: None if x is None else round(x / 60, 1)
         out = {"range": range, "total_min": mins(s["total_s"]), "by_activity_min": {k: mins(v) for k, v in s["by_category"].items() if v},

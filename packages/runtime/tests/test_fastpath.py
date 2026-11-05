@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import statistics, time, unittest
+from datetime import datetime
 
 from runtime.bus import EventBus
 from runtime.core import VoiceCore
@@ -68,9 +69,18 @@ class Latency(unittest.TestCase):
         self.assertEqual(out["path"], "model"); self.assertEqual(gw.calls, 1)
 
     def test_fast_reply_numbers_come_from_the_ledger(self):
-        bus = EventBus(); core = VoiceCore(NoModel(), Tools(bus), bus)
+        noon = datetime(2026, 11, 4, 12, 0).timestamp()  # fixed local noon: the result must not depend on when the test runs
+        bus = EventBus(); core = VoiceCore(NoModel(), Tools(bus, clock=lambda: noon), bus, clock=lambda: noon)
         core.turn("I was in meetings for 40 minutes"); core.turn("log 25 minutes of focus")
         self.assertEqual(core.turn("how's my day")["reply"], "Today: 40 minutes meeting, 25 minutes focus.")
+
+
+    def test_block_crossing_midnight_counts_only_its_part_today(self):
+        just_after = datetime(2026, 11, 5, 0, 6).timestamp()
+        bus = EventBus(); tools = Tools(bus, clock=lambda: just_after)
+        tools.t_log_time("meeting", 40)  # 23:26 to 00:06: six minutes fall today
+        self.assertEqual(tools.t_get_summary("today")["by_activity_min"], {"meeting": 6.0})
+        self.assertEqual(tools.t_get_summary("all")["by_activity_min"], {"meeting": 40.0})
 
 
 if __name__ == "__main__":
