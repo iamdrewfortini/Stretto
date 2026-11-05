@@ -13,7 +13,7 @@ import { clock } from '../lib/fmt.js';
 
 export default {
   id: 'today', key: 't', dated: true, title: 'Today', icon: 'sun',
-  load: async (ctx) => { const [d, att] = await Promise.all([api.get('/api/day?date=' + ctx.date), api.get('/api/attention?date=' + ctx.date).catch(() => null)]); d.attention = att; return d; },
+  load: async (ctx) => { const [d, att, ch] = await Promise.all([api.get('/api/day?date=' + ctx.date), api.get('/api/attention?date=' + ctx.date).catch(() => null), api.get('/api/challenges?days=7').catch(() => null)]); d.attention = att; d.pins = ch ? ch.pins || [] : []; return d; },
   view(d, ctx) {
     const sm = d.summary, tight = sm.total_s ? Math.max(0, Math.round(100 * (1 - d.loss_s / sm.total_s))) : null;
     const head = h('div', { class: 'page-head' }, h('div', { class: 'grow' }, h('h1', {}, ctx.isToday ? 'Today' : nice(ctx.date)), h('p', {}, sm.total_s ? `${dur(sm.total_s)} active across ${d.blocks.length} blocks` : nice(ctx.date))),
@@ -60,6 +60,7 @@ export default {
       : sm.focus_s < d.goal_s
         ? h('section', { class: 'card nextstep', 'aria-labelledby': 'ns-h' }, h('b', { id: 'ns-h' }, 'Next step'), h('span', { class: 'grow' }, `${dur(d.goal_s - sm.focus_s)} to today's goal. One 25-minute block closes most of it.`), h('button', { class: 'btn primary', onclick: () => { location.hash = '#/focus'; } }, 'Start 25-min focus →'))
         : h('section', { class: 'card nextstep', 'aria-labelledby': 'ns-h' }, h('b', { id: 'ns-h' }, 'Next step'), h('span', { class: 'grow' }, 'Goal met and no leaks measured. See what Insights suggests for tomorrow.'), h('button', { class: 'btn primary', onclick: () => { location.hash = `#/insights?d=${ctx.date}`; } }, 'Open Insights →'));
-    return h('div', { class: 'page' }, head, next, hero, harm, h('div', { class: 'grid g-main' }, spectrum, goal), h('div', { class: 'grid g-main' }, loss, where));
+    const pinned = (d.pins || []).filter((x) => x.status === 'active').map((x) => h('section', { class: 'card nextstep', 'aria-label': 'Pinned challenge' }, h('b', {}, '📌 Pinned challenge'), h('span', { class: 'grow' }, `${x.fix} (+${x.xp} XP on your first clean day)`), h('button', { class: 'btn', onclick: () => { location.hash = '#/paths'; } }, 'Open Challenges →')));
+    return h('div', { class: 'page' }, head, next, ...pinned, hero, harm, h('div', { class: 'grid g-main' }, spectrum, goal), h('div', { class: 'grid g-main' }, loss, where));
   },
 };

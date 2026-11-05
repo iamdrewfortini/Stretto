@@ -167,7 +167,7 @@ class Api:
         summ = analyze.summary(bl)
         fbd = self.focus_history(iso, supplied={iso: daycache.summarize(bl, loss=loss)})
         goal = self.goal_s()
-        total_xp = sum(gamify.xp_for_day(v, goal) for v in fbd.values())
+        total_xp = sum(gamify.xp_for_day(v, goal) for v in fbd.values()) + challenges.bonus_xp(self.s)
         longest = max([b["seconds"] for b in bl if b["category"] in segment.FOCUS] or [0])
         st = gamify.streak(fbd, iso, goal)
         return dict(date=iso, goal_s=goal, summary=self.summary_out(summ, loss, t0, raw), loss_s=loss, findings=found, transitions=analyze.transitions(bl),
@@ -415,7 +415,17 @@ class Handler(BaseHTTPRequestHandler):
             n = max(1, min(int(q.get("days", 7)), 30))
             rng = a.range(n)
             days = [a.day(x["date"]) for x in rng["days"] if x["total_s"] > 0]
-            return self._send(200, challenges.group(days))
+            done = challenges.check_completion(s, days)
+            out = challenges.group(days)
+            out["pins"] = challenges.pins(s)
+            out["just_completed"] = done
+            out["bonus_xp"] = challenges.bonus_xp(s)
+            return self._send(200, out)
+        if (method, path) == ("POST", "/api/challenges/pin"):
+            return self._send(200, challenges.pin(s, body.get("kind", ""), body.get("places"), body.get("fix", ""),
+                                                  int(body.get("xp_reward", 10)), dt.date.today().isoformat()))
+        if (method, path) == ("POST", "/api/challenges/unpin"):
+            return self._send(200, challenges.unpin(s, body.get("id")))
         if (method, path) == ("GET", "/api/coach/plan"):
             rng = a.range(30)
             act = [x for x in rng["days"] if x["total_s"] > 0] or rng["days"]

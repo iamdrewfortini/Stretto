@@ -3,6 +3,8 @@
 (kind, places), priced as minutes lost per day, compounded over 7/30 days, and turned into one challenge each —
 the simplest solution that removes the pattern, asked Socratically, with an XP reward priced in minutes
 reclaimed (the valued metric: time). Pure functions of day objects; no model."""
+import json
+
 from .voicetree import ASK
 
 FIX = {
@@ -19,6 +21,57 @@ def tier(minutes_per_day):
         if minutes_per_day >= lo:
             return name
     return "Warm-up"
+
+
+def bind(store):
+    store.x("CREATE TABLE IF NOT EXISTS pinned_challenges(id INTEGER PRIMARY KEY, kind TEXT, places TEXT, fix TEXT, xp INTEGER, pinned_date TEXT, status TEXT, completed_date TEXT)")
+    store.x("CREATE TABLE IF NOT EXISTS xp_awards(id INTEGER PRIMARY KEY, pin_id INTEGER, xp INTEGER, date TEXT, UNIQUE(pin_id))")
+
+
+def pin(store, kind, places, fix, xp, today):
+    bind(store)
+    places = [str(x)[:60] for x in (places or [])[:4]]
+    rows = store.q("SELECT id FROM pinned_challenges WHERE kind=? AND places=? AND status='active'", (kind, json.dumps(places)))
+    if rows:
+        return dict(id=rows[0]["id"], pinned=True, already=True)
+    cur = store.ux("INSERT INTO pinned_challenges(kind,places,fix,xp,pinned_date,status) VALUES(?,?,?,?,?,'active')",
+                   (str(kind)[:30], json.dumps(places), str(fix)[:280], int(xp), today))
+    return dict(id=cur, pinned=True, already=False)
+
+
+def unpin(store, pin_id):
+    bind(store)
+    store.x("UPDATE pinned_challenges SET status='dropped' WHERE id=?", (int(pin_id),))
+    return dict(id=int(pin_id), pinned=False)
+
+
+def pins(store):
+    bind(store)
+    return [dict(r, places=json.loads(r["places"])) for r in store.q("SELECT * FROM pinned_challenges ORDER BY id")]
+
+
+def check_completion(store, days):
+    """A pin completes on the first measured day AFTER its pin date with no matching finding. Awards XP once."""
+    bind(store)
+    done = []
+    for p in pins(store):
+        if p["status"] != "active":
+            continue
+        for d in days:
+            if d["date"] <= p["pinned_date"] or not d["summary"].get("total_s", 1):
+                continue
+            hit = any(f["kind"] == p["kind"] and list(f["where"][:4]) == p["places"] for f in d["findings"])
+            if not hit:
+                store.x("UPDATE pinned_challenges SET status='completed', completed_date=? WHERE id=?", (d["date"], p["id"]))
+                store.x("INSERT OR IGNORE INTO xp_awards(pin_id,xp,date) VALUES(?,?,?)", (p["id"], p["xp"], d["date"]))
+                done.append(p["id"])
+                break
+    return done
+
+
+def bonus_xp(store):
+    bind(store)
+    return int(store.q("SELECT COALESCE(SUM(xp),0) AS x FROM xp_awards")[0]["x"])
 
 
 def group(days):

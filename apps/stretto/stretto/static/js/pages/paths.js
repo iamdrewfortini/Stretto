@@ -20,16 +20,21 @@ function cumulative(days) {
     h('p', { class: 'faint' }, 'Every day the pattern repeats, this line climbs. A challenge is priced by how much of the climb it stops.'));
 }
 
-function challengeCard(c) {
+function challengeCard(c, pins = []) {
+  const pin = pins.find((p) => p.status === 'active' && p.kind === c.kind && JSON.stringify(p.places) === JSON.stringify(c.places.slice(0, 4)));
+  const donePin = pins.find((p) => p.status === 'completed' && p.kind === c.kind && JSON.stringify(p.places) === JSON.stringify(c.places.slice(0, 4)));
   const accept = async (e) => { const b = e.currentTarget; b.disabled = true;
-    try { await api.post('/api/tasks', { title: c.fix, est_min: c.minutes_per_day }); toast(`Challenge accepted: +${c.xp_reward} XP when a day comes back clean`, 'good'); b.textContent = 'Accepted — on Tasks ✓'; }
+    try { await api.post('/api/challenges/pin', { kind: c.kind, places: c.places, fix: c.fix, xp_reward: c.xp_reward }); await api.post('/api/tasks', { title: c.fix, est_min: c.minutes_per_day }); toast(`Pinned. +${c.xp_reward} XP lands automatically on your first clean day`, 'good'); b.textContent = '📌 Pinned — on Tasks'; }
     catch (err) { b.disabled = false; toast(err.message, 'bad'); } };
+  const unpin = async (e) => { const b = e.currentTarget; b.disabled = true;
+    try { await api.post('/api/challenges/unpin', { id: pin.id }); toast('Unpinned'); b.textContent = 'Unpinned'; } catch (err) { b.disabled = false; toast(err.message, 'bad'); } };
   return h('section', { class: 'card', 'aria-labelledby': `ch-${c.kind}` },
     h('header', {}, h('h3', { id: `ch-${c.kind}` }, `${KIND[c.kind] || c.kind}: ${c.places.slice(0, 3).join(' ↔ ')}`), pill(c.tier, c.tier === 'Stretch' ? 'bad' : 'info')),
     h('p', { class: 'num' }, `${dur(c.minutes_per_day * 60)} lost a day · ${dur(c.compounded.days30 * 60)} in 30 days if nothing changes`),
     h('p', {}, h('b', {}, 'Simplest fix: '), c.fix),
     h('p', { class: 'muted' }, c.ask),
-    h('div', { class: 'row wrap' }, h('button', { class: 'btn primary', onclick: accept }, `Accept — earn ${c.xp_reward} XP`), h('small', { class: 'faint' }, `seen on ${c.days_seen} day${c.days_seen === 1 ? '' : 's'} · reward priced in minutes reclaimed`)));
+    donePin ? h('p', {}, pill(`Completed ${donePin.completed_date} · +${donePin.xp} XP awarded`, 'good')) : null,
+    h('div', { class: 'row wrap' }, pin ? h('button', { class: 'btn', onclick: unpin }, '📌 Pinned — waiting for a clean day (unpin)') : h('button', { class: 'btn primary', 'data-next': '', onclick: accept }, `📌 Pin it — earn ${c.xp_reward} XP`), h('small', { class: 'faint' }, `seen on ${c.days_seen} day${c.days_seen === 1 ? '' : 's'} · reward priced in minutes reclaimed`)));
 }
 
 export default {
@@ -48,6 +53,6 @@ export default {
     const evidence = h('details', { class: 'card' }, h('summary', {}, 'Evidence: routes, field and every move'), h('div', { class: 'stack' }, graph, picks, table));
     return h('div', { class: 'page' }, head, cumulative(ch.days),
       h('p', { class: 'muted' }, `Total: ${dur(ch.total.per_day * 60)} a day · ${dur(ch.total.days30 * 60)} compounded over 30 days.`),
-      ...ch.challenges.map(challengeCard), evidence);
+      ...ch.challenges.map((c) => challengeCard(c, ch.pins || [])), evidence);
   },
 };

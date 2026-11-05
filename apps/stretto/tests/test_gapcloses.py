@@ -121,6 +121,21 @@ class ChallengesCoach(unittest.TestCase):
         self.assertIn("rank", gamify.level(5000))
 
 
+class Pins(unittest.TestCase):
+    def test_pin_completes_on_clean_day_and_awards_once(self):
+        s = Store(":memory:")
+        r = challenges.pin(s, "detour", ["slack"], "fix it", 14, "2026-11-02")
+        self.assertTrue(r["pinned"])
+        self.assertTrue(challenges.pin(s, "detour", ["slack"], "fix it", 14, "2026-11-02")["already"])
+        dirty = dict(fake_day(), date="2026-11-03")
+        clean = dict(fake_day(), date="2026-11-04", findings=[])
+        self.assertEqual(challenges.check_completion(s, [dirty]), [])
+        self.assertEqual(challenges.check_completion(s, [clean]), [r["id"]])
+        self.assertEqual(challenges.check_completion(s, [clean]), [])
+        self.assertEqual(challenges.bonus_xp(s), 14)
+        self.assertEqual(challenges.pins(s)[0]["status"], "completed")
+
+
 class StaticCaching(unittest.TestCase):
     def test_asset_etag_roundtrip(self):
         import urllib.request, urllib.error
