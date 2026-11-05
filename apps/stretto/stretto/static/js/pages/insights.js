@@ -38,8 +38,8 @@ export default {
           h('button', { class: 'btn sm', onclick: (e) => gen(e.currentTarget, true) }, 'Ask again')));
     } else {
       const [t, b] = REASON[ins.reason] || ['Not available', ins.reason || ''];
-      const act = ins.reason === 'consent' ? h('button', { class: 'btn primary', onclick: () => go('privacy', { f: 'meta-insights' }) }, 'Review the notice')
-        : ins.reason === 'not_generated_yet' ? h('button', { class: 'btn primary', onclick: (e) => gen(e.currentTarget) }, 'Generate insights') : null;
+      const act = ins.reason === 'consent' ? h('button', { class: 'btn primary', 'data-next': '', onclick: () => go('privacy', { f: 'meta-insights' }) }, 'Review the notice')
+        : ins.reason === 'not_generated_yet' ? h('button', { class: 'btn primary', 'data-next': '', onclick: (e) => gen(e.currentTarget) }, 'Generate insights') : null;
       main = emptyState(t, b, act); main.classList.add('hero', 'raised');
     }
     const meter = st ? Math.min(1, (st.spent_today_usd || 0) / Math.max(0.0001, st.budget_usd || 0)) : 0;

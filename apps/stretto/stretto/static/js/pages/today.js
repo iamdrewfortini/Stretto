@@ -53,6 +53,13 @@ export default {
     const loss = h('section', { class: 'card', 'aria-labelledby': 'loss-h' }, h('header', {}, h('h3', { id: 'loss-h' }, 'Where you lost time'), h('small', {}, `${d.findings.length} findings, biggest first`)),
       d.findings.length ? list : h('p', { class: 'muted' }, 'Nothing to fix here. Focus stretches were whole.'));
     goal.append(kpis);
-    return h('div', { class: 'page' }, head, hero, harm, h('div', { class: 'grid g-main' }, spectrum, goal), h('div', { class: 'grid g-main' }, loss, where));
+    // One clear next step, always first: the biggest measured leak, or the next focus block, or Insights.
+    const KIND = { detour: 'detour', ping_pong: 'ping-pong', repeated_path: 'repeated route', fragmented_focus: 'fragmented focus' };
+    const next = d.findings.length
+      ? h('section', { class: 'card nextstep', 'aria-labelledby': 'ns-h' }, h('b', { id: 'ns-h' }, 'Next step'), h('span', { class: 'grow' }, `Tackle the biggest leak: ${dur(d.findings[0].seconds)} to a ${KIND[d.findings[0].kind] || 'pattern'} (${d.findings[0].where.slice(0, 2).join(' ↔ ')})`), h('button', { class: 'btn primary', onclick: () => { location.hash = `#/paths?d=${ctx.date}&f=0`; } }, 'See route →'))
+      : sm.focus_s < d.goal_s
+        ? h('section', { class: 'card nextstep', 'aria-labelledby': 'ns-h' }, h('b', { id: 'ns-h' }, 'Next step'), h('span', { class: 'grow' }, `${dur(d.goal_s - sm.focus_s)} to today's goal. One 25-minute block closes most of it.`), h('button', { class: 'btn primary', onclick: () => { location.hash = '#/focus'; } }, 'Start 25-min focus →'))
+        : h('section', { class: 'card nextstep', 'aria-labelledby': 'ns-h' }, h('b', { id: 'ns-h' }, 'Next step'), h('span', { class: 'grow' }, 'Goal met and no leaks measured. See what Insights suggests for tomorrow.'), h('button', { class: 'btn primary', onclick: () => { location.hash = `#/insights?d=${ctx.date}`; } }, 'Open Insights →'));
+    return h('div', { class: 'page' }, head, next, hero, harm, h('div', { class: 'grid g-main' }, spectrum, goal), h('div', { class: 'grid g-main' }, loss, where));
   },
 };

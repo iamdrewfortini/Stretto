@@ -40,7 +40,7 @@ export default {
       open.map((t) => h('option', { value: t.id, selected: t.id === taskId ? true : null }, t.title)));
     pick.addEventListener('change', () => { taskId = pick.value ? Number(pick.value) : null; });
     const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Session length' }, LENGTHS.map((m) => h('button', { 'aria-pressed': String(m === len), onclick: (e) => { len = m; localStorage.setItem('stretto.len', m); seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); paint(); } }, `${m} min`)));
-    const startBtn = h('button', { class: 'btn primary fbtn', onclick: () => start('focus') }, icon('play', 16), 'Start focus');
+    const startBtn = h('button', { class: 'btn primary fbtn', 'data-next': '', onclick: () => start('focus') }, icon('play', 16), 'Start focus');
     const breakBtn = h('button', { class: 'btn fbtn', onclick: () => start('break') }, 'Break');
     const stopBtn = h('button', { class: 'btn fbtn', onclick: stop }, icon('stop', 16), 'Stop');
     const controls = h('div', { class: 'fctl' });

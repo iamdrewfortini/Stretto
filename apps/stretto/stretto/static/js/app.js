@@ -21,6 +21,7 @@ import calendar from './pages/calendar.js';
 import goals from './pages/goals.js';
 import settings from './pages/settings.js';
 import { mountCallBar } from './ui/call.js';
+import { guideBar, paintGuide, markSeen } from './ui/guide.js';
 import { mode } from './lib/mode.js';
 import { stream } from './lib/events.js';
 import { dur } from './lib/fmt.js';
@@ -57,8 +58,17 @@ function swap(build) {
   else put();
 }
 
+// Ramped load bar: eased 0→85% while data is in flight, 100% on arrival, then out. One signal, always in the same place.
+const loadbar = h('div', { class: 'loadbar', role: 'progressbar', 'aria-label': 'Loading', 'aria-valuemin': '0', 'aria-valuemax': '100', hidden: true }, h('i', {}), h('span', { class: 'num' }, '0%'));
+let rampT = 0, rampV = 0;
+function loadStart() { if (RM.matches) return; clearInterval(rampT); rampV = 0; loadbar.hidden = false; loadbar.setAttribute('aria-valuenow', '0');
+  const t0 = Date.now(); rampT = setInterval(() => { const k = Math.min(1, (Date.now() - t0) / 900); rampV = Math.round(85 * (1 - Math.pow(1 - k, 3))); paintRamp(); if (k >= 1) clearInterval(rampT); }, 50); }
+function paintRamp() { loadbar.firstChild.style.setProperty('--f', String(rampV / 100)); loadbar.lastChild.textContent = `${rampV}%`; loadbar.setAttribute('aria-valuenow', String(rampV)); }
+function loadDone(ms) { clearInterval(rampT); rampV = 100; paintRamp(); live.title = `Last load ${ms} ms`; setTimeout(() => { loadbar.hidden = true; }, 220); }
+
 async function show(silent = false) {
   const my = ++seq, p = PAGES.find((x) => x.id === page()), c = ctx(), key = `${p.id}|${c.date}`;
+  const tLoad = performance.now(); if (!silent && !cache.has(key)) loadStart();
   document.title = `${p.title} · Stretto`;
   document.querySelectorAll('.nav a').forEach((a) => (a.getAttribute('href') === `#/${p.id}${location.hash.includes('?') ? '' : ''}` || a.dataset.id === p.id ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   dateLabel.textContent = c.isToday ? 'Today' : nice(c.date).split(',').slice(-1)[0].trim();
@@ -67,14 +77,18 @@ async function show(silent = false) {
   try {
     const data = await p.load(c);
     if (my !== seq) return;
+    loadDone(Math.round(performance.now() - tLoad));
     online = true; lastOk = Date.now(); setLive();
     const prev = cache.get(key);
     cache.set(key, { data });
+    markSeen(p.id); if (mode.timer) markSeen('focus-started');
+    paintGuide(p.id).catch(() => {});
     if (!prev || JSON.stringify(prev.data) !== JSON.stringify(data)) {   // update in place only when something changed
       const y = scrollY; swap(() => { const v = p.view(data, c); if (silent || prev) v.classList.add('quiet'); return v; }); if (silent) scrollTo(0, y);
     }
   } catch (e) {
     if (my !== seq) return;
+    loadDone(Math.round(performance.now() - tLoad));
     online = !(e instanceof TypeError); setLive();
     if (!cache.has(key)) clear(main).append(errorState(online ? e.message : 'Stretto can’t reach its local service. Is it still running?', () => show()));
   }
@@ -122,7 +136,7 @@ const shell = h('div', { class: 'shell' },
   h('header', { class: 'top' }, session, datePicker = h('div', { class: 'row' }, h('button', { class: 'icon-btn', 'aria-label': 'Previous day', onclick: () => step(-1) }, icon('left')), dateLabel,
     h('button', { class: 'icon-btn', 'aria-label': 'Next day', onclick: () => step(1) }, icon('right'))), h('div', { class: 'grow' }), live, themeBtn),
   main);
-clear(document.getElementById('app')).append(shell); document.getElementById('app').classList.remove('boot');
+clear(document.getElementById('app')).append(loadbar, shell, guideBar); document.getElementById('app').classList.remove('boot');
 mountCallBar(shell);   // the floating call pill lives in the shell, outside the page container
 
 let g = 0;

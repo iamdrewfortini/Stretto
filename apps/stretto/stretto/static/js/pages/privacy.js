@@ -50,7 +50,7 @@ export default {
     const bTyped = h('input', { class: 'input', placeholder: BULK, autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', 'aria-label': `Type exactly: ${BULK}`, onpaste: (e) => { e.preventDefault(); toast('Please type the phrase yourself'); } });
     const pending = d.notices.filter((n) => !d.st.families[n.family].active);
     const boxes = pending.map((n) => { const c = h('input', { type: 'checkbox', 'aria-label': n.title }); return { fam: n.family, box: c, row: h('label', { class: 'row' }, c, h('span', {}, n.title)) }; });
-    const bBtn = h('button', { class: 'btn primary' }, 'Accept selected');
+    const bBtn = h('button', { class: 'btn primary', 'data-next': '' }, 'Accept selected');
     bBtn.addEventListener('click', async () => { const fams = boxes.filter((b) => b.box.checked).map((b) => b.fam); if (!bName.value.trim()) { bName.focus(); toast('Add your name first'); return; } if (!fams.length) { toast('Tick at least one family'); return; }
       try { await api.post('/api/consent/bulk', { device: 'local', families: fams, granted_by: bName.value.trim(), typed: bTyped.value.trim() }); localStorage.setItem('stretto.name', bName.value.trim()); toast(`Accepted ${fams.length} ${fams.length === 1 ? 'notice' : 'notices'}`); location.reload(); } catch (e) { toast(e.message, 'bad'); } });
     const bulk = h('section', { class: 'card', 'aria-labelledby': 'pv-bulk-h' }, h('header', {}, h('h3', { id: 'pv-bulk-h' }, 'Consent — one form'), pill('single form', 'info')),

@@ -5,4 +5,6 @@ async function call(method, path, body) {
   if (!res.ok) throw new Error(data.error || `request failed (${res.status})`);
   return data;
 }
-export const api = { get: (p) => call('GET', p), post: (p, b = {}) => call('POST', p, b) };
+const inflight = new Map();   // identical GETs in the same tick share one request: pages asking together never pay twice
+function get(p) { const hit = inflight.get(p); if (hit) return hit; const q = call('GET', p).finally(() => { if (inflight.get(p) === q) inflight.delete(p); }); inflight.set(p, q); return q; }
+export const api = { get, post: (p, b = {}) => call('POST', p, b) };

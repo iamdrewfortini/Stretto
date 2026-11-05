@@ -129,6 +129,29 @@ html.modal .shell { transform: scale(.985); filter: saturate(.9); }
 .skeleton { background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%); background-size: 300% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: var(--r2); }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 .skeleton-page { opacity: 0; animation: fade 200ms linear 300ms forwards; }   /* waits 300 ms: fast loads never flash a skeleton */
+.loadbar { position: fixed; inset: 0 0 auto 0; height: 22px; z-index: 120; display: flex; align-items: center; gap: 8px; padding: 0 10px; pointer-events: none; }
+.loadbar i { display: block; height: 3px; flex: none; width: calc(var(--f, 0) * 100%); max-width: 100%; background: var(--tonic); border-radius: 2px; transition: width 120ms linear; }
+.loadbar span { font-size: var(--fs-cap); color: var(--muted); }
+.loadbar[hidden] { display: none; }
+.nextstep { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.nextstep b { color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } .loadbar i { transition: none; } }
+.guide { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 110; display: flex; align-items: center; gap: var(--s3);
+  max-width: min(860px, calc(100vw - 24px)); padding: 8px 10px 8px 14px; background: var(--material-strong); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 0.5px solid var(--line-2); border-radius: 999px; box-shadow: var(--elev-2); }
+.guide[hidden] { display: none; }
+.guide-track { display: flex; align-items: center; gap: 6px; flex: none; }
+.guide-dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: var(--muted); background: var(--surface-2); border: 0.5px solid var(--line); }
+.guide-dot.done { background: var(--tonic); color: #fff; border-color: transparent; }
+.guide-dot.now { background: var(--text); color: var(--surface); border-color: transparent; animation: guidepulse 1.8s var(--ease) infinite; }
+.guide-txt { display: grid; line-height: 1.25; min-width: 0; }
+.guide-hint { color: var(--muted); font-size: var(--fs-cap); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+.guide-target { animation: targetpulse 1.6s var(--ease) infinite; }
+@keyframes guidepulse { 0%, 100% { box-shadow: 0 0 0 0 var(--tonic-soft); } 50% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes targetpulse { 0%, 100% { box-shadow: 0 0 0 0 var(--tonic-soft); } 50% { box-shadow: 0 0 0 7px transparent; } }
+@media (prefers-reduced-motion: reduce) { .guide-dot.now, .guide-target { animation: none; outline: 2px solid var(--tonic); outline-offset: 2px; } }
+@media (max-width: 700px) { .guide-hint { display: none; } .guide { bottom: 8px; } }
+body { padding-bottom: 64px; }
 .empty { display: grid; justify-items: center; gap: var(--s3); padding: var(--s7) var(--s5); text-align: center; color: var(--muted); }
 .empty h3 { color: var(--text); }
 .err { border-color: var(--bad); }
