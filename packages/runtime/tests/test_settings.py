@@ -126,5 +126,59 @@ class SettingsHttp(unittest.TestCase):
                 srv.shutdown()
 
 
+class KeylessStart(unittest.TestCase):
+    def test_model_call_without_key_points_at_settings(self):
+        import urllib.error
+
+        from runtime.gateway import Gateway, Upstream
+
+        reg_path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                                "docs", "spec", "models.registry.json")
+        from runtime.bus import EventBus
+        from runtime.registry import Registry
+        gw = Gateway(Registry.load(reg_path),
+                     Upstream("https://api.meta.ai/v1", "", {"api.meta.ai"}),
+                     EventBus(), sleep=lambda s: None)
+        with self.assertRaises(Exception) as cm:
+            gw.complete({"role": "voice.core",
+                         "messages": [{"role": "user", "content": "hi"}]})
+        self.assertIn("/settings", str(cm.exception))
+        self.assertEqual(getattr(cm.exception, "status", None), 503)
+
+    def test_settings_key_post_enables_model_without_restart(self):
+        import io
+        import threading
+        import urllib.request
+        from http.server import ThreadingHTTPServer
+
+        from runtime.bus import EventBus
+        from runtime.gateway import Gateway, Upstream, make_handler
+        from runtime.registry import Registry
+
+        reg_path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                                "docs", "spec", "models.registry.json")
+        with tempfile.TemporaryDirectory() as tmp:
+            envp = os.path.join(tmp, "runtime.env")
+            bus = EventBus()
+            up = Upstream("https://api.meta.ai/v1", "", {"api.meta.ai"})
+            gw = Gateway(Registry.load(reg_path), up, bus,
+                         sleep=lambda s: None)
+            srv = ThreadingHTTPServer(
+                ("127.0.0.1", 0), make_handler(
+                    gw, bus, gw.reg, env={"HUMANFLOW_ENV": envp,
+                                          "SENSORS_CONSENT": os.path.join(tmp, "c.json")}))
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            base = f"http://127.0.0.1:{srv.server_address[1]}"
+            try:
+                req = urllib.request.Request(
+                    base + "/v1/settings/key",
+                    data=json.dumps({"api_key": "z" * 24}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                json.loads(urllib.request.urlopen(req).read())
+                self.assertEqual(up.key, "z" * 24)  # live, no restart
+            finally:
+                srv.shutdown()
+
+
 if __name__ == "__main__":
     unittest.main()

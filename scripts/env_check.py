@@ -41,6 +41,9 @@ def git(*a):
 
 def main():
     quiet = "--quiet" in sys.argv
+    # The gateway may start keyless (the key is then added in the
+    # GUI); only that launch path tolerates a missing secret.
+    allow_missing = "--allow-missing-key" in sys.argv
     res = []
     ok = lambda name, cond, detail="": res.append((name, bool(cond), detail))
 
@@ -68,7 +71,8 @@ def main():
     for k in sorted(SECRETS):
         v = env.get(k, "")
         fp = hashlib.sha256(v.encode()).hexdigest()[:8] if v else "-"
-        ok(f"secret.{k}.present", len(v) >= 20, f"len={len(v)} sha256:{fp}")
+        ok(f"secret.{k}.present", len(v) >= 20 or allow_missing,
+           f"len={len(v)} sha256:{fp}" + (" (missing: set it in /settings)" if not v and allow_missing else ""))
         # pattern goes through stdin, never argv, so it cannot show up in `ps`
         leaked = subprocess.run(["git", "-C", str(ROOT), "grep", "-l", "-F", "-f", "/dev/stdin", "HEAD"], input=v,
                                 capture_output=True, text=True).stdout.split() if v else []

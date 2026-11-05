@@ -35,8 +35,8 @@ why: ## the installer gate against The Why
 	$(PY) scripts/why_check.py
 
 # --- live sockets ---
-gateway: ## real runtime gateway on 127.0.0.1:8787 (requires MODEL_API_KEY in $(ENV_FILE))
-	HUMANFLOW_ENV="$(ENV_FILE)" scripts/with_env.sh $(PY) -m runtime.gateway
+gateway: ## real runtime gateway on 127.0.0.1:8787 (starts keyless; add the key in /settings)
+	ALLOW_MISSING_KEY=1 HUMANFLOW_ENV="$(ENV_FILE)" scripts/with_env.sh $(PY) -m runtime.gateway
 sensors-probe:
 	$(PY) -m sensors probe
 sensors-grant:

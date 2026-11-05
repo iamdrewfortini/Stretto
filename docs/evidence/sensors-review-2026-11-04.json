@@ -33,6 +33,6 @@
       "GET /v1/settings/consent (per-source state plus the titles preference)",
       "POST /v1/settings/consent (grant with TTL, revoke one or all, titles on/off; emits consent.changed on the bus)"
     ],
-    "tests": "runtime suite grew from 56 to 62 tests, including an HTTP round-trip of the page, key save and consent grant; sensors suite grew from 22 to 23 with the live titles-preference test"
+    "tests": "runtime suite grew from 56 to 64 tests, including an HTTP round-trip of the page, key save and consent grant, plus keyless startup: a model call without a key fails locally with a pointer to /settings, and a key saved in the GUI enables calls without a restart (proven live: key_present false at boot, true after save); sensors suite grew from 22 to 23 with the live titles-preference test"
   }
 }

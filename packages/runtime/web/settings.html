@@ -22,8 +22,9 @@
 <p>Paste your Meta Model API key. It is saved to
 <code>~/.config/humanflow/runtime.env</code> (mode 600, outside the
 repo) and never displayed, logged or sent anywhere except the
-gateway's own calls to api.meta.ai. Loopback only. Restart the
-gateway after saving for the new key to take effect.</p>
+gateway's own calls to api.meta.ai. Loopback only. The gateway
+starts without a key; model features stay off until one is saved
+here, and a saved key takes effect immediately, no restart needed.</p>
 <form id="key-form">
   <input id="key" type="password" autocomplete="off" placeholder="MODEL_API_KEY" aria-label="Meta Model API key">
   <button type="submit">Save key</button>
@@ -98,7 +99,7 @@ clicks as numbers, never what was typed, no screen pixels, no audio.</p>
     post("/v1/settings/key", { api_key: el("key").value }).then(function (j) {
       el("key").value = "";
       el("out").textContent = "Saved (len=" + j.len + " sha256:" +
-        j.fingerprint + "). Restart the gateway: make gateway";
+        j.fingerprint + "). Model calls are enabled now.";
     }).catch(function (e) { el("out").textContent = String(e.message || e); });
   });
   el("consent-form").addEventListener("submit", function (ev) {

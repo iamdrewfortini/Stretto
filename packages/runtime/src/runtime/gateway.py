@@ -48,6 +48,8 @@ class Upstream:
         self.opener = urllib.request.build_opener(_NoRedirect)
 
     def post(self, path, body, timeout=120):
+        if not self.key:
+            raise GatewayError(503, "MODEL_API_KEY is not set; add it at /settings to use the model")
         url = self.base + path
         if urlsplit(url).hostname not in self.allow:
             raise GatewayError(500, "egress refused")
@@ -411,6 +413,7 @@ def make_handler(gw, bus, registry, core=None, env=None):
                         n, fp = store_key(_env_path(env), body.get("api_key", ""))
                     except ValueError as e:
                         raise GatewayError(400, str(e))
+                    gw.up.key = str(body.get("api_key", "")).strip()  # live: no restart needed
                     return self._send(200, {"ok": True, "len": n, "fingerprint": fp})
                 if self.path == "/v1/settings/consent":
                     if not isinstance(body, dict):
@@ -473,7 +476,8 @@ def serve(env=os.environ):
     allow = [h.strip() for h in env.get("EGRESS_ALLOWLIST", "").split(",") if h.strip()]
     key = env.get("MODEL_API_KEY", "")
     if not key:
-        raise SystemExit("refusing to start: MODEL_API_KEY missing (run through scripts/with_env.sh)")
+        print("gateway: no MODEL_API_KEY yet; model calls stay disabled "
+              "until one is added at /settings", flush=True)
     reg = Registry.load(env.get("REGISTRY_PATH", "docs/spec/models.registry.json"))
     bus = EventBus(env.get("EVENT_LOG", "var/events.jsonl"))
     try:
@@ -500,7 +504,7 @@ def serve(env=os.environ):
         start_voice_thread(core, bus, env); parts["voice"] = env.get("VOICE_BIND", "127.0.0.1:8788")
     except ImportError:
         parts["voice"] = False
-    bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact), **parts}, "runtime.gateway")
+    bus.emit("gateway.started", {"bind": f"{host}:{port}", "egress": allow, "redaction": bool(redact), "key_present": bool(key), **parts}, "runtime.gateway")
     print(f"gateway on http://{host}:{port} -> {gw.up.base} (egress: {','.join(allow)})", flush=True)
     srv.serve_forever()
 

@@ -11,7 +11,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${HUMANFLOW_ENV:-$HOME/.config/humanflow/runtime.env}"
 [ -f "$ENV_FILE" ] || ENV_FILE="$root/.env"
 export HUMANFLOW_ENV="$ENV_FILE"
-python3 "$root/scripts/env_check.py" --quiet
+python3 "$root/scripts/env_check.py" --quiet ${ALLOW_MISSING_KEY:+--allow-missing-key}
 set -a
 # shellcheck disable=SC1090
 . "$ENV_FILE"
