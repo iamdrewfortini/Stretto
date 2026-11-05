@@ -1,0 +1,30 @@
+{
+  "id": "sensors-review-2026-11-04",
+  "note": "Independent review of packages/sensors on the author's Mac (macOS 12, Intel, CPU throttled). Local checks only: no Meta Model API key exists on this machine, so no live model call was made or claimed.",
+  "commit_reviewed": "225afbc (branch swarm/sensors-20261104)",
+  "tests": {
+    "sensors": "22 passed",
+    "runtime": "56 passed (run outside the shell sandbox; inside it, listener-binding tests fail with PermissionError on bind, unrelated to the code)",
+    "tick_work_over_3600_ticks": {"p50_ms_observed_range": [0.032, 0.039], "p95_ms_observed_range": [0.109, 0.136], "budget_ms": 5}
+  },
+  "gates": ["why_check ok", "env_check: only MODEL_API_KEY presence fails (len=0), by design of the owner step", "check_deps ok", "docs_lint ok (49 claims)", "release_check ok after skipping .venv in the SPDX scan", "verify_claims 44 pass, 0 fail, 5 skipped of 49"],
+  "bugs_fixed": [
+    "devserver SSE starved after the 500-event buffer trimmed: client offset was a list index into a trimmed list; now sequence-based, guarded by the Condition readers wait on",
+    "narration idle suggestion carried neither won-back nor adoption-cost numbers, bypassing the both-numbers ranking rule; suppressed as uncalibrated",
+    "ingest deleted a whole batch on a partial gateway accept, losing the unaccepted remainder; now drops only accepted events",
+    "importer resolved the open episode through the category resolver on the tick path, where its injected ask is a model call; now local rules only on tick, resolution at episode close",
+    "release_check walked .venv and failed on any machine with a virtualenv; .venv added to the skip set"
+  ],
+  "micro_enhancements": [
+    "ingest queue list.pop(0) replaced with collections.deque (O(1) amortised prune)",
+    "one consent state snapshot per tick instead of one file stat per adapter",
+    "redact regex fast path plus a bounded SHA-256-keyed cache of redacted titles (raw titles never retained); cached title 3.2us vs 40.3us uncached for a secret-shaped title",
+    "metrics skips the per-window sort for chronological episodes; episode history and tick timings bounded",
+    "adapters: one osascript spawn per macOS window poll, two spawns per Linux window poll, Linux input classification outside the lock with no inline sleep in poll, _run raises on non-zero exit so probes cannot report a broken tool as available"
+  ],
+  "open_items": [
+    "gateway has no POST /v1/settings/key twin, so the settings page works only against the demo dev server",
+    "no privacy or security toggles exist in settings; consent and titles are CLI/env only",
+    "owner step unchanged: place MODEL_API_KEY in ~/.config/humanflow/runtime.env (mode 600), then make gateway"
+  ]
+}

@@ -56,6 +56,10 @@ Earlier Hive demo, if time allows:
 
 Use only your own recordings or people who have given written consent: the Rules let Organizers use recordings of participants.
 
+## Sensors review (2026-11-04) <!-- no-claim -->
+
+The desktop sensors package was independently reviewed after its merge: several defects were found and fixed (live-feed starvation once the event buffer filled, a suggestion shown without the two numbers the ranking rule requires, events lost on a partial gateway accept, and a model-call path reachable from the sampling tick), alongside a round of micro-enhancements in the adapters, redaction and ingest queue. The measured record, including what remains open, is in [evidence/sensors-review-2026-11-04.json](evidence/sensors-review-2026-11-04.json). Two gaps are stated plainly there and here: the gateway still has no settings-key endpoint of its own, and privacy choices (consent per source, window titles) are still driven from the command line rather than toggles in settings.
+
 ## Not in this submission
 
 No embeddings: the Meta Model API has no embeddings route, so retrieval stays local and lexical until a Meta embedder is served. 
