@@ -1,5 +1,5 @@
 // Shared voice call: one module-level call for the whole app. The floating
-// bar (mountCallBar) and the Talk page both render from `call.state`; the mic,
+// orb (mountCallBar) and the Talk page both render from `call.state`; the mic,
 // AudioWorklet and socket live here so page changes never kill the call.
 import { h } from '../lib/dom.js';
 import { go, render } from '../lib/router.js';
@@ -20,6 +20,18 @@ const WORKLET = 'class Down extends AudioWorkletProcessor{'
   + 'var buf=new Int16Array(frame).buffer;this.port.postMessage(buf,[buf]);}}'
   + 'return true;}}registerProcessor("pcm-down",Down);';
 
+// Silence auto-pause: seconds of no speech before the socket sleeps.
+const PAUSE_KEY = 'stretto.call.pauseAfter';
+function pauseAfterS() {
+  try {
+    const v = parseFloat(localStorage.getItem(PAUSE_KEY));
+    if (Number.isFinite(v) && v > 0) return v;
+  } catch { /* storage unavailable: fall through to the default */ }
+  return 20;
+}
+// 500 ms of 16 kHz 16-bit PCM kept so resume never clips the first word.
+const RING_BYTES = 16000 * 2 * 0.5;
+
 const state = { status: 'idle', muted: false, partial: '', turns: [], speaking: false };
 const listeners = new Set();
 const emit = () => { for (const fn of [...listeners]) { try { fn(state); } catch { /* a dead view must not kill the call */ } } };
@@ -27,6 +39,10 @@ const setState = (patch) => { Object.assign(state, patch); emit(); };
 
 let ws = null, stream = null, actx = null, node = null, analyser = null, raf = 0;
 let wantLive = false, retried = false, pendingYou = '', level = 0, voice = null;
+// Auto-pause bookkeeping: thinking mirrors the server's turn, the noise floor
+// adapts to the room, and ring holds the last 500 ms of PCM for resume.
+let thinking = false, noiseFloor = 0.02, lastSpeechAt = 0, speechStartAt = 0;
+let ring = [], ringBytes = 0;
 
 function pickVoice() {
   if (!('speechSynthesis' in window)) return;
@@ -63,6 +79,10 @@ function speak(text) {
   } catch { /* replies still render as text */ }
 }
 
+function wakeAudio() {
+  if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+}
+
 function runAction(a) {
   if (!a) return;
   if (a.action === 'navigate' && a.page) go(a.page);
@@ -86,10 +106,13 @@ function onSocketMsg(ev) {
       try { speechSynthesis.cancel(); } catch { /* already stopped */ }   // barge-in
       setState({ speaking: false });
     }
+    lastSpeechAt = performance.now();
     setState({ partial: m.text || '' });
-  } else if (m.type === 'final') { pendingYou = m.text || ''; setState({ partial: '' }); }
+  } else if (m.type === 'final') { pendingYou = m.text || ''; lastSpeechAt = performance.now(); thinking = true; setState({ partial: '' }); }
+  else if (m.type === 'thinking') { lastSpeechAt = performance.now(); thinking = true; emit(); }
   else if (m.type === 'reply') {
     const you = pendingYou; pendingYou = '';
+    thinking = false;
     pushReply({ you, text: m.text, tools: m.tools, ms: m.ms, path: m.path });
     (m.actions || []).forEach(runAction);
   } else if (m.type === 'action') runAction(m);
@@ -121,11 +144,75 @@ function stopAudio() {
   if (node) { try { node.disconnect(); } catch { /* already gone */ } node = null; }
   if (actx) { actx.close().catch(() => {}); actx = null; }
   if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  ring = []; ringBytes = 0; speechStartAt = 0;
 }
 
-let levelBar = null;
+// RMS of one 16-bit PCM frame; drives the orb glow and the speech detector.
+function frameRms(buf) {
+  const v = new Int16Array(buf);
+  if (!v.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) { const x = v[i] / 32768; sum += x * x; }
+  return Math.sqrt(sum / v.length);
+}
+
+// Every PCM frame (~40 ms) passes here, live or paused: the ring always holds
+// the last 500 ms, speech is always measured, but nothing is sent while paused.
+function onFrame(buf) {
+  const bytes = buf.byteLength || 0;
+  ring.push(buf); ringBytes += bytes;
+  while (ring.length > 1 && ringBytes > RING_BYTES) ringBytes -= (ring.shift().byteLength || 0);
+
+  const now = performance.now();
+  if (!state.muted) {
+    const rms = frameRms(buf);
+    noiseFloor += (Math.min(rms, 0.3) - noiseFloor) * 0.01;   // slow room adaptation
+    const speech = rms > Math.max(noiseFloor * 3, 0.015);
+    if (speech) {
+      lastSpeechAt = now;
+      if (state.status === 'paused') {
+        if (!speechStartAt) speechStartAt = now;
+        else if (now - speechStartAt >= 250) { speechStartAt = 0; resume(); return; }
+      }
+    } else if (state.status === 'paused') speechStartAt = 0;
+  }
+  if (state.status === 'live' && ws && ws.readyState === 1) {
+    if (state.muted) ws.send(new ArrayBuffer(bytes));   // silence keeps the session open
+    else ws.send(buf);
+  } else if (state.status === 'live' && !state.speaking && !thinking
+    && now - lastSpeechAt > pauseAfterS() * 1000) {
+    autoPause();
+  }
+}
+
+function autoPause() {
+  thinking = false;
+  try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'stop' })); } catch { /* socket already gone */ }
+  const s = ws; ws = null;   // null first so onclose treats it as ours and stays quiet
+  try { if (s) s.close(); } catch { /* already gone */ }
+  setState({ status: 'paused', speaking: false });
+}
+
+async function resume() {
+  if (state.status !== 'paused') return;
+  setState({ status: 'connecting' });
+  wakeAudio();
+  try {
+    const s = await openSocket();
+    if (state.status !== 'connecting') { try { s.close(); } catch { /* superseded */ } return; }
+    ws = s;
+    for (const buf of ring) { try { if (ws.readyState === 1) ws.send(buf); } catch { break; } }
+    lastSpeechAt = performance.now();
+    setState({ status: 'live' });
+  } catch {
+    if (state.status === 'connecting') setState({ status: 'paused' });
+    toast('Could not resume the call', 'bad');
+  }
+}
+
+let orbEl = null;
 function tickLevel() {
-  if (!raf || !analyser || !levelBar) return;
+  if (!raf || !analyser || !orbEl) return;
   const buf = new Uint8Array(analyser.fftSize);
   analyser.getByteTimeDomainData(buf);
   let sum = 0;
@@ -133,15 +220,17 @@ function tickLevel() {
   const rms = Math.sqrt(sum / buf.length);
   const target = state.muted ? 0 : Math.min(1, rms * 3);
   level = level * 0.7 + target * 0.3;
-  levelBar.style.setProperty('--lvl', level.toFixed(3));
+  orbEl.style.setProperty('--lvl', level.toFixed(3));
   raf = requestAnimationFrame(tickLevel);
 }
 
 async function start() {
   if (state.status === 'connecting' || state.status === 'live') return;
+  if (state.status === 'paused') { resume(); return; }
   if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch { /* idle */ } }
   setState({ status: 'connecting', speaking: false });
-  retried = false; wantLive = true;
+  retried = false; wantLive = true; thinking = false;
+  noiseFloor = 0.02; lastSpeechAt = performance.now(); speechStartAt = 0; ring = []; ringBytes = 0;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -151,13 +240,9 @@ async function start() {
     analyser = actx.createAnalyser(); analyser.fftSize = 512;
     src.connect(analyser);
     node = new AudioWorkletNode(actx, 'pcm-down');
-    node.port.onmessage = (e) => {
-      if (!ws || ws.readyState !== 1) return;
-      if (state.muted) ws.send(new ArrayBuffer(e.data.byteLength));   // silence keeps the session open
-      else ws.send(e.data);   // ~40 ms Int16 PCM frames
-    };
+    node.port.onmessage = (e) => { if (e && e.data) onFrame(e.data); };
     src.connect(node);
-    if (levelBar && !raf) raf = requestAnimationFrame(tickLevel);
+    if (orbEl && !raf) raf = requestAnimationFrame(tickLevel);
     setState({ status: 'live' });
   } catch (e) {
     wantLive = false;
@@ -169,7 +254,7 @@ async function start() {
 }
 
 function hangup() {
-  wantLive = false;
+  wantLive = false; thinking = false;
   try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'stop' })); } catch { /* socket already gone */ }
   try { if (ws) ws.close(); } catch { /* already gone */ }
   ws = null;
@@ -181,6 +266,7 @@ function hangup() {
 function mute(on) {
   const v = on === undefined ? !state.muted : !!on;
   if (v && 'speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch { /* idle */ } }
+  if (v) { ring = []; ringBytes = 0; }
   setState({ muted: v, speaking: v ? false : state.speaking });
 }
 
@@ -204,43 +290,65 @@ export const call = {
   on(fn) { listeners.add(fn); return () => { listeners.delete(fn); }; },
 };
 
+// The orb's visual state: the socket status plus thinking/speaking overlays.
+function orbState(s) {
+  if (s.status === 'error') return 'error';
+  if (s.status === 'paused') return 'paused';
+  if (s.status === 'connecting') return 'connecting';
+  if (s.status === 'idle') return 'idle';
+  if (s.speaking) return 'speaking';
+  if (thinking) return 'thinking';
+  return 'listening';
+}
+
+const ORB_LABEL = {
+  idle: 'Call Stretto', connecting: 'Connecting…', listening: 'Hang up',
+  thinking: 'Hang up', speaking: 'Hang up', paused: 'Resume call', error: 'Call failed — try again',
+};
+
 export function mountCallBar(parent) {
   const host = parent || document.body;
-  const dot = h('i', { class: 'call-dot', 'aria-hidden': 'true' });
-  const linePartial = h('div', { class: 'call-line trunc' });
-  const lineReply = h('div', { class: 'call-reply trunc', 'aria-live': 'polite' });
-  const fab = h('button', { class: 'call-fab', 'aria-label': 'Call Stretto' }, icon('play', 18), h('span', {}, 'Call Stretto'));
-  const muteBtn = h('button', { class: 'btn sm call-mute', 'aria-pressed': 'false' }, 'Mute');
-  const hangBtn = h('button', { class: 'icon-btn call-hang', 'aria-label': 'Hang up' }, icon('x'));
-  const expandBtn = h('button', { class: 'icon-btn', 'aria-label': 'Open the Talk page' }, icon('swap'));
-  const liveWrap = h('div', { class: 'call-live', hidden: true }, dot,
-    h('div', { class: 'call-text' }, linePartial, lineReply),
-    muteBtn, hangBtn, expandBtn);
-  const bar = h('div', { class: 'call-bar', role: 'region', 'aria-label': 'Stretto call', 'data-status': 'idle' }, fab, liveWrap);
-  levelBar = bar;
+  const glyph = h('span', { class: 'call-glyph', 'aria-hidden': 'true' });
+  const pauseBars = h('span', { class: 'call-pause', 'aria-hidden': 'true' }, h('i'), h('i'));
+  const orb = h('button', { class: 'call-orb', type: 'button', 'aria-label': 'Call Stretto' }, glyph, pauseBars);
+  const tip = h('div', { class: 'call-tip', role: 'status', hidden: true });
+  const expand = h('button', { class: 'call-expand', type: 'button', 'aria-label': 'Open the Talk page' }, icon('swap', 14), h('span', {}, 'Talk'));
+  const bar = h('div', { class: 'call-bar', role: 'region', 'aria-label': 'Stretto call', 'data-state': 'idle' }, tip, orb, expand);
+  orbEl = orb;
 
+  let tipFor = '', tipTimer = 0;
   const paint = (s) => {
-    const live = s.status === 'live' || s.status === 'connecting';
-    bar.dataset.status = s.status;
-    fab.hidden = live; liveWrap.hidden = !live;
-    muteBtn.textContent = s.muted ? 'Unmute' : 'Mute';
-    muteBtn.setAttribute('aria-pressed', String(s.muted));
-    linePartial.textContent = s.status === 'connecting' ? 'Connecting…'
-      : s.muted ? 'Muted — tap Unmute to speak'
-      : s.partial || (s.status === 'live' ? 'Listening…' : '');
+    const st = orbState(s);
+    bar.dataset.state = st;
+    orb.setAttribute('aria-label', ORB_LABEL[st] || 'Call Stretto');
+    orb.setAttribute('aria-pressed', String(st === 'listening' || st === 'thinking' || st === 'speaking'));
+    if (glyph.childNodes.length) glyph.replaceChildren();
+    glyph.append(icon(st === 'idle' || st === 'error' ? 'play' : 'stop', 20));
     const last = s.turns.length ? s.turns[s.turns.length - 1].reply : '';
-    lineReply.textContent = last || (s.status === 'error' ? 'Call failed — tap the mic in Talk to retry' : '');
+    if (last && last !== tipFor) {
+      tipFor = last;
+      tip.textContent = last;
+      tip.hidden = false;
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => { tip.hidden = true; }, 6000);
+    } else if (!last) { tip.hidden = true; tipFor = ''; }
   };
-  fab.addEventListener('click', () => start());
-  muteBtn.addEventListener('click', () => mute());
-  hangBtn.addEventListener('click', () => hangup());
-  expandBtn.addEventListener('click', () => go('talk'));
+  const toggle = () => {
+    wakeAudio();
+    if (state.status === 'live' || state.status === 'connecting') hangup();
+    else start();   // idle and error dial; paused resumes via start()
+  };
+  orb.addEventListener('click', toggle);
+  expand.addEventListener('click', () => go('talk'));
   addEventListener('keydown', (e) => {
     if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return;
     const t = e.target && e.target.tagName;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(t) || (e.target && e.target.isContentEditable)) return;
-    if (state.status === 'live' || state.status === 'connecting') hangup(); else start();
+    toggle();
   });
+  // Background tabs never stop the call; just revive a suspended AudioContext.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) wakeAudio(); });
+  document.addEventListener('click', () => wakeAudio(), true);
   paint(state);
   call.on(paint);
   host.append(bar);
