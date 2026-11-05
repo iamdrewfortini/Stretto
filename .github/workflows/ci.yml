@@ -15,5 +15,6 @@ jobs:
       - run: python scripts/build_wf13d_table.py && git diff --exit-code packages/wf13d/src/wf13d/data
       - run: python scripts/gen_conformance.py && git diff --exit-code conformance
       - run: python scripts/run_all_tests.py
+      - run: cd apps/stretto && python -m unittest discover -s tests -t .
       - run: python scripts/verify_claims.py --require-all
       - run: bash scripts/test_install.sh

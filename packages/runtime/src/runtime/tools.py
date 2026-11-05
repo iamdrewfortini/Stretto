@@ -34,6 +34,8 @@ SCHEMAS = [
         {"task_id": {"type": "string"}, "status": {"type": "string", "enum": list(STATUSES)}, "note": {"type": "string", "maxLength": 280}},
         ["task_id", "status"]),
     _fn("list_tasks", "List the owner's tasks, optionally by status.", {"status": {"type": "string", "enum": list(STATUSES)}}),
+    _fn("get_leaks", "The owner's time leaks: leak score (lower is better), minutes leaked per day, what that compounds to over a "
+        "week, month, year and decade in hours and dollars, and the top changes ranked by time won back per cost to adopt.", {}),
 ]
 
 
@@ -132,6 +134,14 @@ class Tools:
             raise ToolError(f"status must be one of {STATUSES}")
         self._emit("task.updated", dict(task_id=task_id, status=status, note=note[:280]))
         return {"task_id": task_id, "status": status}
+
+    def t_get_leaks(self):
+        from runtime import leaks, suggest  # arithmetic only; imported here so the ledger works without them
+        lk = leaks.compute(self.t_get_summary("all"), list(self.events), self.clock())
+        top = suggest.rank(lk)[:3]
+        return {"leak_score": lk["leak_score"], "per_day_min": lk["per_day_min"], "compounded": lk["compounded"],
+                "top_changes": [{k: r[k] for k in ("text", "winback_hours_year", "winback_usd_year", "adopt_cost_min", "adopt_cost_usd")} for r in top],
+                "assumptions": lk["assumptions"]}
 
     def t_list_tasks(self, status=None):
         return [{k: t[k] for k in ("task_id", "title", "status", "estimate_min")} for t in self.tasks.values() if status in (None, t["status"])]

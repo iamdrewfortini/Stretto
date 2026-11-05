@@ -141,23 +141,6 @@ class T(unittest.TestCase):
         evs, _ = bus.since(seq)
         self.assertEqual([e["data"]["i"] for e in evs], [600])
 
-    def test_pages_served_with_csp_and_unknown_paths_404(self):
-        g, bus = gw([])
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(g, bus, g.reg))
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        base = f"http://127.0.0.1:{srv.server_address[1]}"
-        try:
-            from runtime.gateway import WEB
-            for path, name in (("/", "voice.html"), ("/dashboard", "dashboard.html")):
-                if (WEB / name).is_file():
-                    r = urllib.request.urlopen(base + path)
-                    self.assertIn("default-src 'self'", r.headers["Content-Security-Policy"])
-            with self.assertRaises(urllib.error.HTTPError) as c:
-                urllib.request.urlopen(base + "/../../.env")
-            self.assertEqual(c.exception.code, 404)
-        finally:
-            srv.shutdown()
-
     def test_ingest_accepts_only_sensor_shaped_events(self):
         from runtime.gateway import ingest
         bus = EventBus()

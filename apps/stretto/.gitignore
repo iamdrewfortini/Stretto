@@ -1,0 +1,8 @@
+.env
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+token
+__pycache__/
+*.pyc
+.DS_Store

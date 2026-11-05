@@ -1,0 +1,112 @@
+/* Stretto design tokens. A reskin changes this file and nothing else.
+   System: neutral surfaces, ink for primary actions, one warm signal colour for lost time, status colours only for status.
+   Categories are told apart by texture as well as tone (see --t-*), so colour never carries meaning alone.
+   Values derived in ~/Projects/golden-ui-specs/research/APPLE-RENDERING-AUDIT.md (SF tracking read from the font file). */
+
+:root, [data-theme="light"] {
+  --bg: #f3f2ef; --bg-2: #ebe9e5; --surface: #ffffff; --surface-2: #f7f6f3; --surface-3: #ebe9e4;
+  --line: rgba(24, 20, 12, .08); --line-2: rgba(24, 20, 12, .15);
+  --text: #141414; --muted: #55534e; --faint: #6d6a64;
+  --accent: #141414; --on-accent: #ffffff; --accent-soft: rgba(20, 20, 20, .06);
+  /* lost time = the tritone above the tonic (G-sharp, measured); focus = the tonic (D) */
+  --tonic: #02787d; --tonic-soft: rgba(2, 120, 125, .10);
+  --accent-2: #b6303e; --signal: #b6303e; --signal-text: #b6303e; --signal-soft: rgba(182, 48, 62, .10);
+  --focus: #2f6fed;
+  --good: #057b60; --warn: #6b50c2; --bad: #b8400b; --info: #2f5fcf;
+  --material: rgba(246, 245, 242, .72); --material-strong: rgba(250, 249, 247, .86);
+  --scrim: rgba(18, 16, 12, .32);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, .75);
+  --elev-1: 0 0.5px 1px rgba(24, 20, 12, .08), 0 2px 6px rgba(24, 20, 12, .04);
+  --elev-2: 0 1px 2px rgba(24, 20, 12, .07), 0 8px 24px -6px rgba(24, 20, 12, .12);
+  --elev-3: 0 2px 4px rgba(24, 20, 12, .08), 0 24px 56px -12px rgba(24, 20, 12, .24);
+  --shadow: var(--elev-1);
+  --aura-a: rgba(2, 120, 125, .16); --aura-b: rgba(37, 100, 201, .14); --aura-c: rgba(171, 50, 119, .08);
+  --field-ink: 20, 20, 20; --field-bg: 255, 255, 255;
+  /* categories = scale degrees above the tonic D, each the measured colour of its pitch (textures separate shared degrees) */
+  --c-build: #02787d; --c-write: #9240a4; --c-design: #9240a4; --c-plan: #ab3277; --c-learn: #ab3277; --c-research: #6b50c2;
+  --c-communication: #2564c9; --c-browsing: #057b60; --c-other: #057b60; --c-distraction: #057398; --c-idle: #e4e1db;
+  --crescendo: linear-gradient(100deg, #141414, #141414);
+  --glow: none;
+  --rim: rgba(255, 255, 255, .8); --pattern-a: .04; --shadow-hero: 0 1px 2px rgba(24, 20, 12, .10), 0 16px 40px rgba(24, 20, 12, .14);
+}
+[data-theme="dark"] {
+  --bg: #0e0e10; --bg-2: #131315; --surface: #18181b; --surface-2: #1f1f23; --surface-3: #2a2a2f;
+  --line: rgba(255, 255, 255, .07); --line-2: rgba(255, 255, 255, .14);
+  --text: #dedede; --muted: #a9a9b0; --faint: #8e8e96;   /* 87 % white: bright enough to read as white, no halation (R02) */
+  --accent: #dedede; --on-accent: #0e0e10; --accent-soft: rgba(255, 255, 255, .08);
+  --tonic: #07d0d8; --tonic-soft: rgba(7, 208, 216, .12);
+  --accent-2: #ff9496; --signal: #ff9496; --signal-text: #ff9496; --signal-soft: rgba(255, 148, 150, .14);
+  --focus: #5b9bff;
+  --good: #20d5a8; --warn: #b6aaff; --bad: #ff7a52; --info: #7ea6ff;
+  --material: rgba(20, 20, 23, .68); --material-strong: rgba(24, 24, 27, .82);
+  --scrim: rgba(0, 0, 0, .5);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, .06);
+  --elev-1: 0 0.5px 1px rgba(0, 0, 0, .4), 0 2px 6px rgba(0, 0, 0, .25);
+  --elev-2: 0 1px 2px rgba(0, 0, 0, .45), 0 10px 28px -6px rgba(0, 0, 0, .55);
+  --elev-3: 0 2px 4px rgba(0, 0, 0, .5), 0 28px 64px -12px rgba(0, 0, 0, .7);
+  --shadow: var(--elev-1);
+  --aura-a: rgba(7, 208, 216, .14); --aura-b: rgba(141, 184, 255, .12); --aura-c: rgba(253, 141, 197, .07);
+  --field-ink: 242, 242, 243; --field-bg: 24, 24, 27;
+  --c-build: #07d0d8; --c-write: #e196f3; --c-design: #e196f3; --c-plan: #fd8dc5; --c-learn: #fd8dc5; --c-research: #b6aaff;
+  --c-communication: #8db8ff; --c-browsing: #20d5a8; --c-other: #20d5a8; --c-distraction: #39c7ff; --c-idle: #26262b;
+  --glow: 0 0 24px color-mix(in oklch, var(--tonic) 35%, transparent);
+  --rim: rgba(255, 255, 255, .28); --pattern-a: .08; --shadow-hero: 0 1px 2px rgba(0, 0, 0, .30), 0 16px 40px rgba(0, 0, 0, .25);
+}
+
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* spacing (4-pt grid) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  /* radii: controls, inner surfaces, cards, sheets */
+  --r1: 8px; --r2: 12px; --r3: 18px; --r4: 26px;
+  /* type scale (px) and San Francisco's own size-dependent tracking (em), read from SFNS.ttf 'trak' */
+  --fs-cap2: 11px; --fs-cap: 12px; --fs-foot: 13px; --fs-body: 14px; --fs-sub: 15px; --fs-head: 17px; --fs-t3: 20px; --fs-t2: 22px; --fs-t1: 28px; --fs-lt: 34px; --fs-hero: 64px;
+  --trk-cap2: .006em; --trk-cap: 0em; --trk-foot: -.006em; --trk-body: -.011em; --trk-sub: -.016em; --trk-head: -.025em; --trk-t3: -.022em; --trk-t2: -.012em; --trk-t1: .014em; --trk-lt: .012em; --trk-hero: .003em;
+  /* motion: springs compiled to linear() (response s / damping fraction), settle times from the same maths */
+  --spring: linear(0, 0.0253, 0.089, 0.1758, 0.2741, 0.3757, 0.4746, 0.567, 0.6505, 0.724, 0.7873, 0.8405, 0.8843, 0.9196, 0.9476, 0.9691, 0.9852, 0.9969, 1.005, 1.0103, 1.0134, 1.0148, 1.0151, 1.0146, 1.0136, 1.0122, 1.0107, 1.0092, 1.0077, 1.0063, 1.0051, 1.004, 1.0031, 1.0023, 1.0016, 1.0011, 1);   /* response .45 s, ζ .80: 1.5 % overshoot, settles in 620 ms (R18) */
+  --spring-soft: linear(0, 0.0278, 0.0943, 0.1805, 0.2741, 0.3674, 0.4556, 0.5363, 0.6084, 0.6716, 0.7262, 0.773, 0.8126, 0.8459, 0.8737, 0.8969, 0.916, 0.9317, 0.9447, 0.9552, 0.9639, 0.9709, 0.9766, 0.9812, 0.9849, 0.9879, 0.9903, 0.9923, 0.9938, 0.9951, 0.9961, 0.9969, 0.9975, 0.998, 0.9984, 0.9987, 1);
+  --spring-snappy: linear(0, 0.0247, 0.0858, 0.1678, 0.2595, 0.3534, 0.4443, 0.5291, 0.606, 0.6742, 0.7336, 0.7845, 0.8276, 0.8636, 0.8933, 0.9176, 0.9371, 0.9528, 0.9651, 0.9748, 0.9822, 0.9879, 0.9921, 0.9952, 0.9975, 0.9991, 1.0001, 1.0008, 1.0012, 1.0015, 1.0015, 1.0015, 1.0014, 1.0013, 1.0012, 1.001, 1);
+  --d-spring: 620ms; --d-expand: 350ms; --ease-expand: cubic-bezier(.2, 0, 0, 1); --d-soft: 800ms; --d-snappy: 440ms;
+  --ease: cubic-bezier(.2, .8, .2, 1); --ease-out: cubic-bezier(.3, 0, .8, .15);
+  --fast: 120ms; --med: 220ms; --slow: 420ms;
+  --sidebar: 236px; --topbar: 56px;
+}
+/* Safari already applies San Francisco's tracking table itself; adding ours would double it. Only WebKit understands this font keyword. */
+@supports (font: -apple-system-body) {
+  :root { --trk-cap2: 0em; --trk-cap: 0em; --trk-foot: 0em; --trk-body: 0em; --trk-sub: 0em; --trk-head: 0em; --trk-t3: 0em; --trk-t2: 0em; --trk-t1: 0em; --trk-lt: 0em; --trk-hero: 0em; }
+}
+@media (prefers-contrast: more) {
+  :root, [data-theme="light"] { --muted: #3d3b37; --faint: #4f4c47; --line: rgba(24, 20, 12, .18); --line-2: rgba(24, 20, 12, .3); }
+  [data-theme="dark"] { --muted: #c9c9cf; --faint: #b0b0b8; --line: rgba(255, 255, 255, .16); --line-2: rgba(255, 255, 255, .28); }
+}
+
+/* Modes: the key modulates with what you are doing. Focus = tonic D on deep teal-black; Break = the subdominant G on deep rose-black.
+   Both are dark and immersive whatever the theme; category notes switch to their dark-surface values. */
+[data-mode="focus"], [data-mode="break"] {
+  color-scheme: dark;
+  --surface: #10191b; --surface-2: #152225; --surface-3: #1d2d31;
+  --line: rgba(190, 240, 240, .08); --line-2: rgba(190, 240, 240, .16);
+  --text: #dfeaea; --muted: #a2bcbe; --faint: #8aa4a6;
+  --accent: #ecf6f6; --on-accent: #061214; --accent-soft: rgba(255, 255, 255, .08);
+  --bg: #061214; --bg-2: #08171a; --tonic: #07d0d8; --tonic-soft: rgba(7, 208, 216, .14);
+  --material: rgba(6, 18, 20, .66); --material-strong: rgba(10, 24, 27, .84);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, .05);
+  --elev-1: 0 0.5px 1px rgba(0, 0, 0, .4), 0 2px 6px rgba(0, 0, 0, .3); --elev-2: 0 1px 2px rgba(0, 0, 0, .45), 0 10px 28px -6px rgba(0, 0, 0, .6); --elev-3: 0 2px 4px rgba(0, 0, 0, .5), 0 28px 64px -12px rgba(0, 0, 0, .75);
+  --field-ink: 236, 246, 246; --field-bg: 16, 25, 27;
+  --aura-a: rgba(7, 208, 216, .16); --aura-b: rgba(141, 184, 255, .10); --aura-c: rgba(7, 208, 216, .06);
+  --c-build: #07d0d8; --c-write: #e196f3; --c-design: #e196f3; --c-plan: #fd8dc5; --c-learn: #fd8dc5; --c-research: #b6aaff;
+  --c-communication: #8db8ff; --c-browsing: #20d5a8; --c-other: #20d5a8; --c-distraction: #39c7ff; --c-idle: #1f2b2e;
+  --good: #20d5a8; --warn: #b6aaff; --signal: #ff9496; --signal-text: #ff9496; --signal-soft: rgba(255, 148, 150, .14);
+  --glow: 0 0 28px color-mix(in oklch, var(--tonic) 40%, transparent);
+  --rim: rgba(255, 255, 255, .28); --pattern-a: .08; --shadow-hero: 0 1px 2px rgba(0, 0, 0, .30), 0 16px 40px rgba(0, 0, 0, .25);
+}
+[data-mode="break"] {
+  --bg: #140a10; --bg-2: #180c13; --surface: #1d1118; --surface-2: #26161f; --surface-3: #321d29;
+  --line: rgba(250, 210, 230, .08); --line-2: rgba(250, 210, 230, .16);
+  --text: #ecdfe6; --muted: #c9a9b9; --faint: #ad8e9e; --on-accent: #140a10;
+  --tonic: #fd8dc5; --tonic-soft: rgba(253, 141, 197, .14);
+  --material: rgba(20, 10, 16, .66); --material-strong: rgba(29, 17, 24, .84);
+  --field-bg: 29, 17, 24; --aura-a: rgba(253, 141, 197, .16); --aura-b: rgba(225, 150, 243, .10); --aura-c: rgba(253, 141, 197, .06);
+  --c-idle: #2c1d25;
+}

@@ -1,10 +1,12 @@
-# Humanflow
+# Stretto
 
-**A private, voice-first time and focus assistant built on Meta's Muse models.** Say what you are doing; Humanflow logs it, times it, plans your tasks and tells you, with numbers from your own ledger, where your day went.
+**Time, tightened.** A local time, focus and efficiency tracker that finds **where your day was lost** (detours, ping-pong between two places, routes you repeat, waiting, re-finding) and uses Meta's Muse models to turn those measured findings into a few concrete changes, ranked by the most time won back for the least effort. You can also just talk to it. Everything is recorded on your own computer.
 
-[![ci](https://github.com/iamdrewfortini/humanflow/actions/workflows/ci.yml/badge.svg)](https://github.com/iamdrewfortini/humanflow/actions/workflows/ci.yml) [![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![ci](https://github.com/iamdrewfortini/stretto/actions/workflows/ci.yml/badge.svg)](https://github.com/iamdrewfortini/stretto/actions/workflows/ci.yml) [![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Meta Global AI Developer Hackathon (Cerebral Valley × Meta) · **Indie Developer** track · problem statement **Build for Your World**
+
+**Two parts, one app.** **Stretto** ([`apps/stretto`](apps/stretto)) is the product: the web app, its server and store, the device agent and the installers. **Humanflow** ([`packages/runtime`](packages/runtime) and its sibling packages) is Stretto's backend for Meta models, voice and agents: a local-only gateway that fronts Stretto on one address, the realtime voice core, the leak model, and the Muse Wonder planner.
 
 ## Why
 
@@ -14,7 +16,7 @@ My time leaks the way everyone's does. Switching between clients and systems. Re
 
 That is the small version. The bigger one I see with every owner, technician and team I work with: **people cannot even picture how much time they are losing.** There is a learned helplessness around technology. People have tried everything they know, found what works well enough, and decided this is just how it has to be done. So the truth about their work is set by how it feels, not by what is measured. Nobody can reason about a leak they cannot see, let alone what ten minutes a day compounds into: about a full work week every year, and most of a working year over a career.
 
-Humanflow is my answer, built for my own day first. It costs no attention to use: you say what you are doing, out loud, while you do it. It turns that into an honest, owner-only record of where your time went, and it answers in numbers from your own ledger, not in feelings.
+Stretto is my answer, built for my own day first. It costs no attention to use: you say what you are doing, out loud, while you do it. It turns that into an honest, owner-only record of where your time went, and it answers in numbers from your own ledger, not in feelings.
 
 **Today** it logs time by voice, runs timers and tasks, tells you where the day went, plans your work with Muse Wonder, and proposes one change at a time with the number behind it.
 
@@ -24,17 +26,17 @@ It is for me first, then for the people I build for: solo owners who wear every 
 
 ## What it does
 
-- **Talk to it.** "I was in meetings for forty minutes." "Start a focus timer, I'm writing the demo script." "Add a task: record the demo video." "How's my day?" Each request becomes a tool call against your personal ledger, and the answer is spoken back.
-- **Plans with Muse Wonder.** When tasks pile up, a planner agent on `muse-wonder-1.0` proposes an order with a one-line rationale. It proposes; you decide.
-- **Watches the pattern, not the person.** Background agents look at switches, waiting and failed searches and propose one concrete change at a time, each with the number behind it.
-- **Live dashboard.** Minutes by activity, the running timer, tasks, every model call with its latency and cost, and the agents' proposals, all from one event stream.
-- **Desktop sensors (in progress).** A consent-gated sensor agent for Linux and macOS that turns focus-window and idle time into timeline entries; see `packages/sensors` when it lands.
+- **Finds where the day went.** The device agent records the front app, idle time and pointer activity (never keystrokes, screenshots or audio) and imports browser history read-only, after you accept a consent notice. Stretto turns that into focus blocks, switches, detours and repeated routes.
+- **Talk to it** (Talk page). "I was in meetings for forty minutes." "Start a focus timer." "What's my leak score?" Common commands are answered locally in milliseconds; open questions go to Muse Spark, which calls tools against your ledger and answers out loud.
+- **Shows what the leaks compound to** (Leaks page). Minutes lost per day to switching, waiting, re-finding and admin, compounded over a week, month, year and decade in hours and dollars, with a leak score that goes down as you improve, XP and levels for time won back, and a forecast of the path you are choosing.
+- **Ranks the fixes.** Every suggested change carries its time won back and its cost to adopt, and the list is ordered by won-back time per cost. Muse Spark turns measured findings into suggestions that must cite a real finding; Muse Wonder plans the task order.
+- **Calendar, goals, tasks, habits, reports, insights, devices, privacy and settings** pages, a command palette, and a live session indicator.
 
 ## Meta models
 
 | Model | Where Humanflow uses it | Status |
 |---|---|---|
-| `muse-spark-1.3` | The voice core: one agent you talk to, with tool calling over the ledger | **live** |
+| `muse-spark-1.3` | Stretto insights (guarded: must cite a measured finding, labelled inferred, spend-capped, hash-chained call ledger) and the Humanflow voice core with tool calling | **live** |
 | `muse-spark-1.3-contributor` | Background agents (optimizer, summarizer), spend-capped | **live** |
 | `muse-wonder-1.0` | Planner and orchestrator agent | **live** |
 | `muse-voice-transcribe-1.0` | Realtime speech-in over Meta's streaming websocket | **live** |
@@ -58,24 +60,29 @@ Every model id, endpoint, price, rate limit and role binding lives in one file, 
 - **Consent first.** Sensors are default-deny per source; no raw audio, screen pixels or keystroke content is ever stored.
 - **What Humanflow is not.** It does not give medical, mental-health or wellbeing advice, and it does not profile personality. Its suggestions are about how time is spent, each backed by your own measurements.
 
-## Quick start (Linux or macOS)
+## Quick start
+
+Stretto alone (Python 3.8+, nothing to download): `sh apps/stretto/install.sh` on macOS or Linux, `.\apps\stretto\install.ps1` on Windows. It opens http://127.0.0.1:8760. Put your Meta key in `apps/stretto/.env` as `MODEL_API_KEY=...` and accept the `meta-insights` notice to turn on Meta suggestions; see [`apps/stretto/README.md`](apps/stretto/README.md).
+
+Stretto with the Humanflow backend (voice, leaks, agents), on Linux or macOS:
 
 ```bash
-git clone https://github.com/iamdrewfortini/humanflow && cd humanflow
+git clone https://github.com/iamdrewfortini/stretto && cd stretto
 python3 -m pip install websockets==15.0.1     # the only third-party dependency of the runtime
 cp .env.example .env && chmod 600 .env         # then set MODEL_API_KEY (Meta Model API dashboard)
 python3 scripts/env_check.py                   # proves the env file is private and the boundary is local
-scripts/gateway.sh start                       # gateway, voice bridge and agents in one process
-# open http://127.0.0.1:8787/ (voice) and http://127.0.0.1:8787/dashboard
+(cd apps/stretto && sh run.sh &)               # Stretto server on 127.0.0.1:8760
+scripts/gateway.sh start                       # Humanflow gateway, voice bridge and agents in front of it
+# open http://127.0.0.1:8787  (Stretto, with Talk and Leaks live)
 ```
 
-Running the gateway on another machine? Forward both ports and use the same URLs: `ssh -N -L 8787:127.0.0.1:8787 -L 8788:127.0.0.1:8788 <host>`. Browsers treat `127.0.0.1` as a secure origin, so the microphone works.
+Running on another machine? Forward both ports and use the same URL: `ssh -N -L 8787:127.0.0.1:8787 -L 8788:127.0.0.1:8788 <host>`. Browsers treat `127.0.0.1` as a secure origin, so the microphone works.
 
-Tests: `python3 scripts/run_all_tests.py` · claims: `python3 scripts/verify_claims.py` · design: [`docs/spec/VOICE-RUNTIME-SPEC.md`](docs/spec/VOICE-RUNTIME-SPEC.md).
+Tests: `python3 scripts/run_all_tests.py` (Humanflow) and `cd apps/stretto && python3 -m unittest discover -s tests -t .` (Stretto) · claims: `python3 scripts/verify_claims.py` · design: [`docs/spec/VOICE-RUNTIME-SPEC.md`](docs/spec/VOICE-RUNTIME-SPEC.md).
 
 ## How it fits together
 
-Browser mic → voice bridge → Meta realtime transcription → **fast path** (local) or **voice core** (Muse Spark with tools) → ledger tools → event bus → dashboard and background agents (Muse Wonder planner, contributor-tier optimizer and summarizer). Every step is one event in an append-only log, so state rebuilds exactly from the log.
+One address, `127.0.0.1:8787`. The Humanflow gateway answers `/v1/*` (Meta models by role, voice turns, the event stream, sensor ingest) and passes every other path to the Stretto server on loopback, so Stretto's pages, `/api` and live stream are unchanged. Talk streams the microphone to the voice bridge, which uses Meta's realtime transcription, answers common commands locally and sends the rest to Muse Spark with ledger tools. Every change is one event in an append-only log; the leak loop recomputes leaks, ranked changes, level and forecast on each one, and the Leaks page draws them.
 
 ## Built with Meta
 
@@ -85,7 +92,7 @@ How it was built, honestly: most of the code was written with an AI coding assis
 
 ## Contributing
 
-Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). Licensed under [Apache-2.0](LICENSE).
+Issues and pull requests are welcome for both parts: see [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). Licensed under [Apache-2.0](LICENSE).
 
 ---
 
