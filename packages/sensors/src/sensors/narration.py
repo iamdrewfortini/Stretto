@@ -25,10 +25,25 @@ def _dur(seconds):
     return f"{m} min" if m >= 1 else f"{int(seconds)} s"
 
 
+def rank_suggestions(candidates):
+    """Owner ranking rule (spec, 2026-11-04): largest time won back
+    per cost to adopt first. A candidate without BOTH numbers is
+    never shown. Cost is minutes of effort plus money (money folded
+    in by the caller as adopt_cost_min equivalents)."""
+    ok = [c for c in candidates
+          if c.get("won_back_min_week") is not None
+          and c.get("adopt_cost_min")]
+    return sorted(ok, key=lambda c: c["won_back_min_week"]
+                  / c["adopt_cost_min"], reverse=True)
+
+
 class Narrator:
-    def __init__(self, suggestion_gap_s=300.0, phrase=None):
+    def __init__(self, suggestion_gap_s=300.0, phrase=None,
+                 switch_cost_s=None, adopt_cost_min=5.0):
         self.gap = suggestion_gap_s
         self.phrase = phrase
+        self.switch_cost_s = switch_cost_s  # owner-calibrated; None = uncalibrated
+        self.adopt_cost_min = adopt_cost_min
         self._last_suggestion = None
 
     def log_line(self, ep):
@@ -60,11 +75,22 @@ class Narrator:
             return None
         spm = metrics10["switches_per_min"]
         if spm > SWITCH_THRESHOLD:
+            if self.switch_cost_s is None:
+                return None  # uncalibrated: no won-back number, no show
+            won_min_week = round(metrics10["switches"] * 6 * 5
+                                 * self.switch_cost_s / 60.0, 1)
+            cand = {"won_back_min_week": won_min_week,
+                    "adopt_cost_min": self.adopt_cost_min}
+            if not rank_suggestions([cand]):
+                return None
             text = (f"{metrics10['switches']} switches in 10 min; "
                     "mute comms for 25 min?")
             ev = {"type": "narration.suggestion", "data": {
                 "text": self._maybe_phrase(text, f"switches={metrics10['switches']}"),
-                "evidence": f"switches_per_min={spm} over 600s"}}
+                "evidence": f"switches_per_min={spm} over 600s",
+                "won_back_min_week": won_min_week,
+                "adopt_cost_min": self.adopt_cost_min,
+                "rank_score": round(won_min_week / self.adopt_cost_min, 2)}}
             self._last_suggestion = float(now)
             return ev
         if metrics10["idle_ratio"] > 0.5:

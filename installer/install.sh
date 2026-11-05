@@ -59,6 +59,9 @@ verify_bundle() {
   [ -f "$BUNDLE/SHA256SUMS" ] || die "SHA256SUMS missing from the bundle"
   (cd "$BUNDLE" && sha256sum --check --quiet SHA256SUMS) || die "checksum verification FAILED: the bundle is damaged or modified"
   log "checksums OK ($(wc -l < "$BUNDLE/SHA256SUMS") files)"
+  if [ -f "$BUNDLE/scripts/why_check.py" ]; then
+    "$PYTHON" "$BUNDLE/scripts/why_check.py" "$BUNDLE" || die "why-check FAILED: bundle no longer carries The Why"
+  fi
   if [ -f "$BUNDLE/SHA256SUMS.sig" ]; then
     [ -n "$SIGNERS" ] || die "this bundle is signed; pass --allowed-signers FILE to verify it"
     ssh-keygen -Y verify -f "$SIGNERS" -I metacoh-release -n file -s "$BUNDLE/SHA256SUMS.sig" < "$BUNDLE/SHA256SUMS" > /dev/null || die "signature verification FAILED"

@@ -209,14 +209,19 @@ class Ingest(unittest.TestCase):
 class NarrationRules(unittest.TestCase):
     def test_suggestion_cadence_and_streak(self):
         from sensors.narration import Narrator
-        n = Narrator()
+        n = Narrator(switch_cost_s=30.0)
         hot = {"switches": 11, "switches_per_min": 1.1, "idle_ratio": 0.0}
         self.assertIsNone(n.suggest(hot, 1000.0, in_streak=True))
         ev = n.suggest(hot, 1000.0, in_streak=False)
         self.assertIn("11 switches", ev["data"]["text"])
         self.assertIn("switches_per_min", ev["data"]["evidence"])
         self.assertIsNone(n.suggest(hot, 1100.0, in_streak=False))
-        self.assertIsNotNone(n.suggest(hot, 1400.0, in_streak=False))
+        ev2 = n.suggest(hot, 1400.0, in_streak=False)
+        self.assertIsNotNone(ev2)
+        self.assertIn("won_back_min_week", ev2["data"])
+        self.assertIn("adopt_cost_min", ev2["data"])
+        from sensors.narration import Narrator as N2
+        self.assertIsNone(N2().suggest(hot, 1000.0, in_streak=False))
 
 
 class Registry(unittest.TestCase):

@@ -127,6 +127,12 @@ form.turn button {
   color: #fff; background: var(--accent);
   border: 1px solid var(--accent); border-radius: 0.4rem; padding: 0.45rem 0.8rem;
 }
+#attention-timeline { display: flex; height: 14px; overflow: hidden; margin: 0.4rem 0; }
+.att-seg { height: 14px; flex: none; }
+.att-focus { background: #2f9e44; } .att-meeting { background: #1971c2; }
+.att-comms { background: #e8590c; } .att-search { background: #862e9c; }
+.att-wait { background: #868e96; } .att-admin { background: #fab005; }
+.att-other { background: #adb5bd; } .att-idle { background: #343a40; }
 #reply { margin-top: 0.5rem; overflow-wrap: anywhere; }
 #reply.err { color: var(--bad); }
 ol.plan { margin: 0.3rem 0 0.3rem 1.2rem; padding: 0; }
@@ -181,6 +187,19 @@ ol.plan li { margin: 0.15rem 0; overflow-wrap: anywhere; }
   <section class="card" aria-label="Timeline">
     <h2>Timeline</h2>
     <ul class="plain" id="timeline"></ul>
+  </section>
+  <section class="card" id="attention-panel" aria-label="Attention">
+    <h2>Attention</h2>
+    <div id="attention-gauges">
+      <span>Focus <b id="att-focus-ratio">–</b></span>
+      <span>Idle <b id="att-idle-ratio">–</b></span>
+      <span>Switches/min <b id="att-switches">–</b></span>
+      <span>Input/min <b id="att-input">–</b></span>
+    </div>
+    <div id="attention-timeline" role="img" aria-label="Episode timeline"></div>
+    <p id="attention-suggestion"></p>
+    <ul class="plain" id="attention-log"></ul>
+    <div id="attention-consent"></div>
   </section>
 </main>
 <script>
@@ -481,6 +500,43 @@ function handleEvent(ev) {
       state.plans.push({ order: d.order, next: d.next, rationale: d.rationale });
       renderAgents();
       break;
+    case "attention.metrics":
+      if (d.window_s === 600) {
+        document.getElementById("att-focus-ratio").textContent = Math.round(d.focus_ratio * 100) + "%";
+        document.getElementById("att-idle-ratio").textContent = Math.round(d.idle_ratio * 100) + "%";
+        document.getElementById("att-switches").textContent = String(d.switches_per_min);
+        document.getElementById("att-input").textContent = String(d.input_per_min);
+      }
+      break;
+    case "activity.episode": {
+      var bar = document.getElementById("attention-timeline");
+      var seg = document.createElement("div");
+      seg.className = "att-seg att-" + String(d.category || "other");
+      seg.style.width = Math.max(2, Math.min(120, d.seconds / 6)) + "px";
+      seg.title = String(d.app || "") + " " + String(d.category || "");
+      bar.appendChild(seg);
+      while (bar.children.length > 60) bar.removeChild(bar.firstChild);
+      break;
+    }
+    case "narration.log": {
+      var log = document.getElementById("attention-log");
+      var li = document.createElement("li");
+      li.textContent = String(d.text || "");
+      log.insertBefore(li, log.firstChild);
+      while (log.children.length > 20) log.removeChild(log.lastChild);
+      break;
+    }
+    case "narration.suggestion":
+      document.getElementById("attention-suggestion").textContent =
+        String(d.text || "") + (d.evidence ? " [" + String(d.evidence) + "]" : "");
+      break;
+    case "consent.changed": {
+      var strip = document.getElementById("attention-consent");
+      while (strip.firstChild) strip.removeChild(strip.firstChild);
+      strip.appendChild(document.createTextNode(
+        String(d.action || "changed") + ": " + (Array.isArray(d.sources) ? d.sources.join(", ") : "all")));
+      break;
+    }
     default:
       break; // unknown types feed the timeline only
   }
