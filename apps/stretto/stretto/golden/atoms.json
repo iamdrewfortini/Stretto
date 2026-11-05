@@ -1,0 +1,32 @@
+{
+ "dwell": {
+  "fragmented_share": 0.0,
+  "health": 0.6667,
+  "median_s": 600
+ },
+ "health": [
+  1.0,
+  0.6667,
+  0.4667,
+  1.0,
+  1.0
+ ],
+ "idle_gap": {
+  "health": 1.0,
+  "idle_share": 0.0
+ },
+ "onset": {
+  "concentration": 1.0,
+  "health": 1.0,
+  "starts": 5
+ },
+ "recurrence": {
+  "health": 1.0,
+  "loss_min": 7,
+  "repeated_share": 0.0
+ },
+ "transition": {
+  "health": 0.4667,
+  "switches_per_hour": 4.0
+ }
+}

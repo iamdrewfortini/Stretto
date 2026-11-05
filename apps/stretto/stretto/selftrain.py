@@ -11,7 +11,7 @@ import json
 import math
 import time
 
-from . import embedder, folding, honeycomb, topics
+from . import atoms, embedder, folding, honeycomb, topics
 
 SCALES = (2, 3, 4, 6, 8)
 FOLDS = (0.25, 0.30, 0.35)
@@ -82,6 +82,7 @@ def run(store, api):
     if adopted:
         store.set_setting("honeycomb_scale", best_scale)
     w = learn_terms(store, api)
+    atom_w = learn_atoms(store, api)
     # re-embed with learned weights so the stored geometry reflects them, then fold + compact with learned threshold
     embedder.set_weights(w)
     items = folding.embed_all(store, api)
@@ -93,9 +94,26 @@ def run(store, api):
     h = hashlib.sha256((prev + json.dumps(rec, sort_keys=True)).encode()).hexdigest()
     store.x("INSERT INTO train_log(ts,items,scale,fold,before,after,adopted,hash) VALUES(?,?,?,?,?,?,?,?)",
             (rec["ts"], rec["items"], best_scale, cur_fold, before, best_score, adopted, h))
-    return dict(trained=True, items=len(items), scale_before=cur_scale, scale_after=best_scale,
+    return dict(trained=True, items=len(items), atom_weights=atom_w, scale_before=cur_scale, scale_after=best_scale,
                 objective_before=before, objective_after=best_score, adopted=bool(adopted),
                 terms_learned=len(w), buckets=len(folded), hash=h[:16])
+
+
+def learn_atoms(store, api):
+    """Balance the five time-atoms against the last 7 measured days (Hedge, one step per day, oldest first)."""
+    import datetime as _dt
+    w = [float(x) for x in str(store.setting("atom_weights", "")).split(",") if x] or list(atoms.DEFAULT_WEIGHTS)
+    if len(w) != 5:
+        w = list(atoms.DEFAULT_WEIGHTS)
+    today = _dt.date.today()
+    for n in range(6, -1, -1):
+        d = api.day((today - _dt.timedelta(days=n)).isoformat())
+        if not d["summary"].get("total_s"):
+            continue
+        m = atoms.measure(d["blocks"], d["transitions"])
+        w = atoms.hedge_update(w, m["health"], min(1.0, d["loss_s"] / max(1, d["summary"]["total_s"])))
+    store.set_setting("atom_weights", ",".join(str(x) for x in w))
+    return w
 
 
 def log(store):

@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from stretto import ants, calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, lattice, meta, predict, selftrain, topics, tricache, voicetree
+from stretto import ants, atoms, bond, calendars, challenges, coach, coherence, consent, embedder, folding, gamify, graphmap, honeycomb, kvcache, lattice, meta, predict, selftrain, topics, tricache, voicetree
 from stretto.store import Store
 
 FACTS = dict(date="2026-11-04", active_minutes=400, focus_minutes=240, distraction_minutes=60, idle_minutes=60,
@@ -233,6 +233,33 @@ class TricacheAnts(unittest.TestCase):
         self.assertEqual(a1, a2)
         self.assertTrue(a1["circuit"])
         self.assertTrue(a1["pheromone"])
+
+
+class Atoms(unittest.TestCase):
+    def test_five_atoms_health_and_energy_leak(self):
+        m = atoms.measure([dict(b) for b in [
+            dict(app="Code", domain="", category="Build", seconds=600, start=1700000000, end=1700000600),
+            dict(app="slack", domain="", category="Communication", seconds=60, start=1700000600, end=1700000660),
+            dict(app="Code", domain="", category="Build", seconds=1200, start=1700000660, end=1700001860)]])
+        self.assertEqual(len(m["health"]), 5)
+        self.assertTrue(all(0.0 <= h <= 1.0 for h in m["health"]))
+        self.assertGreaterEqual(atoms.leak(m), 0.0)
+        w = atoms.hedge_update(atoms.DEFAULT_WEIGHTS, m["health"], 0.2)
+        self.assertAlmostEqual(sum(w), 1.0, places=5)
+        self.assertEqual(lattice.golden("atoms")["dwell"]["median_s"], 600)
+
+
+class Bond(unittest.TestCase):
+    def test_bond_seals_and_tamper_breaks_auth_lock(self):
+        s = Store(":memory:")
+        rec = bond.ensure(s, "tok-secret-123")
+        self.assertEqual(bond.ensure(s, "tok-secret-123")["id"], rec["id"])  # permanent: one bond per install
+        v = bond.verify(s, "tok-secret-123")
+        self.assertEqual(v["locks"]["auth"], "sealed")
+        self.assertIn(v["state"], ("PRESSURIZED", "SEALED"))
+        bad = bond.verify(s, "wrong-token")
+        self.assertEqual(bad["locks"]["auth"], "FAILED")
+        self.assertEqual(bad["state"], "OPEN")
 
 
 class StaticCaching(unittest.TestCase):

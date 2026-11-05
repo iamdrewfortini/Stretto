@@ -12,7 +12,7 @@ import socket
 import sys
 import tempfile
 
-COMMANDS = {"serve", "doctor", "accept", "revoke", "backup"}
+COMMANDS = {"serve", "doctor", "accept", "revoke", "backup", "bond"}
 
 
 def _args(argv):
@@ -58,12 +58,16 @@ def serve(a):
     import threading
     from .server import make_server
     store = _store(a)
-    srv, tok = make_server(store, a.port, token=load_token(a.data), host=a.host, allow_hosts=a.allow_host)
+    _tok = load_token(a.data)
+    from . import bond as _bond
+    _b = _bond.ensure(store, _tok)   # install-time fusion: gateway, client and agent bonded to one permanent record
+    srv, tok = make_server(store, a.port, token=_tok, host=a.host, allow_hosts=a.allow_host)
     from . import meta
     mode = "REMOTE (token on every API call)" if a.host not in ("127.0.0.1", "localhost") else "loopback only"
     d = store.durability()
     print(f"Stretto on http://{a.host}:{srv.server_address[1]}  [{mode}]  data: {a.data}  Meta models: {meta.mode() or 'not configured (see: doctor)'}"
           f"  durability: {d['journal_mode']}/{d['synchronous']}/fullfsync={'on' if d['fullfsync'] else 'off'}", flush=True)
+    print(f"Bond {_b['id']} (hashes only; no secret stored) — check locks any time: python3 -m stretto bond", flush=True)
     # SIGTERM (kill, service managers) and Ctrl-C both end in a clean shutdown: checkpoint the log into the database file, then close.
     signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=srv.shutdown, daemon=True).start())
     try:
@@ -199,7 +203,14 @@ def main(argv=None):
     a = _args(argv)
     from . import meta
     meta.load_env(a.data)
-    code = {"serve": serve, "doctor": doctor, "accept": accept, "revoke": revoke, "backup": backup}[a.command](a)
+    def _bond_cmd(a):
+        import json as _j
+        from . import bond as _b
+        store = _store(a)
+        rec = _b.ensure(store, load_token(a.data))
+        print(_j.dumps(_b.verify(store, load_token(a.data)), indent=1))
+        return 0
+    code = {"serve": serve, "doctor": doctor, "accept": accept, "revoke": revoke, "backup": backup, "bond": _bond_cmd}[a.command](a)
     sys.exit(code or 0)
 
 

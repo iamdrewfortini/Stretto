@@ -40,6 +40,8 @@ applyTheme(); matchMedia('(prefers-color-scheme: light)').addEventListener?.('ch
 
 const ctx = () => { const d = query('d', today_iso()); return { date: d, isToday: d === today_iso() }; };
 const live = h('span', { class: 'live', role: 'status', 'aria-live': 'polite' });
+const bondPill = h('span', { class: 'pill', title: 'Install bond: gateway, client and agent locks at every lattice layer' }, '⬢ Bond …');
+api.get('/api/bond').then((b) => { bondPill.textContent = `⬢ Bond ${b.pressure}% ${String(b.state).toLowerCase()}`; bondPill.title = Object.entries(b.locks).map(([k, v]) => `${k}: ${v}`).join(' · '); }).catch(() => { bondPill.textContent = '⬢ Bond unknown'; });
 const main = h('main', { id: 'main', class: 'main', tabindex: '-1' });
 const dateLabel = h('span', { class: 'nowrap', style: { minWidth: '9ch', textAlign: 'center' } });
 
@@ -134,7 +136,7 @@ const shell = h('div', { class: 'shell' },
   h('aside', { class: 'side' }, h('div', { class: 'brand' }, logo(32), h('div', {}, h('b', {}, 'Stretto'), h('small', {}, 'time, tightened'))), nav,
     h('div', { class: 'side-foot' }, h('button', { class: 'btn', onclick: () => palette(cmds()) }, icon('search', 16), 'Command', h('kbd', {}, '⌘K')))),
   h('header', { class: 'top' }, session, datePicker = h('div', { class: 'row' }, h('button', { class: 'icon-btn', 'aria-label': 'Previous day', onclick: () => step(-1) }, icon('left')), dateLabel,
-    h('button', { class: 'icon-btn', 'aria-label': 'Next day', onclick: () => step(1) }, icon('right'))), h('div', { class: 'grow' }), live, themeBtn),
+    h('button', { class: 'icon-btn', 'aria-label': 'Next day', onclick: () => step(1) }, icon('right'))), h('div', { class: 'grow' }), bondPill, live, themeBtn),
   main);
 clear(document.getElementById('app')).append(loadbar, shell, guideBar); document.getElementById('app').classList.remove('boot');
 mountCallBar(shell);   // the floating call pill lives in the shell, outside the page container

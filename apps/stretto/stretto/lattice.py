@@ -48,6 +48,8 @@ DEFS = {
                     invariant="row sums == range hours_focus totals", source="reports heatmap over Api.range"),
     "paths_field": dict(shape="(P) radial nodes sized by minutes + (P,P) edge widths by transition count", axes=["place", "place"], dtype="float",
                         invariant="node radius ∝ minutes; edge width ∝ count; highlight = one finding's places", source="charts/wave.field (backend evidence view)"),
+    "atom_balance": dict(shape="(5) [onset, dwell, transition, idle_gap, recurrence] health + (5) learned Hedge weights",
+                         axes=["atom"], dtype="float", invariant="health in [0,1]; weights sum to 1; leak = active_min x weighted ill-health", source="atoms.measure/hedge_update"),
     "pheromone": dict(shape="(P,P) pheromone over measured transitions, seeded 1.0, evaporates 12%/generation",
                       axes=["src place", "dst place"], dtype="float", invariant="deterministic for seed=7; strongest trail = optimized circuit", source="ants.simulate"),
     "dna_supercells": dict(shape="2x2 DNA matrix per supercell: [[first cell, count],[cohesion, variance]] + centroid",

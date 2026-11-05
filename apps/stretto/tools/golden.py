@@ -9,7 +9,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from stretto import analyze, challenges, coach, embedder, honeycomb, lattice, predict, segment  # noqa: E402
+from stretto import analyze, atoms, challenges, coach, embedder, honeycomb, lattice, predict, segment  # noqa: E402
 
 T0 = 1_700_000_000
 BLOCKS = [dict(app="Code", title="x", domain="", category="Build", seconds=600, start=T0, end=T0 + 600),
@@ -42,6 +42,7 @@ def datasets():
         "coach_ramp": coach.plan(dict(best_window=dict(start_hour=9, end_hour=12, avg_focus_s=3600)), 40, 200),
         "predict_next": predict.next_places(d["transitions"], "code"),
         "philosophy": lattice.PRINCIPLES,
+        "atoms": atoms.measure(BLOCKS),
     }
 
 

@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import analyze, ants, attention, bundle, calendars, challenges, coach, coherence, consent, lattice, predict, selftrain, tricache, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
+from . import analyze, ants, atoms, attention, bond, bundle, calendars, challenges, coach, coherence, consent, lattice, predict, selftrain, tricache, daycache, demo, enroll, events, folding, gamify, graphmap, honeycomb, insights, merge, meta, patterns, segment, topics, voicetree
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 MAX_BODY = 8_000_000   # an agent's catch-up batch can be large; 8 MB is far above a real batch and far below abuse
@@ -428,6 +428,17 @@ class Handler(BaseHTTPRequestHandler):
             for b in day.get("blocks", []):
                 cat_of.setdefault(b.get("domain") or (b.get("app") or "").lower().removesuffix(".exe"), b["category"])
             return self._send(200, ants.simulate(day["transitions"], cat_of))
+        if (method, path) == ("GET", "/api/bond"):
+            return self._send(200, bond.verify(s, self.token, remote=self.remote))
+        if (method, path) == ("GET", "/api/atoms"):
+            day = a.day(q.get("date"))
+            m = atoms.measure(day["blocks"], day["transitions"])
+            w = [float(x) for x in str(s.setting("atom_weights", "")).split(",") if x] or list(atoms.DEFAULT_WEIGHTS)
+            ill = atoms.leak(m, w)
+            active = round(day["summary"]["total_s"] / 60)
+            return self._send(200, dict(date=day["date"], atoms=m, weights=dict(zip(atoms.NAMES, w)),
+                                        energy=dict(active_min=active, leak_min=round(active * ill), leak_ratio=ill,
+                                                    leak_per_hour=round(active * ill / max(1.0, day["summary"]["total_s"] / 3600), 1))))
         if (method, path) == ("GET", "/api/predict"):
             day = a.day(q.get("date")); pat = a.patterns(90)
             ch = challenges.group([day]) if day["summary"]["total_s"] else dict(challenges=[])
